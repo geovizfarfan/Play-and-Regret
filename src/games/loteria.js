@@ -633,4 +633,65 @@ module.exports = {
     return message.reply({ embeds: [new EmbedBuilder().setColor('#C9B1FF')
       .setTitle('<a:mexicoflag:1511506713755516961> Lotería Rules').setDescription(this.getRulesText())] });
   },
+  async handleButton(interaction) {
+    const id = interaction.customId;
+    const channelId = interaction.channel.id;
+    const g = activeGames.get(channelId);
+
+    // My Board button (from card draw messages)
+    if (id.startsWith('lot_view_')) {
+      if (!g) return interaction.reply({ content: 'No active game.', ephemeral: true });
+      if (!g.players.has(interaction.user.id))
+        return interaction.reply({ content: 'You are not in this game!', ephemeral: true });
+      return interaction.reply(await buildBoardMsg(g.players.get(interaction.user.id), g.drawnCards, g.mode === 'manual'));
+    }
+
+    // Manual card selection
+    if (id.startsWith('lot_sel_')) {
+      if (!g || g.phase !== 'playing' || g.mode !== 'manual')
+        return interaction.reply({ content: 'This only works in Manual mode!', ephemeral: true });
+      if (!g.players.has(interaction.user.id))
+        return interaction.reply({ content: 'You are not in this game!', ephemeral: true });
+
+      const idx  = parseInt(id.replace('lot_sel_', ''));
+      const pd   = g.players.get(interaction.user.id);
+      const card = pd.board[idx];
+
+      if (pd.marked.has(idx))
+        return interaction.reply({ content: 'Already marked!', ephemeral: true });
+      if (!g.drawnCards.some(d => d.n === card.n))
+        return interaction.reply({ content: `**${card.emoji} ${card.name}** hasn't been called yet!`, ephemeral: true });
+
+      pd.marked.add(idx);
+      const win = checkWin(pd.marked);
+
+      if (win) {
+        clearInterval(g.interval);
+        g.phase = 'finished';
+        const pot = g.bet * g.players.size;
+        activeGames.delete(channelId);
+        await economy.addFunds(interaction.user.id, pot, 'Lotería win');
+        await economy.untrackGameChannel(channelId).catch(() => {});
+        await stats.increment(interaction.user.id, 'loteria_wins');
+        for (const [uid] of g.players)
+          if (uid !== interaction.user.id) await stats.increment(uid, 'loteria_losses');
+
+        await interaction.reply({
+          embeds: [new EmbedBuilder().setColor('#C9B1FF')
+            .setTitle('🏆 ¡LOTERÍA! You won!')
+            .setDescription(renderGrid(pd.board, pd.marked, g.drawnCards))
+            .setFooter({ text: `+${pot.toLocaleString()} sins added to your balance!` })],
+          ephemeral: true,
+        });
+        return interaction.channel.send({ embeds: [new EmbedBuilder().setColor('#C9B1FF')
+          .setTitle('🏆 ¡LOTERÍA!')
+          .setDescription(`🏆 <@${interaction.user.id}> wins with a **${win}**!\n${E.BB_COIN} Prize: **${pot.toLocaleString()} sins**!`)
+          .setFooter({ text: '¡Felicidades! 🏆' })] });
+      }
+
+      return interaction.reply(await buildBoardMsg(pd, g.drawnCards, true));
+    }
+  },
+
+
 };

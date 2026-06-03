@@ -430,6 +430,9 @@ client.on('interactionCreate', async (interaction) => {
         interaction.customId.startsWith('sins_rich_join:')) {
       return jackpotModule.handleButton(interaction);
     }
+    if (interaction.customId.startsWith('lot_')) {
+      return loteriaModule.handleButton(interaction);
+    }
     return;
   }
   if (!interaction.isChatInputCommand()) return;
