@@ -99,7 +99,6 @@ async function renderBoardImage(board, markedSet, username) {
 
     const cardResults = await Promise.all(cardTasks);
     for (const r of cardResults) composites.push(...r);
-    {
 
     // Title SVG
     const titleSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${titleH}">
