@@ -1335,15 +1335,15 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
       `Welcome to the most disrespectful arena in existence.\n` +
       `Join the fight. Gain power. Collect weapons. Or get eliminated in the most embarrassing way possible.\n\n` +
       `<:Sins:1478993005187698789> Entry fee: **${bet} sins**\n` +
-      (eraKey && eraKey !== 'default' ? `✨ **Era: ${era.name || eraKey}**\n` : '') +
+      (eraKey && eraKey !== 'default' ? `<a:sparkle:1511506717584920696> Era: **${era.name || eraKey}**\n` : '') +
       (gameMode === 'staffvsmembers' ? `⚔️ **Mode: Staff vs Members** — teams auto-assigned\n` : '') +
       ((gameMode === 'rolevrole' || gameMode === 'rolevs' || gameMode === 'rolevroле') && roleAId && roleBId ? `⚔️ **Mode: Role vs Role** — <@&${roleAId}> vs <@&${roleBId}>\n` : '') +
       (roleRestrict ? `🔒 **Restricted:** <@&${roleRestrict}> members only\n` : '') +
       `${tsUnix ? `⏰ **Starts:** <t:${tsUnix}:F> (<t:${tsUnix}:R>)` : '<a:purplesparkle:1479210541691175054> Host will start manually with `!rumble`'}\n\n` +
       `*Most of you will lose. Loudly.*`
     )
-    .addFields({ name: '<a:purplecheck:1478983961450643538> Signed Up', value: '**0** players' })
-    .setFooter({ text: `Min ${MIN_PLAYERS} players • !rsjoin to enter • Host: ${hostName} • !rumble to start` });
+    .addFields({ name: '<:member:1495666085121491024> Signed Up', value: '**0** players' })
+    .setFooter({ text: `Min ${MIN_PLAYERS} players • !rsjoin to enter • /addbounty to add bounties` });
 
   const btn = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
