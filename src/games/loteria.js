@@ -331,7 +331,9 @@ module.exports = {
           if (!g) return inter.reply({ content: 'No active game.', ephemeral: true });
           if (!g.players.has(inter.user.id))
             return inter.reply({ content: `${E.ERROR} You haven't joined yet! Press **🎴 Join** first.`, ephemeral: true });
-          return inter.reply(await buildBoardMsg(g.players.get(inter.user.id), g.drawnCards, g.mode === 'manual'));
+          await inter.deferReply({ ephemeral: true });
+          const msg = await buildBoardMsg(g.players.get(inter.user.id), g.drawnCards, g.mode === 'manual');
+          return inter.editReply(msg);
         }
 
         // Join
@@ -644,7 +646,9 @@ module.exports = {
       if (!g) return interaction.reply({ content: 'No active game.', ephemeral: true });
       if (!g.players.has(interaction.user.id))
         return interaction.reply({ content: 'You are not in this game!', ephemeral: true });
-      return interaction.reply(await buildBoardMsg(g.players.get(interaction.user.id), g.drawnCards, g.mode === 'manual'));
+      await interaction.deferReply({ ephemeral: true });
+      const msg = await buildBoardMsg(g.players.get(interaction.user.id), g.drawnCards, g.mode === 'manual');
+      return interaction.editReply(msg);
     }
 
     // Manual card selection
