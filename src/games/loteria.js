@@ -7,6 +7,8 @@ const { economy, stats } = require('../../utils/database');
 const E = require('../../utils/emojis');
 const jackpot = require('../../utils/jackpot');
 
+const CARD_IMAGES = Object.fromEntries(Array.from({length: 54}, (_, i) => [i+1, require('path').join(__dirname, '../../loteria_cache', `${i+1}.png`)]));
+
 // ─── Cards ────────────────────────────────────────────────────────────────────
 const LOTERIA_CARDS = [
   { name:'El Gallo',       emoji:'🐓', n:1  }, { name:'El Diablito',    emoji:'😈', n:2  },
