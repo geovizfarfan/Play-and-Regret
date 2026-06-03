@@ -580,6 +580,7 @@ module.exports = {
     clearTimeout(game.startTimer);
     game.phase = 'cancelled';
     activeGames.delete(channelId);
+    await economy.untrackGameChannel(channelId).catch(() => {});
 
     for (const [uid] of game.players)
       await economy.addFunds(uid, game.bet, 'Lotería cancelled — refund');
