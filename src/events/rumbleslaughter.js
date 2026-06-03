@@ -1329,7 +1329,7 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
   const tsUnix = fireAt ? Math.floor(fireAt.getTime() / 1000) : null;
   const embed  = new EmbedBuilder()
     .setColor('#CC0000')
-    .setTitle('<:sword:1495666991187361943> RUMBLE SLAUGHTER: YOU THOUGHT YOU ATE <a:fire1:1495666086534844516>')
+    .setTitle('<:sword:1495666991187361943> RUMBLE SLAUGHTER: You Thought You Ate <:sword:1495666991187361943>')
     .setDescription(
       `**${hostName}** opened the arena.\n\n` +
       `Welcome to the most disrespectful arena in existence.\n` +
