@@ -151,6 +151,26 @@ function renderGrid(board, marked, drawnCards) {
 }
 
 // Build ephemeral board message with rendered image
+function buildSelectButtons(board, marked, drawnCards) {
+  const rows = [];
+  for (let r = 0; r < 4; r++) {
+    const row = new ActionRowBuilder();
+    for (let c = 0; c < 4; c++) {
+      const i = r * 4 + c;
+      const card = board[i];
+      const called = drawnCards.some(d => d.n === card.n);
+      const isMarked = marked.has(i);
+      const btn = new ButtonBuilder()
+        .setCustomId(`lot_sel_${i}`)
+        .setLabel(card.name.replace('El ','').replace('La ','').replace('Las ','').slice(0,20))
+        .setStyle(isMarked ? ButtonStyle.Success : called ? ButtonStyle.Primary : ButtonStyle.Secondary)
+        .setDisabled(isMarked);
+      row.addComponents(btn);
+    }
+    rows.push(row);
+  }
+  return rows;
+}
 async function buildBoardMsg(pd, drawnCards, isManual = false) {
   const recent = drawnCards.slice(-5).map(c => `${c.emoji} ${c.name}`).join(' · ') || 'None yet';
   const attachment = await renderBoardImage(pd.board, pd.marked, pd.username);
