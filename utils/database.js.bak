@@ -1,0 +1,394 @@
+/**
+ * utils/database.js
+ * ─────────────────────────────────────────────────────────────────────────────
+ * PostgreSQL database layer for Throw First Ask Later.
+ * Exports: { db, economy, stats, initDB }
+ *
+ *  db       — raw query helper  { get, all, run, exec }
+ *  economy  — balance / funds / daily
+ *  stats    — per-user game stats
+ *  initDB   — creates all tables (called once on startup)
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+const { Pool } = require('pg');
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL && process.env.DATABASE_URL.includes('railway')
+    ? { rejectUnauthorized: false }
+    : false,
+});
+
+// ─── Raw query helpers ────────────────────────────────────────────────────────
+// Mirrors the sqlite3 async API used across the codebase so files need minimal changes.
+
+const db = {
+  /** Returns the first matching row, or null. */
+  async get(sql, params = []) {
+    const { rows } = await pool.query(toPostgres(sql), params);
+    return rows[0] || null;
+  },
+
+  /** Returns all matching rows. */
+  async all(sql, params = []) {
+    const { rows } = await pool.query(toPostgres(sql), params);
+    return rows;
+  },
+
+  /**
+   * Runs an INSERT/UPDATE/DELETE.
+   * Returns { rowCount, lastInsertRowid } where lastInsertRowid is the
+   * id of the last inserted row (only reliable after INSERT … RETURNING id).
+   */
+  async run(sql, params = []) {
+    // Auto-append RETURNING id for INSERT statements that don't already have it
+    let q = toPostgres(sql);
+    if (/^\s*INSERT/i.test(q) && !/RETURNING/i.test(q)) q += ' RETURNING id';
+    const { rows, rowCount } = await pool.query(q, params);
+    return { rowCount, lastInsertRowid: rows[0]?.id ?? null };
+  },
+
+  /** Runs multiple semicolon-separated statements (for CREATE TABLE blocks). */
+  async exec(sql) {
+    await pool.query(sql);
+  },
+};
+
+/** Converts SQLite ? placeholders to PostgreSQL $1 $2 … */
+function toPostgres(sql) {
+  let i = 0;
+  return sql.replace(/\?/g, () => `$${++i}`);
+}
+
+// ─── Economy ──────────────────────────────────────────────────────────────────
+const economy = {
+  /** Ensures a user row exists. Returns the row. */
+  async getUser(userId, username) {
+    await db.run(
+      `INSERT INTO users (user_id, username) VALUES (?, ?)
+       ON CONFLICT (user_id) DO UPDATE SET username = EXCLUDED.username`,
+      [userId, username]
+    );
+    return db.get('SELECT * FROM users WHERE user_id = ?', [userId]);
+  },
+
+  async getBalance(userId) {
+    const row = await db.get('SELECT balance FROM users WHERE user_id = ?', [userId]);
+    return row ? row.balance : 0;
+  },
+
+  async addFunds(userId, amount, reason = '') {
+    await db.run(
+      `UPDATE users
+       SET balance = balance + ?,
+           total_earned = total_earned + ?
+       WHERE user_id = ?`,
+      [amount, amount, userId]
+    );
+    await db.run(
+      'INSERT INTO transactions (user_id, amount, reason) VALUES (?, ?, ?)',
+      [userId, amount, reason]
+    );
+  },
+
+  /** Returns false if the user doesn't have enough. */
+  async removeFunds(userId, amount, reason = '') {
+    const bal = await this.getBalance(userId);
+    if (bal < amount) return false;
+    await db.run(
+      `UPDATE users
+       SET balance = balance - ?,
+           total_spent = total_spent + ?
+       WHERE user_id = ?`,
+      [amount, amount, userId]
+    );
+    await db.run(
+      'INSERT INTO transactions (user_id, amount, reason) VALUES (?, ?, ?)',
+      [userId, -amount, reason]
+    );
+    return true;
+  },
+
+  async setFunds(userId, amount) {
+    await db.run('UPDATE users SET balance = ? WHERE user_id = ?', [amount, userId]);
+  },
+
+  /** Transfer oops between two users atomically. Returns false on insufficient funds. */
+  async transfer(fromId, toId, amount, reason = '') {
+    const bal = await this.getBalance(fromId);
+    if (bal < amount) return false;
+    await db.run(
+      'UPDATE users SET balance = balance - ?, total_spent = total_spent + ? WHERE user_id = ?',
+      [amount, amount, fromId]
+    );
+    await db.run(
+      'UPDATE users SET balance = balance + ?, total_earned = total_earned + ? WHERE user_id = ?',
+      [amount, amount, toId]
+    );
+    return true;
+  },
+
+  /** Daily reward — 24h cooldown, returns { success, amount, hours, minutes, reason }. */
+  async claimDaily(userId) {
+    const row = await db.get('SELECT last_daily, daily_streak FROM users WHERE user_id = ?', [userId]);
+    if (!row) return { success: false, reason: 'no_user' };
+
+    const now  = Date.now();
+    const last = row.last_daily ? new Date(row.last_daily).getTime() : 0;
+    const diff = now - last;
+    const cooldown = 24 * 60 * 60 * 1000;
+
+    if (diff < cooldown) {
+      const remaining = cooldown - diff;
+      return {
+        success: false,
+        reason: 'cooldown',
+        hours:   Math.floor(remaining / 3_600_000),
+        minutes: Math.floor((remaining % 3_600_000) / 60_000),
+      };
+    }
+
+    // Streak: if within 48h of last claim, continue streak; else reset to 1
+    const streak = diff < 48 * 60 * 60 * 1000 ? (row.daily_streak || 0) + 1 : 1;
+    const base   = 100;
+    const bonus  = Math.min(streak - 1, 6) * 25; // +25 per day, cap at day 7 (+150)
+    const amount = base + bonus;
+
+    await db.run(
+      `UPDATE users
+       SET balance      = balance + ?,
+           total_earned = total_earned + ?,
+           last_daily   = NOW(),
+           daily_streak = ?
+       WHERE user_id = ?`,
+      [amount, amount, streak, userId]
+    );
+
+    return { success: true, amount, streak };
+  },
+
+  async getLeaderboard(limit = 10) {
+    return db.all(
+      'SELECT user_id, username, balance FROM users ORDER BY balance DESC LIMIT ?',
+      [limit]
+    );
+  },
+};
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
+const stats = {
+  async get(userId) {
+    let row = await db.get('SELECT * FROM user_stats WHERE user_id = ?', [userId]);
+    if (!row) {
+      await db.run('INSERT INTO user_stats (user_id) VALUES (?) ON CONFLICT DO NOTHING', [userId]);
+      row = await db.get('SELECT * FROM user_stats WHERE user_id = ?', [userId]);
+    }
+    return row || {};
+  },
+
+  async increment(userId, field, amount = 1) {
+    // Whitelist to prevent SQL injection
+    const allowed = [
+      'cuarenta_wins','cuarenta_losses',
+      'loteria_wins','loteria_losses',
+      'tictactoe_wins','tictactoe_losses','tictactoe_draws',
+      'hunger_games_wins','hunger_games_losses','hunger_games_participations',
+      'rumble_wins','rumble_losses','rumble_participations',
+      'dodgeloser_wins','dodgeloser_losses','dodgeloser_participations',
+      'blackjack_wins','blackjack_losses',
+    ];
+    if (!allowed.includes(field)) return;
+    await db.run(
+      `INSERT INTO user_stats (user_id, ${field}) VALUES (?, ?)
+       ON CONFLICT (user_id) DO UPDATE SET ${field} = user_stats.${field} + ?`,
+      [userId, amount, amount]
+    );
+    // Update win streak
+    if (field.endsWith('_wins')) await this._updateStreak(userId, true);
+    if (field.endsWith('_losses')) await this._updateStreak(userId, false);
+  },
+
+  async incrementStreak(userId) { await this._updateStreak(userId, true);  },
+  async resetStreak(userId)     { await this._updateStreak(userId, false); },
+
+  async getStreak(userId) {
+    const row = await db.get('SELECT win_streak FROM user_stats WHERE user_id = ?', [userId]);
+    return row?.win_streak || 0;
+  },
+
+  async _updateStreak(userId, won) {
+    if (won) {
+      await db.run(
+        `INSERT INTO user_stats (user_id, win_streak, best_streak) VALUES (?, 1, 1)
+         ON CONFLICT (user_id) DO UPDATE
+           SET win_streak  = user_stats.win_streak + 1,
+               best_streak = GREATEST(user_stats.best_streak, user_stats.win_streak + 1)`,
+        [userId]
+      );
+    } else {
+      await db.run(
+        `INSERT INTO user_stats (user_id, win_streak) VALUES (?, 0)
+         ON CONFLICT (user_id) DO UPDATE SET win_streak = 0`,
+        [userId]
+      );
+    }
+  },
+};
+
+// ─── Init — create all tables ─────────────────────────────────────────────────
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      user_id       TEXT PRIMARY KEY,
+      username      TEXT NOT NULL DEFAULT '',
+      balance       BIGINT NOT NULL DEFAULT 0,
+      total_earned  BIGINT NOT NULL DEFAULT 0,
+      total_spent   BIGINT NOT NULL DEFAULT 0,
+      last_daily    TIMESTAMPTZ,
+      daily_streak  INT NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS transactions (
+      id         BIGSERIAL PRIMARY KEY,
+      user_id    TEXT NOT NULL,
+      amount     BIGINT NOT NULL,
+      reason     TEXT DEFAULT '',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS user_stats (
+      user_id                     TEXT PRIMARY KEY,
+      cuarenta_wins               INT DEFAULT 0,
+      cuarenta_losses             INT DEFAULT 0,
+      loteria_wins                INT DEFAULT 0,
+      loteria_losses              INT DEFAULT 0,
+      tictactoe_wins              INT DEFAULT 0,
+      tictactoe_losses            INT DEFAULT 0,
+      tictactoe_draws             INT DEFAULT 0,
+      hunger_games_wins           INT DEFAULT 0,
+      hunger_games_losses         INT DEFAULT 0,
+      hunger_games_participations INT DEFAULT 0,
+      rumble_wins                 INT DEFAULT 0,
+      rumble_losses               INT DEFAULT 0,
+      rumble_participations       INT DEFAULT 0,
+      dodgeloser_wins             INT DEFAULT 0,
+      dodgeloser_losses           INT DEFAULT 0,
+      dodgeloser_participations   INT DEFAULT 0,
+      blackjack_wins              INT DEFAULT 0,
+      blackjack_losses            INT DEFAULT 0,
+      win_streak                  INT DEFAULT 0,
+      best_streak                 INT DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS bets (
+      id          BIGSERIAL PRIMARY KEY,
+      title       TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      creator_id  TEXT NOT NULL,
+      status      TEXT DEFAULT 'open',
+      outcome     TEXT,
+      total_pool  BIGINT DEFAULT 0,
+      closes_at   TIMESTAMPTZ,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS bet_entries (
+      id         BIGSERIAL PRIMARY KEY,
+      bet_id     BIGINT NOT NULL,
+      user_id    TEXT NOT NULL,
+      username   TEXT NOT NULL,
+      side       TEXT NOT NULL,
+      amount     BIGINT NOT NULL,
+      placed_at  TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(bet_id, user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS jackpot_draw_fund (
+      id     INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+      amount BIGINT DEFAULT 0
+    );
+    INSERT INTO jackpot_draw_fund (id, amount) VALUES (1, 0) ON CONFLICT DO NOTHING;
+
+    CREATE TABLE IF NOT EXISTS jackpot_sessions (
+      id         BIGSERIAL PRIMARY KEY,
+      name       TEXT NOT NULL DEFAULT 'Jackpot',
+      status     TEXT DEFAULT 'active',
+      channel_id TEXT,
+      pot        BIGINT DEFAULT 0,
+      starts_at  TIMESTAMPTZ DEFAULT NOW(),
+      ends_at    TIMESTAMPTZ NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS jackpot_entries (
+      id         BIGSERIAL PRIMARY KEY,
+      session_id BIGINT NOT NULL,
+      user_id    TEXT NOT NULL,
+      username   TEXT NOT NULL,
+      number     INT NOT NULL,
+      entered_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(session_id, user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS jackpot_history (
+      id           BIGSERIAL PRIMARY KEY,
+      session_id   BIGINT,
+      session_name TEXT,
+      winner_id    TEXT,
+      winner_name  TEXT,
+      winning_num  INT,
+      amount_won   BIGINT,
+      drawn_at     TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS shop_inventory (
+      id        BIGSERIAL PRIMARY KEY,
+      user_id   TEXT NOT NULL,
+      token_id  TEXT NOT NULL,
+      bought_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, token_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS shop_equipped (
+      user_id  TEXT NOT NULL,
+      slot     TEXT NOT NULL,
+      token_id TEXT NOT NULL,
+      PRIMARY KEY (user_id, slot)
+    );
+
+    CREATE TABLE IF NOT EXISTS shop_items (
+      user_id   TEXT NOT NULL,
+      item_type TEXT NOT NULL,
+      emoji     TEXT NOT NULL,
+      equipped  INT DEFAULT 1,
+      bought_at TIMESTAMPTZ DEFAULT NOW(),
+      PRIMARY KEY (user_id, item_type)
+    );
+
+    CREATE TABLE IF NOT EXISTS scheduled_games (
+      id           BIGSERIAL PRIMARY KEY,
+      channel_id   TEXT NOT NULL,
+      game_type    TEXT NOT NULL,
+      bet          INT NOT NULL DEFAULT 50,
+      fire_at      TIMESTAMPTZ NOT NULL,
+      host_id      TEXT NOT NULL,
+      host_name    TEXT NOT NULL,
+      status       TEXT NOT NULL DEFAULT 'pending',
+      created_at   TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(channel_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS scheduled_game_players (
+      id          BIGSERIAL PRIMARY KEY,
+      schedule_id BIGINT NOT NULL REFERENCES scheduled_games(id) ON DELETE CASCADE,
+      user_id     TEXT NOT NULL,
+      username    TEXT NOT NULL,
+      joined_at   TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(schedule_id, user_id)
+    );
+  `);
+
+  console.log('[DB] All tables ready.');
+}
+
+module.exports = { db, economy, stats, initDB };

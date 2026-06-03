@@ -1,7 +1,7 @@
 {
-  "name": "board-bucks-bot",
-  "version": "1.0.0",
-  "description": "Multi-game Discord bot with Board Bucks currency",
+  "name": "play-and-regret",
+  "version": "2.0.0",
+  "description": "Play & Regret Discord Bot — currency: sins",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -9,10 +9,11 @@
   },
   "dependencies": {
     "discord.js": "^14.14.1",
-    "sqlite3": "^5.1.7",
     "axios": "^1.6.7",
     "dotenv": "^16.4.4",
-    "node-cron": "^3.0.3"
+    "node-cron": "^3.0.3",
+    "pg": "^8.11.3",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

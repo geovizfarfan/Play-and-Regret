@@ -157,7 +157,7 @@ module.exports = {
 
     const modal = new ModalBuilder()
       .setCustomId(`oops_rich_modal:${sessionId}`)
-      .setTitle(`<a:jackpot:1479203793806557385> ${session.name} — Enter!`);
+      .setTitle(`Enter: ${session.name}`.slice(0, 45));
     modal.addComponents(new ActionRowBuilder().addComponents(
       new TextInputBuilder()
         .setCustomId('oops_rich_number')

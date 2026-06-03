@@ -205,13 +205,47 @@ module.exports = {
   },
 
   async equipSlash(interaction) {
-    const tokenId = interaction.options.getString('token');
     await interaction.deferReply({ ephemeral: true });
-    const has = await shop.hasToken(interaction.user.id, tokenId);
-    if (!has) return interaction.editReply(`${E.ERROR} You don't own that token!`);
-    const token = shop.CATALOG.find(t => t.id === tokenId);
-    await shop.equip(interaction.user.id, tokenId);
-    return interaction.editReply(`✅ Equipped **${token.emoji} ${token.name}** as your ${shop.SLOT_LABELS[token.slot]}!`);
+    await economy.getUser(interaction.user.id, interaction.user.username);
+    const inventory = await shop.getInventory(interaction.user.id);
+
+    if (!inventory || inventory.length === 0) {
+      return interaction.editReply(`❌ You don't own any tokens yet! Use \`/store_tictacbruh\` to buy some.`);
+    }
+
+    const options = inventory.slice(0, 25).map(t => ({
+      label: t.name,
+      value: t.id,
+      description: `Equip as your X or O piece`,
+    }));
+
+    const row = new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId(`equip_select_${interaction.user.id}`)
+        .setPlaceholder('🎮 Choose a token to equip...')
+        .addOptions(options)
+    );
+
+    await interaction.editReply({ content: `🎮 **Pick a token to equip:**`, components: [row] });
+
+    const collector = interaction.channel.createMessageComponentCollector({
+      filter: i => i.customId === `equip_select_${interaction.user.id}` && i.user.id === interaction.user.id,
+      time: 30000,
+      max: 1,
+    });
+
+    collector.on('collect', async (i) => {
+      const tokenId = i.values[0];
+      const token   = shop.CATALOG.find(t => t.id === tokenId);
+      await shop.equip(interaction.user.id, tokenId);
+      await i.update({ content: `✅ **${token?.emoji || ''} ${token?.name || tokenId}** equipped as your piece!`, components: [] });
+    });
+
+    collector.on('end', (_, reason) => {
+      if (reason === 'time') {
+        interaction.editReply({ content: `⏰ Equip timed out.`, components: [] }).catch(() => {});
+      }
+    });
   },
 };
 

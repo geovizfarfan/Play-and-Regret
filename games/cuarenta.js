@@ -456,7 +456,7 @@ async function handleHandBtn(inter, g, channel, col, onPlayed=()=>{}) {
     if (isNaN(cardIdx) || cardIdx >= gNow.hands[pIdx].length) {
       await ci.reply({content:'Invalid card.', ephemeral:true}); return;
     }
-    await ci.update({ content:'✅ Playing card...', components:[] });
+    await ci.update({ content:'✅ Playing card...', components:[] }).catch(() => {});
     col.stop('played');
     await resolvePlay(channel, gNow, cardIdx);
   });

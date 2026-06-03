@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["nodejs_22", "python3", "vips"]
+
+[phases.install]
+cmds = ["npm ci", "npm install sharp --save"]
+
+[start]
+cmd = "npm run start"

@@ -1,23 +1,20 @@
 /**
- * teams.js
- * ─────────────────────────────────────────────────────────────────────────────
- * Team Randomizer
- * - Host sets 2-4 team names
- * - Players sign up via button
- * - Bot randomly & fairly distributes players across teams
- * - Reroll button for host
- * - Track team wins and individual points
- * - Final summary shows team totals
- * ─────────────────────────────────────────────────────────────────────────────
+ * teams.js — Team Randomizer with Roles
  */
 
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
-const { economy, stats } = require('../utils/database');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 const EVENT_HOST_ROLE = process.env.EVENT_HOST_ROLE || 'Event Host';
-const activeSessions  = new Map(); // channelId → session
+const activeSessions  = new Map();
+const pointsRoles     = new Set(); // role IDs allowed to add points
 
-const TEAM_COLORS = ['#9B59B6', '#E74C3C', '#2ECC71', '#F39C12'];
+function canAddPoints(member) {
+  if (!member) return false;
+  if (member.permissions.has('Administrator')) return true;
+  if (member.roles.cache.some(r => r.name === EVENT_HOST_ROLE)) return true;
+  return member.roles.cache.some(r => pointsRoles.has(r.id));
+}
+
 const TEAM_EMOJIS = ['🟣', '🔴', '🟢', '🟡'];
 
 function hasHostRole(member) {
@@ -35,452 +32,246 @@ function shuffle(arr) {
   return a;
 }
 
+function teamTotal(team) {
+  return team.members.reduce((sum, m) => sum + (m.points || 0), 0);
+}
+
+// ─── Get or create a role ─────────────────────────────────────────────────────
+async function getOrCreateRole(guild, name, color) {
+  let role = guild.roles.cache.find(r => r.name === name);
+  if (!role) {
+    role = await guild.roles.create({
+      name,
+      color: color || '#9B59B6',
+      reason: 'Team Randomizer auto-created role',
+    });
+  }
+  return role;
+}
+
+// ─── Assign team roles to members ─────────────────────────────────────────────
+async function assignRoles(guild, teams) {
+  const COLORS = ['#9B59B6', '#E74C3C', '#2ECC71', '#F39C12'];
+  for (let i = 0; i < teams.length; i++) {
+    const team = teams[i];
+    const role = await getOrCreateRole(guild, team.name, COLORS[i]);
+    team.roleId = role.id;
+    for (const member of team.members) {
+      const guildMember = await guild.members.fetch(member.id).catch(() => null);
+      if (guildMember) await guildMember.roles.add(role).catch(() => {});
+    }
+  }
+}
+
+// ─── Remove team roles ────────────────────────────────────────────────────────
+async function removeRoles(guild, teams) {
+  for (const team of teams) {
+    if (!team.roleId) continue;
+    for (const member of team.members) {
+      const guildMember = await guild.members.fetch(member.id).catch(() => null);
+      if (guildMember) {
+        const role = guild.roles.cache.get(team.roleId);
+        if (role) await guildMember.roles.remove(role).catch(() => {});
+      }
+    }
+  }
+}
+
 function assignTeams(players, teamNames) {
   const shuffled = shuffle(players);
-  const teams    = teamNames.map((name, i) => ({ name, emoji: TEAM_EMOJIS[i], color: TEAM_COLORS[i], members: [], points: 0, wins: 0 }));
-  shuffled.forEach((p, i) => teams[i % teams.length].members.push(p));
+  const teams    = teamNames.map((name, i) => ({
+    name, emoji: TEAM_EMOJIS[i], members: [], wins: 0, roleId: null
+  }));
+  shuffled.forEach((p, i) => teams[i % teams.length].members.push({ ...p, points: 0 }));
   return teams;
 }
 
 // ─── Embeds ───────────────────────────────────────────────────────────────────
 function makeSignupEmbed(session) {
-  const { players, teamNames, hostName, signupLabel } = session;
   return new EmbedBuilder()
     .setColor('#9B59B6')
     .setTitle('<a:purplesparkle:1479210541691175054> Team Randomizer — Signups Open!')
     .setDescription(
-      `**${hostName}** is setting up teams!\n\n` +
-      `<:members:1479293571709534311> **Teams:** ${teamNames.join(' • ')}\n` +
-      `<:Clocktime:1479304295022071931> Signups close in **${signupLabel}**\n\n` +
-      `Click **⚔️ Join** to enter the pool — teams will be randomly assigned!`
+      `**${session.hostName}** is setting up teams!\n\n` +
+      `<:members:1479293571709534311> **Teams:** ${session.teamNames.join(' • ')}\n` +
+      `<:Clocktime:1479304295022071931> Signups close in **${session.signupLabel}**\n\n` +
+      `Click **⚔️ Join** to enter!\nUse \`/teamadd\` to add someone manually.`
     )
     .addFields({
-      name: `<:members:1479293571709534311> Signed Up (${players.length})`,
-      value: players.length > 0 ? players.map(p => `• **${p.username}**`).join('\n') : 'Nobody yet...',
+      name: `<:members:1479293571709534311> Signed Up (${session.players.length})`,
+      value: session.players.length > 0 ? session.players.map(p => `• **${p.username}**`).join('\n') : 'Nobody yet...',
     })
-    .setFooter({ text: `Teams will be balanced and randomized automatically` });
+    .setFooter({ text: 'Use /startteams to assign teams early' });
 }
 
 function makeTeamsEmbed(session) {
-  const { teams, sessionName } = session;
   const embed = new EmbedBuilder()
     .setColor('#9B59B6')
-    .setTitle(`<a:purplesparkle:1479210541691175054> ${sessionName || 'Team Assignments'}`)
-    .setDescription('Teams have been randomly assigned! Good luck everyone. ⚔️');
-
-  for (const team of teams) {
+    .setTitle(`<a:purplesparkle:1479210541691175054> ${session.sessionName || 'Team Assignments'}`)
+    .setDescription('Teams assigned! Roles have been given. ⚔️\n\nUse `/teamadd player:name team:name` to add late joiners.');
+  for (const team of session.teams) {
     embed.addFields({
-      name: `${team.emoji} **${team.name}** (${team.members.length} players)`,
-      value: team.members.length > 0
-        ? team.members.map(p => `• <@${p.id}> **${p.username}**`).join('\n')
-        : '*No players*',
+      name: `${team.emoji} **${team.name}** (${team.members.length})`,
+      value: team.members.length > 0 ? team.members.map(p => `• <@${p.id}>`).join('\n') : '*No players*',
       inline: true,
     });
   }
-
   return embed;
 }
 
 function makeScoreEmbed(session) {
-  const { teams, sessionName, pointLog } = session;
+  const sorted = [...session.teams].sort((a, b) => teamTotal(b) - teamTotal(a));
+  const standing = sorted.map((t, i) => {
+    const medal = ['<a:1stplace:1487504691880263791>','<a:2ndplace:1487504692874580048>','<a:3rdplace:1487504694191456336>'][i] || `${i+1}.`;
+    return `${medal} ${t.emoji} **${t.name}** — **${teamTotal(t)} pts** (${t.wins} win${t.wins !== 1 ? 's' : ''})`;
+  }).join('\n');
+
   const embed = new EmbedBuilder()
     .setColor('#FFD700')
-    .setTitle(`🏆 ${sessionName || 'Team Scores'}`);
+    .setTitle(`🏆 ${session.sessionName || 'Team Scores'}`)
+    .setDescription(standing);
 
-  // Team standings
-  const sorted = [...teams].sort((a, b) => b.points - a.points);
-  const standing = sorted.map((t, i) => {
-    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
-    return `${medal} ${t.emoji} **${t.name}** — **${t.points} pts** (${t.wins} win${t.wins !== 1 ? 's' : ''})`;
-  }).join('\n');
-  embed.setDescription(standing);
-
-  // Individual scores per team
   for (const team of sorted) {
-    const memberScores = team.members
+    const lines = [...team.members]
+      .sort((a, b) => (b.points || 0) - (a.points || 0))
       .map(p => `• **${p.username}** — ${p.points || 0} pts`)
-      .sort((a, b) => {
-        const ap = parseInt(a.match(/(\d+) pts/)?.[1] || 0);
-        const bp = parseInt(b.match(/(\d+) pts/)?.[1] || 0);
-        return bp - ap;
-      })
       .join('\n');
     embed.addFields({
-      name: `${team.emoji} ${team.name} — Individual`,
-      value: memberScores || '*No scores yet*',
+      name: `${team.emoji} ${team.name} — ${teamTotal(team)} pts`,
+      value: lines || '*No scores yet*',
       inline: true,
     });
   }
-
+  embed.setFooter({ text: '/teampoints • /teamwin • /teamadd • /teamend' });
   return embed;
 }
 
-// ─── Remove player modal ──────────────────────────────────────────────────────
-async function handleRemovePlayer(interaction, session, channelId) {
-  const modal = new ModalBuilder()
-    .setCustomId(`teams_remove_modal_${channelId}`)
-    .setTitle('Remove Player');
+// ─── Start teams (shared logic) ───────────────────────────────────────────────
+async function startTeams(channel, guild, s) {
+  s.teams = assignTeams(s.players, s.teamNames);
 
-  modal.addComponents(
-    new ActionRowBuilder().addComponents(
-      new TextInputBuilder()
-        .setCustomId('username')
-        .setLabel('Player username to remove (exact)')
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true)
-    )
-  );
+  // Assign Discord roles
+  try {
+    await assignRoles(guild, s.teams);
+  } catch (e) {
+    await channel.send(`⚠️ Could not assign roles — make sure the bot has **Manage Roles** permission and its role is above team roles.`);
+  }
 
-  await interaction.showModal(modal);
-}
+  // Close signup buttons
+  if (s.signupMsg) {
+    const closed = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('teams_join_done').setLabel('⏰ Signups Closed').setStyle(ButtonStyle.Secondary).setDisabled(true),
+      new ButtonBuilder().setCustomId('teams_cancel_done').setLabel('🚫 Cancel').setStyle(ButtonStyle.Secondary).setDisabled(true),
+    );
+    await s.signupMsg.edit({ components: [closed] }).catch(() => {});
+  }
 
-async function handleRemoveModal(interaction, session) {
-  const username = interaction.fields.getTextInputValue('username').trim();
-  let found = false;
+  await channel.send({ embeds: [makeTeamsEmbed(s)] });
 
-  for (const team of session.teams) {
-    const idx = team.members.findIndex(p => p.username.toLowerCase() === username.toLowerCase());
-    if (idx !== -1) {
-      const removed = team.members.splice(idx, 1)[0];
-      // Also remove from players pool
-      const pi = session.players.findIndex(p => p.id === removed.id);
-      if (pi !== -1) session.players.splice(pi, 1);
-      found = true;
+  // Post live join button for late joiners
+  const lateJoinId = `teams_late_${channel.id}`;
+  const lateMsg = await channel.send({
+    content: `🔔 **Late joiners:** Click below or use \`/teamadd\` to be added to a team!`,
+    components: [new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(lateJoinId).setLabel('⚔️ Join Late').setStyle(ButtonStyle.Primary)
+    )]
+  });
+  s.lateMsg = lateMsg;
 
-      await interaction.reply({
-        content: `🗑️ **${removed.username}** has been removed from **${team.emoji} ${team.name}**.`,
-      });
-
-      // Update both embeds
-      if (session.signupMsg) await session.signupMsg.edit({ embeds: [makeSignupEmbed(session)] }).catch(() => {});
-      if (session.scoreMsg)  await session.scoreMsg.edit({ embeds: [makeScoreEmbed(session)] }).catch(() => {});
-
-      // Post updated team roster
-      await interaction.followUp({ embeds: [makeTeamsEmbed(session)] });
-      break;
+  // Late join collector
+  const lateCollector = lateMsg.createMessageComponentCollector({ time: 24 * 60 * 60 * 1000 });
+  lateCollector.on('collect', async (interaction) => {
+    const sess = activeSessions.get(channel.id);
+    if (!sess || !sess.teams) return;
+    if (sess.players.find(p => p.id === interaction.user.id)) {
+      return interaction.reply({ content: `⚠️ You're already on a team!`, ephemeral: true });
     }
-  }
+    // Assign to smallest team
+    const smallest = [...sess.teams].sort((a, b) => a.members.length - b.members.length)[0];
+    const newMember = { id: interaction.user.id, username: interaction.user.username, points: 0 };
+    smallest.members.push(newMember);
+    sess.players.push(newMember);
 
-  if (!found) return interaction.reply({ content: `❌ Player **${username}** not found in any team.`, ephemeral: true });
-}
-
-// ─── Score modal ──────────────────────────────────────────────────────────────
-async function handleAddPoints(interaction, session) {
-  if (!hasHostRole(interaction.member)) {
-    return interaction.reply({ content: `❌ Only the host can add points!`, ephemeral: true });
-  }
-
-  const modal = new ModalBuilder()
-    .setCustomId(`teams_points_${interaction.channel.id}`)
-    .setTitle('Add Points');
-
-  modal.addComponents(
-    new ActionRowBuilder().addComponents(
-      new TextInputBuilder().setCustomId('username').setLabel('Player username (exact)').setStyle(TextInputStyle.Short).setRequired(true)
-    ),
-    new ActionRowBuilder().addComponents(
-      new TextInputBuilder().setCustomId('points').setLabel('Points to add (use - for negative)').setStyle(TextInputStyle.Short).setRequired(true)
-    ),
-    new ActionRowBuilder().addComponents(
-      new TextInputBuilder().setCustomId('reason').setLabel('Reason (optional)').setStyle(TextInputStyle.Short).setRequired(false)
-    )
-  );
-
-  await interaction.showModal(modal);
-}
-
-async function handlePointsModal(interaction, session) {
-  const username = interaction.fields.getTextInputValue('username').trim();
-  const pts      = parseInt(interaction.fields.getTextInputValue('points'));
-  const reason   = interaction.fields.getTextInputValue('reason') || '';
-
-  if (isNaN(pts)) return interaction.reply({ content: `❌ Invalid points value.`, ephemeral: true });
-
-  let found = false;
-  for (const team of session.teams) {
-    const member = team.members.find(p => p.username.toLowerCase() === username.toLowerCase());
-    if (member) {
-      member.points  = (member.points || 0) + pts;
-      team.points   += pts;
-      found = true;
-
-      await interaction.reply({
-        content: `<:purpleverified:1479305124336767147> **+${pts} pts** to **${member.username}** (${team.emoji} ${team.name})${reason ? ` — ${reason}` : ''}`,
-      });
-
-      // Update scoreboard
-      if (session.scoreMsg) {
-        await session.scoreMsg.edit({ embeds: [makeScoreEmbed(session)] }).catch(() => {});
-      }
-      break;
+    // Assign role
+    const guildMember = await guild.members.fetch(interaction.user.id).catch(() => null);
+    if (guildMember && smallest.roleId) {
+      const role = guild.roles.cache.get(smallest.roleId);
+      if (role) await guildMember.roles.add(role).catch(() => {});
     }
-  }
 
-  if (!found) return interaction.reply({ content: `❌ Player **${username}** not found in any team.`, ephemeral: true });
-}
-
-async function handleAddWin(interaction, session) {
-  if (!hasHostRole(interaction.member)) {
-    return interaction.reply({ content: `❌ Only the host can record wins!`, ephemeral: true });
-  }
-
-  const modal = new ModalBuilder()
-    .setCustomId(`teams_win_${interaction.channel.id}`)
-    .setTitle('Record Team Win');
-
-  const teamList = session.teams.map((t, i) => `${i+1}. ${t.name}`).join(', ');
-  modal.addComponents(
-    new ActionRowBuilder().addComponents(
-      new TextInputBuilder()
-        .setCustomId('team')
-        .setLabel(`Winning team name (${teamList})`)
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true)
-    )
-  );
-
-  await interaction.showModal(modal);
-}
-
-async function handleWinModal(interaction, session) {
-  const teamName = interaction.fields.getTextInputValue('team').trim();
-  const team     = session.teams.find(t => t.name.toLowerCase() === teamName.toLowerCase());
-
-  if (!team) return interaction.reply({ content: `❌ Team **${teamName}** not found.`, ephemeral: true });
-
-  team.wins++;
-  team.points += 10; // +10 pts per win
-  team.members.forEach(m => { m.points = (m.points || 0) + 10; });
-
-  await interaction.reply({
-    content: `🏆 **${team.emoji} ${team.name}** wins! **+10 pts** to all members.`,
+    await interaction.reply({
+      content: `<:purpleverified:1479305124336767147> **${interaction.user.username}** joined **${smallest.emoji} ${smallest.name}**!`,
+    });
+    await sess.scoreMsg?.edit({ embeds: [makeScoreEmbed(sess)] }).catch(() => {});
   });
 
-  if (session.scoreMsg) {
-    await session.scoreMsg.edit({ embeds: [makeScoreEmbed(session)] }).catch(() => {});
-  }
-}
-
-// ─── Remove player ────────────────────────────────────────────────────────────
-async function handleRemovePlayer(interaction, session, channelId) {
-  const modal = new ModalBuilder()
-    .setCustomId(`teams_remove_modal_${channelId}`)
-    .setTitle('Remove Player');
-
-  modal.addComponents(
-    new ActionRowBuilder().addComponents(
-      new TextInputBuilder()
-        .setCustomId('username')
-        .setLabel('Player username to remove (exact)')
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true)
-    )
-  );
-
-  await interaction.showModal(modal);
-}
-
-async function handleRemoveModal(interaction, session) {
-  const username = interaction.fields.getTextInputValue('username').trim();
-
-  for (const team of session.teams) {
-    const idx = team.members.findIndex(p => p.username.toLowerCase() === username.toLowerCase());
-    if (idx !== -1) {
-      const removed = team.members.splice(idx, 1)[0];
-      // Also remove from players pool
-      const pi = session.players.findIndex(p => p.id === removed.id);
-      if (pi !== -1) session.players.splice(pi, 1);
-
-      await interaction.reply({
-        content: `<:purpleverified:1479305124336767147> **${removed.username}** has been removed from **${team.emoji} ${team.name}**.`,
-      });
-
-      // Update both embeds
-      if (session.scoreMsg) {
-        await session.scoreMsg.edit({ embeds: [makeScoreEmbed(session)] }).catch(() => {});
-      }
-      return;
-    }
-  }
-
-  return interaction.reply({ content: `❌ Player **${username}** not found in any team.`, ephemeral: true });
+  const scoreMsg = await channel.send({ embeds: [makeScoreEmbed(s)] });
+  s.scoreMsg = scoreMsg;
+  s.lateCollector = lateCollector;
 }
 
 // ─── Launcher ─────────────────────────────────────────────────────────────────
-async function launchTeams(channel, teamNames, sessionName, signupSecs, triggeredBy, hostId) {
-  const channelId = channel.id;
+async function launchTeams(channel, guild, teamNames, sessionName, signupSecs, triggeredBy, hostId) {
+  const channelId  = channel.id;
   if (activeSessions.has(channelId)) return channel.send('❌ There\'s already a team session running here!');
 
   const signupLabel = signupSecs < 60 ? `${signupSecs} seconds` : `${Math.round(signupSecs/60)} minute${Math.round(signupSecs/60) !== 1 ? 's' : ''}`;
   const joinId      = `teams_join_${channelId}`;
-  const startId     = `teams_start_${channelId}`;
+  const cancelId    = `teams_cancel_${channelId}`;
 
-  const session = { teamNames, sessionName, teams: [], players: [], hostId, hostName: triggeredBy, signupLabel, scoreMsg: null };
+  const session = { teamNames, sessionName, teams: [], players: [], hostId, hostName: triggeredBy, signupLabel, scoreMsg: null, signupMsg: null, collector: null, guild };
   activeSessions.set(channelId, session);
 
   const makeButtons = () => new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(joinId).setLabel('⚔️ Join').setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId(startId).setLabel('▶️ Assign Teams Now').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(cancelId).setLabel('🚫 Cancel').setStyle(ButtonStyle.Danger),
   );
 
-  const gameMsg = await channel.send({ embeds: [makeSignupEmbed(session)], components: [makeButtons()] });
-  session.signupMsg = gameMsg;
+  const signupMsg = await channel.send({ embeds: [makeSignupEmbed(session)], components: [makeButtons()] });
+  session.signupMsg = signupMsg;
 
-  const collector = gameMsg.createMessageComponentCollector({ time: signupSecs * 1000 });
+  const collector = signupMsg.createMessageComponentCollector({ time: signupSecs * 1000 });
+  session.collector = collector;
 
   collector.on('collect', async (interaction) => {
     const s = activeSessions.get(channelId);
     if (!s) return;
 
-    if (interaction.customId === startId) {
+    if (interaction.customId === cancelId) {
       if (interaction.user.id !== s.hostId && !hasHostRole(interaction.member)) {
-        return interaction.reply({ content: `❌ Only the host can force start!`, ephemeral: true });
-      }
-      if (s.players.length < s.teamNames.length) {
-        return interaction.reply({ content: `❌ Need at least **${s.teamNames.length}** players (one per team)!`, ephemeral: true });
+        return interaction.reply({ content: `❌ Only the host can cancel!`, ephemeral: true });
       }
       await interaction.deferUpdate();
-      collector.stop('forcestart');
-      return;
+      collector.stop('cancelled');
+      activeSessions.delete(channelId);
+      const closed = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(joinId).setLabel('🚫 Cancelled').setStyle(ButtonStyle.Secondary).setDisabled(true),
+        new ButtonBuilder().setCustomId(cancelId).setLabel('🚫 Cancelled').setStyle(ButtonStyle.Secondary).setDisabled(true),
+      );
+      await signupMsg.edit({ components: [closed] }).catch(() => {});
+      return channel.send(`❌ Team session cancelled by **${interaction.user.username}**.`);
     }
 
     if (interaction.customId !== joinId) return;
     await interaction.deferUpdate();
-
     if (s.players.find(p => p.id === interaction.user.id)) {
-      return interaction.followUp({ content: `❌ You're already signed up and cannot change teams once assigned!`, ephemeral: true });
+      return interaction.followUp({ content: `⚠️ Already joined!`, ephemeral: true });
     }
-
-    s.players.push({ id: interaction.user.id, username: interaction.user.username, points: 0 });
-    await gameMsg.edit({ embeds: [makeSignupEmbed(s)], components: [makeButtons()] });
-    await interaction.followUp({ content: `<:purpleverified:1479305124336767147> **${interaction.user.username}** joined the pool! (${s.players.length} in)` });
+    s.players.push({ id: interaction.user.id, username: interaction.user.username });
+    await signupMsg.edit({ embeds: [makeSignupEmbed(s)], components: [makeButtons()] });
+    await interaction.followUp({ content: `<:purpleverified:1479305124336767147> **${interaction.user.username}** joined! (${s.players.length} in)` });
   });
 
   collector.on('end', async (_, reason) => {
+    if (reason === 'cancelled') return;
     const s = activeSessions.get(channelId);
-    if (!s) return;
-
-    const closed = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(joinId).setLabel('⏰ Signups Closed').setStyle(ButtonStyle.Secondary).setDisabled(true),
-      new ButtonBuilder().setCustomId(startId).setLabel('▶️ Assigned').setStyle(ButtonStyle.Secondary).setDisabled(true),
-    );
-    await gameMsg.edit({ components: [closed] }).catch(() => {});
-
-    if (s.players.length < s.teamNames.length) {
+    if (!s || s.teams.length > 0) return; // already started
+    s.collector = null;
+    if (s.players.length < 2) {
       activeSessions.delete(channelId);
-      return channel.send(`❌ Not enough players to fill **${s.teamNames.length}** teams. Cancelled.`);
+      return channel.send(`❌ Not enough players. Cancelled.`);
     }
-
-    // Assign teams
-    s.teams = assignTeams(s.players, s.teamNames);
-
-    const rerollId  = `teams_reroll_${channelId}`;
-    const resetId   = `teams_reset_${channelId}`;
-    const removeId  = `teams_remove_${channelId}`;
-    const pointsId  = `teams_points_btn_${channelId}`;
-    const winId     = `teams_win_btn_${channelId}`;
-    const endId     = `teams_end_${channelId}`;
-
-    const controlRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(rerollId).setLabel('🔀 Reroll').setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(removeId).setLabel('❌ Remove Player').setStyle(ButtonStyle.Danger),
-      new ButtonBuilder().setCustomId(pointsId).setLabel('➕ Points').setStyle(ButtonStyle.Primary),
-      new ButtonBuilder().setCustomId(winId).setLabel('🏆 Win').setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId(endId).setLabel('🏁 End').setStyle(ButtonStyle.Danger),
-    );
-
-    await channel.send({ embeds: [makeTeamsEmbed(s)], components: [controlRow] });
-
-    // Post live scoreboard
-    const scoreMsg = await channel.send({ embeds: [makeScoreEmbed(s)] });
-    s.scoreMsg = scoreMsg;
-
-    // Control collector — stays active until end
-    const ctrlCollector = scoreMsg.createMessageComponentCollector({ time: 24 * 60 * 60 * 1000 });
-
-    ctrlCollector.on('collect', async (interaction) => {
-      const s = activeSessions.get(channelId);
-      if (!s) return;
-
-      if (interaction.customId === rerollId) {
-        if (interaction.user.id !== s.hostId && !hasHostRole(interaction.member)) {
-          return interaction.reply({ content: `❌ Only the host can reroll!`, ephemeral: true });
-        }
-        s.teams = assignTeams(s.players, s.teamNames);
-        // Reset points on reroll
-        s.teams.forEach(t => { t.points = 0; t.wins = 0; t.members.forEach(m => m.points = 0); });
-        await interaction.deferUpdate();
-        await channel.send({ embeds: [makeTeamsEmbed(s)] });
-        await scoreMsg.edit({ embeds: [makeScoreEmbed(s)] }).catch(() => {});
-
-      } else if (interaction.customId === resetId) {
-        if (interaction.user.id !== s.hostId && !hasHostRole(interaction.member)) {
-          return interaction.reply({ content: `❌ Only the host can reset scores!`, ephemeral: true });
-        }
-        s.teams.forEach(t => { t.points = 0; t.wins = 0; t.members.forEach(m => m.points = 0); });
-        await interaction.deferUpdate();
-        await scoreMsg.edit({ embeds: [makeScoreEmbed(s)] }).catch(() => {});
-        await channel.send(`🔄 **Scores have been reset!** Teams stay the same.`);
-
-      } else if (interaction.customId === removeId) {
-        if (interaction.user.id !== s.hostId && !hasHostRole(interaction.member)) {
-          return interaction.reply({ content: `❌ Only the host or mods can remove players!`, ephemeral: true });
-        }
-        await handleRemovePlayer(interaction, s, channelId);
-
-      } else if (interaction.customId === pointsId) {
-        await handleAddPoints(interaction, s);
-
-      } else if (interaction.customId === winId) {
-        await handleAddWin(interaction, s);
-
-      } else if (interaction.customId === endId) {
-        if (interaction.user.id !== s.hostId && !hasHostRole(interaction.member)) {
-          return interaction.reply({ content: `❌ Only the host can end the session!`, ephemeral: true });
-        }
-        await interaction.deferUpdate();
-        ctrlCollector.stop('ended');
-        activeSessions.delete(channelId);
-
-        // Final summary
-        const finalEmbed = makeScoreEmbed(s);
-        finalEmbed.setTitle(`🏁 Final Results — ${s.sessionName || 'Team Session'}`);
-        const winner = [...s.teams].sort((a, b) => b.points - a.points)[0];
-        finalEmbed.setDescription(`🏆 **${winner.emoji} ${winner.name}** wins the session with **${winner.points} pts**!\n\n` +
-          [...s.teams].sort((a,b) => b.points - a.points).map((t,i) => {
-            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
-            return `${medal} ${t.emoji} **${t.name}** — **${t.points} pts** (${t.wins} win${t.wins !== 1 ? 's' : ''})`;
-          }).join('\n')
-        );
-
-        await channel.send({ embeds: [finalEmbed] });
-
-        // Disable buttons
-        const disabledRow = new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId(rerollId).setLabel('🔀 Reroll').setStyle(ButtonStyle.Secondary).setDisabled(true),
-          new ButtonBuilder().setCustomId(removeId).setLabel('❌ Remove Player').setStyle(ButtonStyle.Danger).setDisabled(true),
-          new ButtonBuilder().setCustomId(resetId).setLabel('🔄 Reset Scores').setStyle(ButtonStyle.Secondary).setDisabled(true),
-          new ButtonBuilder().setCustomId(pointsId).setLabel('➕ Points').setStyle(ButtonStyle.Primary).setDisabled(true),
-          new ButtonBuilder().setCustomId(winId).setLabel('🏆 Win').setStyle(ButtonStyle.Success).setDisabled(true),
-          new ButtonBuilder().setCustomId(endId).setLabel('🏁 Session Ended').setStyle(ButtonStyle.Danger).setDisabled(true),
-        );
-        await scoreMsg.edit({ components: [disabledRow] }).catch(() => {});
-      }
-    });
-
-    // Handle modal submissions
-    channel.client.on('interactionCreate', async (interaction) => {
-      if (!interaction.isModalSubmit()) return;
-      const s = activeSessions.get(interaction.channel?.id);
-
-      if (interaction.customId === `teams_points_${channelId}` && s) {
-        await handlePointsModal(interaction, s);
-      } else if (interaction.customId === `teams_win_${channelId}` && s) {
-        await handleWinModal(interaction, s);
-      } else if (interaction.customId === `teams_remove_modal_${channelId}` && s) {
-        await handleRemoveModal(interaction, s);
-      }
-    });
+    await startTeams(channel, guild, s);
   });
 }
 
@@ -490,33 +281,277 @@ module.exports = {
   activeSessions,
 
   async handleSlash(interaction, commandName) {
+    const channelId = interaction.channel.id;
+    const s         = activeSessions.get(channelId);
+
+    // /teams
     if (commandName === 'teams') {
-      if (!hasHostRole(interaction.member)) {
-        return interaction.reply({ content: `❌ Only admins and **${EVENT_HOST_ROLE}** can create teams!`, ephemeral: true });
+      if (!hasHostRole(interaction.member)) return interaction.reply({ content: `❌ Admins only!`, ephemeral: true });
+      const team1       = interaction.options.getString('team1');
+      const team2       = interaction.options.getString('team2');
+      const team3       = interaction.options.getString('team3');
+      const team4       = interaction.options.getString('team4');
+      const sessionName = interaction.options.getString('name') || 'Team Session';
+      const durationKey = interaction.options.getString('duration');
+      const customSecs  = interaction.options.getInteger('timer');
+      const signupSecs  = customSecs || (durationKey ? parseInt(durationKey) : 60);
+      const teamNames   = [team1, team2, team3, team4].filter(Boolean);
+      if (teamNames.length < 2) return interaction.reply({ content: `❌ Need at least 2 team names!`, ephemeral: true });
+      await interaction.reply({ content: `<a:purplesparkle:1479210541691175054> Setting up teams...`, ephemeral: true });
+      await launchTeams(interaction.channel, interaction.guild, teamNames, sessionName, signupSecs, interaction.user.username, interaction.user.id);
+
+    // /startteams
+    } else if (commandName === 'startteams') {
+      if (!hasHostRole(interaction.member)) return interaction.reply({ content: `❌ Admins only!`, ephemeral: true });
+      if (!s) return interaction.reply({ content: `❌ No team signup running here!`, ephemeral: true });
+      if (s.teams.length > 0) return interaction.reply({ content: `❌ Teams already assigned!`, ephemeral: true });
+      if (s.players.length < 2) return interaction.reply({ content: `❌ Need at least **2 players**!`, ephemeral: true });
+      s.collector?.stop('manualstart');
+      await interaction.reply({ content: `▶️ Starting teams now!`, ephemeral: true });
+      await startTeams(interaction.channel, interaction.guild, s);
+
+    // /cancelteams
+    } else if (commandName === 'cancelteams') {
+      if (!hasHostRole(interaction.member)) return interaction.reply({ content: `❌ Admins only!`, ephemeral: true });
+      if (!s) return interaction.reply({ content: `❌ No active team session here!`, ephemeral: true });
+      s.collector?.stop('cancelled');
+      s.lateCollector?.stop();
+      activeSessions.delete(channelId);
+      if (s.signupMsg) await s.signupMsg.edit({ components: [] }).catch(() => {});
+      if (s.lateMsg) await s.lateMsg.edit({ components: [] }).catch(() => {});
+      await interaction.reply({ content: `✅ Team session cancelled.` });
+
+    // /teamadd
+    } else if (commandName === 'teamadd') {
+      if (!hasHostRole(interaction.member)) return interaction.reply({ content: `❌ Admins only!`, ephemeral: true });
+      if (!s || !s.teams.length) return interaction.reply({ content: `❌ No active team session here!`, ephemeral: true });
+      const user     = interaction.options.getUser('player');
+      const teamName = interaction.options.getString('team');
+      const team     = s.teams.find(t => t.name.toLowerCase() === teamName.toLowerCase());
+      if (!team) return interaction.reply({ content: `❌ Team **${teamName}** not found. Teams: ${s.teams.map(t=>t.name).join(', ')}`, ephemeral: true });
+      if (s.players.find(p => p.id === user.id)) return interaction.reply({ content: `⚠️ **${user.username}** is already on a team!`, ephemeral: true });
+      const newMember = { id: user.id, username: user.username, points: 0 };
+      team.members.push(newMember);
+      s.players.push(newMember);
+      // Assign role
+      const guildMember = await interaction.guild.members.fetch(user.id).catch(() => null);
+      if (guildMember && team.roleId) {
+        const role = interaction.guild.roles.cache.get(team.roleId);
+        if (role) await guildMember.roles.add(role).catch(() => {});
+      }
+      await interaction.reply({ content: `<:purpleverified:1479305124336767147> **${user.username}** added to **${team.emoji} ${team.name}**!` });
+      await s.scoreMsg?.edit({ embeds: [makeScoreEmbed(s)] }).catch(() => {});
+
+    // /teampoints
+    } else if (commandName === 'teampoints') {
+      if (!canAddPoints(interaction.member)) return interaction.reply({ content: `❌ You don't have permission to add points!`, ephemeral: true });
+      if (!s || !s.teams.length) return interaction.reply({ content: `❌ No active team session here!`, ephemeral: true });
+      const user   = interaction.options.getUser('player');
+      const pts    = interaction.options.getInteger('points');
+      const reason = interaction.options.getString('reason') || '';
+      let found = false;
+      for (const team of s.teams) {
+        const member = team.members.find(m => m.id === user.id);
+        if (member) {
+          member.points = (member.points || 0) + pts;
+          found = true;
+          await interaction.reply({
+            content: `<:purpleverified:1479305124336767147> **${pts > 0 ? '+' : ''}${pts} pts** to **${member.username}** (${team.emoji} ${team.name})${reason ? ` — ${reason}` : ''}\n📊 ${team.emoji} **${team.name}** team total: **${teamTotal(team)} pts**`,
+          });
+          await s.scoreMsg?.edit({ embeds: [makeScoreEmbed(s)] }).catch(() => {});
+          if (s.standingsMsg) {
+            const sorted2 = [...s.teams].sort((a, b) => teamTotal(b) - teamTotal(a));
+            const standEmbed = new EmbedBuilder()
+              .setColor('#9B59B6')
+              .setTitle(`🏆 ${s.sessionName || 'Team Standings'}`)
+              .setDescription(sorted2.map((t, i) => {
+                const medal = ['<a:1stplace:1487504691880263791>','<a:2ndplace:1487504692874580048>','<a:3rdplace:1487504694191456336>'][i] || `${i+1}.`;
+                const bar   = '█'.repeat(Math.min(10, Math.max(0, Math.round(teamTotal(t) / Math.max(1, teamTotal(sorted2[0])) * 10))));
+                const empty = '░'.repeat(10 - bar.length);
+                return `${medal} ${t.emoji} **${t.name}**\n${bar}${empty} **${teamTotal(t)} pts**`;
+              }).join('\n\n'))
+              .setFooter({ text: 'Updates live as points are added' });
+            await s.standingsMsg.edit({ embeds: [standEmbed] }).catch(() => {});
+          }
+          break;
+        }
+      }
+      if (!found) return interaction.reply({ content: `❌ <@${user.id}> is not in any team. Use \`/teamadd\` to add them first.`, ephemeral: true });
+
+    // /teamwin
+    } else if (commandName === 'teamwin') {
+      if (!hasHostRole(interaction.member)) return interaction.reply({ content: `❌ Admins only!`, ephemeral: true });
+      if (!s || !s.teams.length) return interaction.reply({ content: `❌ No active team session here!`, ephemeral: true });
+      const teamName = interaction.options.getString('team');
+      const team     = s.teams.find(t => t.name.toLowerCase() === teamName.toLowerCase());
+      if (!team) return interaction.reply({ content: `❌ Team **${teamName}** not found.`, ephemeral: true });
+      team.wins++;
+      await interaction.reply({ content: `🏆 **${team.emoji} ${team.name}** wins! (${team.wins} total wins)` });
+      await s.scoreMsg?.edit({ embeds: [makeScoreEmbed(s)] }).catch(() => {});
+
+    // /teamreroll
+    } else if (commandName === 'teamreroll') {
+      if (!hasHostRole(interaction.member)) return interaction.reply({ content: `❌ Admins only!`, ephemeral: true });
+      if (!s) return interaction.reply({ content: `❌ No active team session here!`, ephemeral: true });
+      // Remove old roles first
+      try { await removeRoles(interaction.guild, s.teams); } catch(e) {}
+      s.teams = assignTeams(s.players, s.teamNames);
+      try { await assignRoles(interaction.guild, s.teams); } catch(e) {}
+      await interaction.reply({ embeds: [makeTeamsEmbed(s)] });
+      await s.scoreMsg?.edit({ embeds: [makeScoreEmbed(s)] }).catch(() => {});
+
+    // /teamscores
+    } else if (commandName === 'teamscores') {
+      if (!s || !s.teams.length) return interaction.reply({ content: `❌ No active team session here!`, ephemeral: true });
+      await interaction.reply({ embeds: [makeScoreEmbed(s)] });
+
+    // /teamstandings — live team totals only
+    } else if (commandName === 'teamstandings') {
+      if (!s || !s.teams.length) return interaction.reply({ content: `❌ No active team session here!`, ephemeral: true });
+      const sorted = [...s.teams].sort((a, b) => teamTotal(b) - teamTotal(a));
+      const embed  = new EmbedBuilder()
+        .setColor('#9B59B6')
+        .setTitle(`🏆 ${s.sessionName || 'Team Standings'}`)
+        .setDescription(
+          sorted.map((t, i) => {
+            const medal = ['<a:1stplace:1487504691880263791>','<a:2ndplace:1487504692874580048>','<a:3rdplace:1487504694191456336>'][i] || `${i+1}.`;
+            const bar   = '█'.repeat(Math.min(10, Math.max(0, Math.round(teamTotal(t) / Math.max(1, teamTotal(sorted[0])) * 10))));
+            const empty = '░'.repeat(10 - bar.length);
+            return medal + ' ' + t.emoji + ' **' + t.name + '**\n' + bar + empty + ' **' + teamTotal(t) + ' pts**';
+          }).join('\n\n')
+        )
+        .setFooter({ text: 'Updates live as points are added' });
+
+      // If there's already a standings msg, update it; otherwise post new
+      if (!s.standingsMsg) {
+        const msg = await interaction.reply({ embeds: [embed], fetchReply: true });
+        s.standingsMsg = msg;
+      } else {
+        await s.standingsMsg.edit({ embeds: [embed] }).catch(() => {});
+        await interaction.reply({ content: `✅ Standings updated!`, ephemeral: true });
       }
 
-      const team1      = interaction.options.getString('team1');
-      const team2      = interaction.options.getString('team2');
-      const team3      = interaction.options.getString('team3');
-      const team4      = interaction.options.getString('team4');
-      const sessionName = interaction.options.getString('name') || 'Team Randomizer';
-      const durationKey = interaction.options.getString('duration') || '60';
-      const customSecs  = interaction.options.getInteger('timer');
-      const signupSecs  = customSecs || parseInt(durationKey);
+    // /teamleave — player removes themselves
+    } else if (commandName === 'teamleave') {
+      if (!s || !s.teams.length) return interaction.reply({ content: `❌ No active team session here!`, ephemeral: true });
+      let found = false;
+      for (const team of s.teams) {
+        const idx = team.members.findIndex(m => m.id === interaction.user.id);
+        if (idx !== -1) {
+          team.members.splice(idx, 1);
+          const pi = s.players.findIndex(p => p.id === interaction.user.id);
+          if (pi !== -1) s.players.splice(pi, 1);
+          // Remove role
+          const guildMember = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+          if (guildMember && team.roleId) {
+            const role = interaction.guild.roles.cache.get(team.roleId);
+            if (role) await guildMember.roles.remove(role).catch(() => {});
+          }
+          found = true;
+          await interaction.reply({ content: `✅ **${interaction.user.username}** has left **${team.emoji} ${team.name}**.` });
+          await s.scoreMsg?.edit({ embeds: [makeScoreEmbed(s)] }).catch(() => {});
+          break;
+        }
+      }
+      if (!found) return interaction.reply({ content: `❌ You are not in any team!`, ephemeral: true });
 
-      const teamNames = [team1, team2, team3, team4].filter(Boolean);
-      if (teamNames.length < 2) return interaction.reply({ content: `❌ You need at least 2 team names!`, ephemeral: true });
+    // /teamremove — host removes someone
+    } else if (commandName === 'teamremove') {
+      if (!hasHostRole(interaction.member) && !canAddPoints(interaction.member)) {
+        return interaction.reply({ content: `❌ You don't have permission to remove players!`, ephemeral: true });
+      }
+      if (!s || !s.teams.length) return interaction.reply({ content: `❌ No active team session here!`, ephemeral: true });
+      const user = interaction.options.getUser('player');
+      let found = false;
+      for (const team of s.teams) {
+        const idx = team.members.findIndex(m => m.id === user.id);
+        if (idx !== -1) {
+          team.members.splice(idx, 1);
+          const pi = s.players.findIndex(p => p.id === user.id);
+          if (pi !== -1) s.players.splice(pi, 1);
+          // Remove role
+          const guildMember = await interaction.guild.members.fetch(user.id).catch(() => null);
+          if (guildMember && team.roleId) {
+            const role = interaction.guild.roles.cache.get(team.roleId);
+            if (role) await guildMember.roles.remove(role).catch(() => {});
+          }
+          found = true;
+          await interaction.reply({ content: `✅ **${user.username}** removed from **${team.emoji} ${team.name}**.` });
+          await s.scoreMsg?.edit({ embeds: [makeScoreEmbed(s)] }).catch(() => {});
+          break;
+        }
+      }
+      if (!found) return interaction.reply({ content: `❌ <@${user.id}> is not in any team.`, ephemeral: true });
 
-      await interaction.reply({ content: `<a:purplesparkle:1479210541691175054> Setting up teams...`, ephemeral: true });
-      await launchTeams(interaction.channel, teamNames, sessionName, signupSecs, interaction.user.username, interaction.user.id);
+    // /teampointsrole
+    } else if (commandName === 'teampointsrole') {
+      if (!hasHostRole(interaction.member)) return interaction.reply({ content: `❌ Admins only!`, ephemeral: true });
+      const role   = interaction.options.getRole('role');
+      const action = interaction.options.getString('action') || 'add';
+      if (action === 'remove') {
+        pointsRoles.delete(role.id);
+        return interaction.reply({ content: `✅ **${role.name}** can no longer add team points.` });
+      } else {
+        pointsRoles.add(role.id);
+        return interaction.reply({ content: `✅ **${role.name}** can now use \`/teampoints\`!` });
+      }
+
+    // /teamend
+    } else if (commandName === 'teamend') {
+      if (!hasHostRole(interaction.member)) return interaction.reply({ content: `❌ Admins only!`, ephemeral: true });
+      if (!s) return interaction.reply({ content: `❌ No active team session here!`, ephemeral: true });
+
+      // Ask about roles
+      const keepId   = `teamend_keep_${channelId}`;
+      const removeId = `teamend_remove_${channelId}`;
+      await interaction.reply({
+        content: `🏁 **End the team session?**\nWhat should happen to the team roles?`,
+        components: [new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId(keepId).setLabel('✅ Keep Roles').setStyle(ButtonStyle.Success),
+          new ButtonBuilder().setCustomId(removeId).setLabel('❌ Remove Roles').setStyle(ButtonStyle.Danger),
+        )],
+        ephemeral: true,
+      });
+
+      const msg = await interaction.fetchReply();
+      const btnCollector = msg.createMessageComponentCollector({ time: 30000, max: 1 });
+
+      btnCollector.on('collect', async (i) => {
+        const removeRolesOnEnd = i.customId === removeId;
+        await i.deferUpdate();
+
+        activeSessions.delete(channelId);
+        s.collector?.stop('ended');
+        s.lateCollector?.stop();
+        if (s.lateMsg) await s.lateMsg.edit({ components: [] }).catch(() => {});
+
+        if (removeRolesOnEnd) {
+          try { await removeRoles(interaction.guild, s.teams); } catch(e) {}
+        }
+
+        const sorted = [...s.teams].sort((a, b) => teamTotal(b) - teamTotal(a));
+        const winner = sorted[0];
+        const finalEmbed = makeScoreEmbed(s);
+        finalEmbed.setTitle(`🏁 Final Results — ${s.sessionName || 'Team Session'}`);
+        finalEmbed.setDescription(
+          `🏆 **${winner.emoji} ${winner.name}** wins with **${teamTotal(winner)} pts**!\n\n` +
+          sorted.map((t, idx) => {
+            const medal = ['<a:1stplace:1487504691880263791>','<a:2ndplace:1487504692874580048>','<a:3rdplace:1487504694191456336>'][idx] || `${idx+1}.`;
+            return `${medal} ${t.emoji} **${t.name}** — **${teamTotal(t)} pts** (${t.wins} win${t.wins !== 1 ? 's' : ''})`;
+          }).join('\n') +
+          (removeRolesOnEnd ? '\n\n*Team roles removed.*' : '\n\n*Team roles kept.*')
+        );
+        finalEmbed.setFooter({ text: 'Session ended' });
+        await s.scoreMsg?.edit({ embeds: [finalEmbed] }).catch(() => {});
+        await interaction.channel.send({ embeds: [finalEmbed] });
+      });
     }
   },
 
   async handleCommand(message, args) {
-    if (!hasHostRole(message.member)) return message.reply(`❌ Only admins and **${EVENT_HOST_ROLE}** can create teams!`);
-    // !teams "Team A" "Team B" "Team C"
+    if (!hasHostRole(message.member)) return message.reply(`❌ Admins only!`);
     const names = args.join(' ').match(/"([^"]+)"/g)?.map(s => s.replace(/"/g, ''));
-    if (!names || names.length < 2) return message.reply('❌ Usage: `!teams "Team A" "Team B" "Team C"`');
-    await launchTeams(message.channel, names, 'Team Randomizer', 60, message.author.username, message.author.id);
+    if (!names || names.length < 2) return message.reply('❌ Usage: `!teams "Team A" "Team B"`');
+    await launchTeams(message.channel, message.guild, names, 'Team Session', 60, message.author.username, message.author.id);
   },
 };
