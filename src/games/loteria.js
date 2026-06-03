@@ -536,12 +536,8 @@ module.exports = {
             await economy.addFunds(uid, gNow.bet, 'Lotería cancelled').catch(() => {});
           return inter.reply({ content: `<:checkmark:1495666088417956002> Lotería cancelled. All players refunded **${gNow.bet} Sins**.` });
         }
-        // Board button
-        if (!inter.customId.startsWith('lot_view_')) return;
-        if (!gNow) return inter.reply({ content: 'Game has ended.', ephemeral: true });
-        if (!gNow.players.has(inter.user.id))
-          return inter.reply({ content: `<:wrong:1495666083594502174> You're not in this game!`, ephemeral: true });
-        return inter.reply(await buildBoardMsg(gNow.players.get(inter.user.id), gNow.drawnCards, gNow.mode === 'manual'));
+        // Board button — handled by handleButton, skip here
+        if (inter.customId.startsWith('lot_view_')) return;
       } catch(e) { console.error('[card collector]', e); }
     });
     cardCol.on('end', () => {
