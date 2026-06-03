@@ -183,7 +183,20 @@ const slashCommands = [
   new SlashCommandBuilder().setName('rumbleslaughter').setDescription('Start Rumble Slaughter: You Thought You Ate')
     .addIntegerOption(o => o.setName('bet').setDescription('Entry fee in sins').setRequired(true).setMinValue(10))
     .addStringOption(o => o.setName('timestamp').setDescription('Discord timestamp to schedule <t:...:F>').setRequired(false))
-    .addStringOption(o => o.setName('era').setDescription('Era name (use /eras for list, or /setera for dropdown)').setRequired(false))
+    .addStringOption(o => o.setName('era').setDescription('Choose an era for this game').setRequired(false).addChoices(
+      { name: 'Default', value: 'default' },
+      { name: 'Gut Feeling Era', value: 'gut feeling era' },
+      { name: 'Darling I Bite', value: 'darling i bite' },
+      { name: 'Baddie Body Count', value: 'baddie body count' },
+      { name: 'Kiss Then Kill', value: 'kiss then kill' },
+      { name: 'Eat or Be Eaten', value: 'eat or be eaten' },
+      { name: 'Blood Buffet', value: 'blood buffet' },
+      { name: 'Served You Wrong', value: 'served you wrong' },
+      { name: 'No Survivors Era', value: 'no survivors era' },
+      { name: 'You Thought Wrong', value: 'you thought wrong' },
+      { name: 'Delulu Destroyer', value: 'delulu destroyer' },
+      { name: 'Eat Dirt Era', value: 'eat dirt era' },
+    ))
     .addStringOption(o => o.setName('mode').setDescription('Match mode').setRequired(false).addChoices(
       {name:'Staff vs Members',value:'staffvsmembers'},
       {name:'Role vs Role',value:'rolevrole'},
