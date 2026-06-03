@@ -467,6 +467,14 @@ module.exports = {
     const drawn = g.deck.pop();
     g.drawnCards.push(drawn);
 
+    // Auto-mark boards in auto mode
+    if (g.mode === 'auto') {
+      for (const [, pd] of g.players) {
+        const idx = pd.board.findIndex(c => c.n === drawn.n);
+        if (idx !== -1) pd.marked.add(idx);
+      }
+    }
+
     const recent = g.drawnCards.slice(-6).reverse().map(c => `${c.emoji} ${c.name}`).join('\n');
 
     // Each card draw has its own <a:eyes:1511507447704191026> My Board button that lasts until next card
