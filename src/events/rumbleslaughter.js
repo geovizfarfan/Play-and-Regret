@@ -1342,13 +1342,17 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
       `*Most of you will lose. Loudly.*`
     )
     .addFields({ name: '<a:purplecheck:1478983961450643538> Signed Up', value: '**0** players' })
-    .setFooter({ text: `Min ${MIN_PLAYERS} players • !rsjoin to enter • Host: ${hostName}` });
+    .setFooter({ text: `Min ${MIN_PLAYERS} players • !rsjoin to enter • Host: ${hostName} • !rumble to start` });
 
   const btn = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`rs_join:${channel.id}`)
       .setEmoji('<:sword:1495666991187361943>').setLabel('Join the Arena')
-      .setStyle(ButtonStyle.Danger)
+      .setStyle(ButtonStyle.Danger),
+    new ButtonBuilder()
+      .setCustomId(`rs_start:${channel.id}`)
+      .setEmoji('<a:fire1:1495666086534844516>').setLabel('Start Game')
+      .setStyle(ButtonStyle.Primary),
   );
 
   const msg = await channel.send({ embeds: [embed], components: [btn] });
@@ -1437,6 +1441,22 @@ module.exports = {
     // Button handler
     client.on('interactionCreate', async (interaction) => {
       if (!interaction.isButton()) return;
+
+      // Start button
+      if (interaction.customId.startsWith('rs_start:')) {
+        const channelId = interaction.customId.split(':')[1];
+        const game = activeGames.get(channelId);
+        if (!game || game.phase !== 'signup')
+          return interaction.reply({ content: '<:wrong:1495666083594502174> No open game to start.', ephemeral: true });
+        const isHost  = interaction.user.id === game.hostId;
+        const isAdmin = interaction.member?.permissions?.has('Administrator') ||
+                        interaction.member?.roles?.cache?.some(r => r.name === (process.env.ADMIN_ROLE || 'Admin'));
+        if (!isHost && !isAdmin)
+          return interaction.reply({ content: '<:wrong:1495666083594502174> Only the host or an admin can start the game!', ephemeral: true });
+        await interaction.deferUpdate();
+        return fireGame(interaction.channel);
+      }
+
       if (!interaction.customId.startsWith('rs_join:')) return;
 
       const channelId = interaction.customId.split(':')[1];
@@ -1744,7 +1764,8 @@ It will affect your duels in the next Rumble Slaughter match.`,
       case 'rsleaderboard': case 'rslb':  return this.showLeaderboard(message);
       case 'openbackpack': case 'rsbag':  return this.openBackpackMsg(message, args[0]);
       case 'rsinventory': case 'rsinv':   return this.showInventoryMsg(message);
-      case 'startgame':                   return this.manualFire(message);
+      case 'startgame':
+      case 'rumble':                     return this.manualFire(message);
       case 'cancelevent':                 return this.cancelGame(message);
       case 'rschedule':                   return this.showSchedule(message);
       case 'addbounty':                    return this.addBounty(message, args);
