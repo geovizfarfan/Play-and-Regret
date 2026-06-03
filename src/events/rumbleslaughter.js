@@ -628,8 +628,8 @@ function getDisplayName(player) {
     if (anim) return `${anim.emoji} ${player.username} ${anim.emoji}`;
   }
   // Static emoji tag on left only
-  const tag = player.emoji_tag || '<a:MVP24:1495665626688131183>';
-  return `${tag} ${player.username}`;
+  const tag = player.emoji_tag || '';
+  return tag ? `${tag} ${player.username}` : player.username;
 }
 
 // ─── FIGHT RESOLUTION ────────────────────────────────────────────────────────
