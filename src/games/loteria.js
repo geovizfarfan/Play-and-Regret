@@ -383,7 +383,7 @@ module.exports = {
 
             await inter.reply({
               embeds: [new EmbedBuilder().setColor('#C9B1FF')
-                .setTitle('<:373840:1511531231756419202> ¡LOTERÍA! You won!')
+                .setTitle('🏆 ¡LOTERÍA! You won!')
                 .setDescription(renderGrid(pd.board, pd.marked, g.drawnCards))
                 .setFooter({ text: `+${pot.toLocaleString()} sins added to your balance!` })],
               components: [],
@@ -392,8 +392,8 @@ module.exports = {
 
             return inter.channel.send({ embeds: [new EmbedBuilder().setColor('#C9B1FF')
               .setTitle(`<a:trophies:1507765453299122387> ¡LOTERÍA!`)
-              .setDescription(`<:373840:1511531231756419202> <@${inter.user.id}> wins with a **${win}**!\n${E.BB_COIN} Prize: **${pot.toLocaleString()} sins**!`)
-              .setFooter({ text: '¡Felicidades! <:373840:1511531231756419202>' })] });
+              .setDescription(`🏆 <@${inter.user.id}> wins with a **${win}**!\n${E.BB_COIN} Prize: **${pot.toLocaleString()} sins**!`)
+              .setFooter({ text: '¡Felicidades! 🏆' })] });
           }
 
           // Show updated board
@@ -485,7 +485,7 @@ module.exports = {
       embeds: [new EmbedBuilder().setColor('#7B2FBE')
         .setTitle(`<a:mexicoflag:1511506713755516961> Card #${g.drawnCards.length} — ${drawn.emoji} ${drawn.name}`)
         .addFields({ name: '<a:cards:1511530261551124561> Recent Cards', value: recent })
-        .setFooter({ text: `${g.drawnCards.length}/54 called · Click <a:eyes:1511507447704191026> My Board to see your card!` })
+        .setFooter({ text: `${g.drawnCards.length}/54 called · Click 👁 My Board to see your card!` })
       ],
       components: [cardRow],
     });
@@ -547,8 +547,8 @@ module.exports = {
     const names = winners.map(w => `<@${w.uid}>`).join(', ');
     await channel.send({ embeds: [new EmbedBuilder().setColor('#C9B1FF')
       .setTitle('<a:trophies:1507765453299122387> ¡LOTERÍA!')
-      .setDescription(`<:373840:1511531231756419202> ${names} wins!\n${E.BB_COIN} Each gets **${share.toLocaleString()} sins**!`)
-      .setFooter({ text: '¡Felicidades! <:373840:1511531231756419202>' })] });
+      .setDescription(`🏆 ${names} wins!\n${E.BB_COIN} Each gets **${share.toLocaleString()} sins**!`)
+      .setFooter({ text: '¡Felicidades! 🏆' })] });
   },
 
   // ─── Cancel ───────────────────────────────────────────────────────────────
