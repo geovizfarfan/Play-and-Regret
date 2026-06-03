@@ -61,20 +61,20 @@ async function renderBoardImage(board, markedSet, username) {
     // Build composite: background + card images + overlay for marked
     const nameDisplay = (username || 'Player').replace(/[<>&'"]/g, '').slice(0, 16);
 
-    // Build card composites
+    // Build card composites — resize all cards in parallel
     const composites = [];
 
-    for (let i = 0; i < 16; i++) {
+    const cardTasks = board.slice(0, 16).map(async (card, i) => {
       const col = i % cols, row = Math.floor(i / cols);
       const x = pad + col * (cardW + pad);
       const y = titleH + pad + row * (cardH + pad);
       const marked = markedSet.has(i);
-      const card = board[i];
       const cardPath = card?.n ? CARD_IMAGES[card.n] : null;
+      const results = [];
       if (cardPath) {
         try {
           const resized = await sharp(cardPath).resize(cardW, cardH).toBuffer();
-          composites.push({ input: resized, left: x, top: y });
+          results.push({ input: resized, left: x, top: y });
         } catch(e2) { console.error('[Loteria] card image error:', card?.name, e2.message); }
       } else {
         const fallbackSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cardW}" height="${cardH}">
@@ -84,18 +84,22 @@ async function renderBoardImage(board, markedSet, username) {
           <text x="${cardW/2}" y="14" text-anchor="middle" font-family="Arial" font-size="9" font-weight="bold" fill="#5B1A7A">${String(card?.n||'').padStart(2,'0')}</text>
           <text x="${cardW/2}" y="${cardH-6}" text-anchor="middle" font-family="Arial" font-size="8" fill="#5B1A7A">${(card?.name||'').slice(0,12)}</text>
         </svg>`;
-        composites.push({ input: Buffer.from(fallbackSvg), left: x, top: y });
+        results.push({ input: Buffer.from(fallbackSvg), left: x, top: y });
       }
 
       if (marked) {
-        // Dark overlay + checkmark SVG on top of card
         const overlaySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cardW}" height="${cardH}">
           <rect width="${cardW}" height="${cardH}" fill="rgba(192,132,252,0.7)" rx="4"/>
           <text x="${cardW/2}" y="${cardH/2 + 14}" text-anchor="middle" fill="white" font-family="Arial" font-size="48" font-weight="bold">✓</text>
         </svg>`;
-        composites.push({ input: Buffer.from(overlaySvg), left: x, top: y });
+        results.push({ input: Buffer.from(overlaySvg), left: x, top: y });
       }
-    }
+      return results;
+    });
+
+    const cardResults = await Promise.all(cardTasks);
+    for (const r of cardResults) composites.push(...r);
+    {
 
     // Title SVG
     const titleSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${titleH}">
