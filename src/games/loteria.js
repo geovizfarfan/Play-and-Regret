@@ -256,7 +256,7 @@ module.exports = {
           `<a:RojasClock:1511506715453947904> **${cardSpeedLabel}** per card\n` +
           `<a:calendar:1479266779837632562> Starts: ${startLabel}\n\n` +
           `${mode === 'auto'
-            ? 'Cards draw automatically. Click <a:eyes:1511507447704191026> **My Board** to see your board and what has been called.'
+            ? 'Cards draw automatically. Click 👁 **My Board** to see your board and what has been called.'
             : 'Cards draw automatically but **you** must click your board to mark them. Bot will not mark for you.'}` +
           `
 ¡Buena suerte! <a:sparkle:1511506717584920696>`
@@ -319,9 +319,9 @@ module.exports = {
           if (!g)
             return inter.reply({ content: 'Game no longer active.', ephemeral: true });
           if (g.phase !== 'lobby')
-            return inter.reply({ content: `Game already started! Press **<a:eyes:1511507447704191026> My Board** to see your card.`, ephemeral: true });
+            return inter.reply({ content: `Game already started! Press **👁 My Board** to see your card.`, ephemeral: true });
           if (g.players.has(inter.user.id))
-            return inter.reply({ content: `<:checkmark:1495666088417956002> Already joined! Press **<a:eyes:1511507447704191026> My Board** to see your card.`, ephemeral: true });
+            return inter.reply({ content: `<:checkmark:1495666088417956002> Already joined! Press **👁 My Board** to see your card.`, ephemeral: true });
 
           await economy.getUser(inter.user.id, inter.user.username);
           if (await economy.getBalance(inter.user.id) < g.bet)
@@ -338,7 +338,7 @@ module.exports = {
           });
 
           await inter.reply({
-            content: `<:checkmark:1495666088417956002> Joined! **${g.players.size}** player${g.players.size !== 1 ? 's' : ''} so far.\n\n<a:eyes:1511507447704191026> Press **My Board** above to see your card!`,
+            content: `<:checkmark:1495666088417956002> Joined! **${g.players.size}** player${g.players.size !== 1 ? 's' : ''} so far.\n\n👁 Press **My Board** above to see your card!`,
             ephemeral: true,
           });
           await inter.channel.send(`<:checkmark:1495666088417956002> **${inter.user.username}** joined Lotería! (${g.players.size} players)`);
@@ -433,8 +433,8 @@ module.exports = {
       .setDescription(
         `**${game.players.size} players** competing!\n${E.BB_COIN} Prize Pool: **${pot.toLocaleString()} sins**\n\n` +
         (game.mode === 'auto'
-          ? `🤖 Your board **marks itself automatically** when cards are called!\n<a:eyes:1511507447704191026> Press **My Board** on any card to check your progress.`
-          : `✍️ Press **<a:eyes:1511507447704191026> My Board** on each drawn card to open your board and **click blue cards to mark them**.\nYou can mark any called card at any time — even ones you missed!`)
+          ? `🤖 Your board **marks itself automatically** when cards are called!\n👁 Press **My Board** on any card to check your progress.`
+          : `✍️ Press **👁 My Board** on each drawn card to open your board and **click blue cards to mark them**.\nYou can mark any called card at any time — even ones you missed!`)
       )] });
 
     game.interval = setInterval(() => this._drawCard(channelId, channel), game.cardSpeedMs);
@@ -477,7 +477,7 @@ module.exports = {
 
     const recent = g.drawnCards.slice(-6).reverse().map(c => `${c.emoji} ${c.name}`).join('\n');
 
-    // Each card draw has its own <a:eyes:1511507447704191026> My Board button that lasts until next card
+    // Each card draw has its own 👁 My Board button that lasts until next card
     const cardRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(`lot_view_${channelId}`).setEmoji({ id: '1511507447704191026', name: 'eyes', animated: true }).setLabel('My Board').setStyle(ButtonStyle.Primary),
     );
@@ -601,8 +601,8 @@ module.exports = {
   getRulesText() {
     return [
       `**🎴 Lotería Rules**\n`,
-      `**🤖 Auto Mode** — Cards called every 8s, your board marks itself. Press **<a:eyes:1511507447704191026> My Board** on the lobby message to see your card privately.\n`,
-      `**✍️ Manual Mode** — Cards called every 8s. Press **<a:eyes:1511507447704191026> My Board** on the lobby message to open your card and click matching cards to mark them. 🔵 blue = called & ready to mark!\n`,
+      `**🤖 Auto Mode** — Cards called every 8s, your board marks itself. Press **👁 My Board** on the lobby message to see your card privately.\n`,
+      `**✍️ Manual Mode** — Cards called every 8s. Press **👁 My Board** on the lobby message to open your card and click matching cards to mark them. 🔵 blue = called & ready to mark!\n`,
       `**<a:trophies:1507765453299122387> Win** — First to complete a row, column, or diagonal of 4 wins the pot!\n`,
       `**⏱️ Delay** — \`1m\` \`5m\` \`10m\` \`20m\` · Up to 8 players\n`,
       `**<:wrong:1495666083594502174> Cancel** — Host or admin presses Cancel in the lobby. All players refunded.`,
