@@ -326,11 +326,14 @@ module.exports = {
       ? `# ${name} — LIVE!
 ${ping}`
       : `# ${name} — LIVE!`;
-    await channel.send({
+    const startMsg = await channel.send({
       content: titleLine,
       embeds: [embed],
       components: [buildJoinButton(session.id)],
     });
+    const key = `${channel.id}:${session.id}`;
+    liveChannels.set(key, { messageId: startMsg.id, sessionId: session.id, channelId: channel.id });
+    await jackpot.saveLiveMessageId(session.id, startMsg.id).catch(() => {});
     await this.updateLiveChannels();
     this._scheduleAutoDraw(session.id, ms, channel);
     return replyFn(`<:checkmark:1495666088417956002> **${name}** started!`);
