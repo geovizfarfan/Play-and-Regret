@@ -3,7 +3,9 @@ const { db, economy } = require('../../utils/database');
 const E = require('../../utils/emojis');
 const axios = require('axios');
 
-// Letter emojis for labeling options A, B, C, D...
+const BET_COLOR = '#B19CD9'; // lavender purple
+
+// Custom letter emojis for labeling options A, B, C, D...
 const LETTER_EMOJI_ID = [
   { name: 'A_', id: '1521014752091045989' },
   { name: 'B_', id: '1521014753265320197' },
@@ -66,183 +68,78 @@ module.exports = {
       async (msg) => interaction.editReply(typeof msg === 'string' ? { content: msg } : msg));
   },
 
-  // ── Shared bet-creation core ──────────────────────────────────────────────
-  async _createBetCore(author, channel, title, desc, hours, options, replyFn) {
-    const closesAt = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+  // ── Build the embed for a bet from current DB state (used everywhere) ────
+  async _buildBetEmbed(bet) {
+    const options = bet.options || [];
+    const lines = await Promise.all(options.map(async (opt, idx) => {
+      const row = await db.get('SELECT SUM(amount) as t FROM bet_entries WHERE bet_id = ? AND side = ?', [bet.id, opt]);
+      return `${LETTER_EMOJI[idx] || '•'} **${opt}** — ${(row?.t || 0).toLocaleString()} sins`;
+    }));
+    const hoursLeft = Math.max(0, Math.round((new Date(bet.closes_at) - Date.now()) / 3600000));
 
-    await db.run(
-      'INSERT INTO bets (title, description, creator_id, closes_at, options) VALUES (?, ?, ?, ?, ?)',
-      [title, desc, author.id, closesAt, options]
-    );
-    const lastRow = await db.get('SELECT id FROM bets ORDER BY id DESC LIMIT 1');
-    const betId   = lastRow?.id;
-
-    const optionLines = options.map((opt, i) => `${LETTER_EMOJI[i] || '•'} **${opt}** — 0 sins`).join('\n');
-
-    const embed = new EmbedBuilder()
-      .setColor('#FFB3A0')
-      .setTitle(`${title}`)
+    return new EmbedBuilder()
+      .setColor(BET_COLOR)
+      .setTitle(`${bet.title}`)
       .setDescription(
-        `${desc ? desc + '\n\n' : ''}` +
-        `<a:moneybag:1479268556687540345> **Total Pool: 0 sins**\n\n${optionLines}`
+        `${bet.description ? bet.description + '\n\n' : ''}` +
+        `<a:moneybag:1479268556687540345> **Total Pool: ${(bet.total_pool || 0).toLocaleString()} sins**\n\n${lines.join('\n')}`
       )
       .addFields(
-        { name: `${E.CLOCK} Closes In`, value: `${hours} hours`, inline: true },
-        { name: '🆔 Bet ID',            value: `#${betId}`,       inline: true },
+        { name: `${E.CLOCK} Closes In`, value: `${hoursLeft} hours`, inline: true },
+        { name: '🆔 Bet ID',            value: `#${bet.id}`,         inline: true },
       )
-      .setFooter({ text: `Created by ${author.username}` });
+      .setFooter({ text: `Created by ${bet.creator_name || 'host'}` });
+  },
 
-    const buttonRow = new ActionRowBuilder().addComponents(
-      ...options.slice(0, 4).map((opt, i) =>
-        new ButtonBuilder()
-          .setCustomId(`bet_pick_${betId}_${i}`)
-          .setLabel(opt.slice(0, 20))
-          .setEmoji(LETTER_EMOJI[i] || '⚪')
-          .setStyle(ButtonStyle.Primary)
-      ),
-    );
+  _buildBetComponents(bet) {
+    const options = bet.options || [];
     const cancelRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`bet_cancel_${betId}`).setLabel('Cancel Bet').setEmoji('<:wrong:1495666083594502174>').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`bet_cancel_${bet.id}`).setLabel('Cancel Bet').setEmoji('<:wrong:1495666083594502174>').setStyle(ButtonStyle.Secondary),
     );
 
-    // If more than 4 options, use a select menu instead of buttons (Discord limits 5 per row)
-    let components;
     if (options.length > 4) {
       const select = new StringSelectMenuBuilder()
-        .setCustomId(`bet_select_${betId}`)
+        .setCustomId(`bet_select_${bet.id}`)
         .setPlaceholder('Pick an outcome to bet on...')
         .addOptions(options.map((opt, i) => ({
           label: opt.slice(0, 100),
           value: String(i),
           emoji: LETTER_EMOJI[i] || undefined,
         })));
-      components = [new ActionRowBuilder().addComponents(select), cancelRow];
-    } else {
-      components = [buttonRow, cancelRow];
+      return [new ActionRowBuilder().addComponents(select), cancelRow];
     }
+
+    const buttonRow = new ActionRowBuilder().addComponents(
+      ...options.slice(0, 4).map((opt, i) =>
+        new ButtonBuilder()
+          .setCustomId(`bet_pick_${bet.id}_${i}`)
+          .setLabel(opt.slice(0, 20))
+          .setEmoji(LETTER_EMOJI[i] || '⚪')
+          .setStyle(ButtonStyle.Secondary)
+      ),
+    );
+    return [buttonRow, cancelRow];
+  },
+
+  // ── Shared bet-creation core ──────────────────────────────────────────────
+  async _createBetCore(author, channel, title, desc, hours, options, replyFn) {
+    const closesAt = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+
+    await db.run(
+      'INSERT INTO bets (title, description, creator_id, creator_name, closes_at, options) VALUES (?, ?, ?, ?, ?, ?)',
+      [title, desc, author.id, author.username, closesAt, options]
+    );
+    const lastRow = await db.get('SELECT id FROM bets ORDER BY id DESC LIMIT 1');
+    const betId   = lastRow?.id;
+    const bet     = await db.get('SELECT * FROM bets WHERE id = ?', [betId]);
+
+    const embed      = await this._buildBetEmbed(bet);
+    const components  = this._buildBetComponents(bet);
 
     await replyFn(`<:checkmark:1495666088417956002> Bet **"${title}"** created! (#${betId})`);
     const msg = await channel.send({ embeds: [embed], components });
-
-    this._attachCollectors(msg, betId, title, desc, hours, options, author);
+    await db.run('UPDATE bets SET message_id = ?, channel_id = ? WHERE id = ?', [msg.id, channel.id, betId]);
     return msg;
-  },
-
-  // ── Collectors for picking an option, then an amount ──────────────────────
-  _attachCollectors(msg, betId, title, desc, hours, options, author) {
-    const collector = msg.createMessageComponentCollector({ time: hours * 60 * 60 * 1000 });
-
-    collector.on('collect', async (i) => {
-      // Cancel button
-      if (i.customId === `bet_cancel_${betId}`) {
-        if (i.user.id !== author.id && !i.member?.permissions.has('Administrator')) {
-          return i.reply({ content: `<:wrong:1495666083594502174> Only the bet creator or an admin can cancel this bet!`, ephemeral: true });
-        }
-        await i.deferReply({ ephemeral: true });
-        const entries = await db.all('SELECT * FROM bet_entries WHERE bet_id = ?', [betId]);
-        for (const entry of entries) {
-          await economy.addFunds(entry.user_id, entry.amount, `Bet #${betId} cancelled — refund`);
-        }
-        await db.run("UPDATE bets SET status = 'cancelled' WHERE id = ?", [betId]);
-
-        const disabled = msg.components.map(row => {
-          const newRow = ActionRowBuilder.from(row);
-          newRow.components.forEach(c => c.setDisabled(true));
-          return newRow;
-        });
-        await msg.edit({ components: disabled }).catch(() => {});
-
-        const refundLines = entries.map(e => `• **${e.username}** — ${e.amount.toLocaleString()} sins`).join('\n');
-        await i.editReply({ content: `<:checkmark:1495666088417956002> Bet **#${betId}** cancelled!${entries.length > 0 ? `\n\n**Refunded:**\n${refundLines}` : '\nNo bets were placed.'}` });
-        await i.channel.send(`<:wrong:1495666083594502174> **Bet #${betId} "${title}"** has been cancelled. ${entries.length} player(s) refunded.`);
-        collector.stop('cancelled');
-        return;
-      }
-
-      // Determine which option index was picked (button or select menu)
-      let optionIdx = null;
-      if (i.customId === `bet_select_${betId}` && i.isStringSelectMenu()) {
-        optionIdx = parseInt(i.values[0]);
-      } else {
-        const m = i.customId.match(new RegExp(`^bet_pick_${betId}_(\\d+)$`));
-        if (m) optionIdx = parseInt(m[1]);
-      }
-      if (optionIdx === null) return;
-
-      const bal = await economy.getBalance(i.user.id);
-      if (bal < 10) return i.reply({ content: `${E.ERROR} You need at least 10 sins to bet!`, ephemeral: true });
-
-      const existing = await db.get('SELECT * FROM bet_entries WHERE bet_id = ? AND user_id = ?', [betId, i.user.id]);
-      if (existing) return i.reply({ content: `<a:Warning:1497476844860215366> You already placed a bet on this one!`, ephemeral: true });
-
-      const amountRow = new ActionRowBuilder().addComponents(
-        ...[10, 25, 50, 100, 250].map(amt =>
-          new ButtonBuilder()
-            .setCustomId(`bet_amt_${betId}_${optionIdx}_${amt}`)
-            .setLabel(`${amt} sins`)
-            .setStyle(ButtonStyle.Secondary)
-        )
-      );
-      await i.reply({
-        content: `${LETTER_EMOJI[optionIdx] || ''} **${options[optionIdx]}** — How much do you want to bet?`,
-        components: [amountRow],
-        ephemeral: true,
-      });
-    });
-
-    msg.client.on('interactionCreate', async (i) => {
-      if (!i.isButton()) return;
-      const match = i.customId.match(/^bet_amt_(\d+)_(\d+)_(\d+)$/);
-      if (!match) return;
-      const [, id, optIdxStr, amountStr] = match;
-      if (parseInt(id) !== betId) return;
-      const optionIdx = parseInt(optIdxStr);
-      const amount    = parseInt(amountStr);
-
-      await i.deferReply({ ephemeral: true }).catch(() => {});
-
-      const bal = await economy.getBalance(i.user.id);
-      if (bal < amount) return i.editReply({ content: `${E.ERROR} You need **${amount} sins** but only have **${bal.toLocaleString()}**!` });
-
-      const bet = await db.get('SELECT * FROM bets WHERE id = ?', [betId]);
-      if (!bet || bet.status !== 'open') return i.editReply({ content: `${E.ERROR} This bet is no longer open!` });
-
-      const existing = await db.get('SELECT * FROM bet_entries WHERE bet_id = ? AND user_id = ?', [betId, i.user.id]);
-      if (existing) return i.editReply({ content: `<a:Warning:1497476844860215366> You already placed a bet on this one!` });
-
-      const side = options[optionIdx];
-      await economy.removeFunds(i.user.id, amount, `Bet #${betId} (${side})`);
-      await db.run(
-        'INSERT INTO bet_entries (bet_id, user_id, username, side, amount) VALUES (?, ?, ?, ?, ?)',
-        [betId, i.user.id, i.user.username, side, amount]
-      );
-      await db.run('UPDATE bets SET total_pool = total_pool + ? WHERE id = ?', [amount, betId]);
-
-      // Rebuild embed with live totals per option
-      const updatedBet = await db.get('SELECT total_pool FROM bets WHERE id = ?', [betId]);
-      const optionLines = await Promise.all(options.map(async (opt, idx) => {
-        const row = await db.get('SELECT SUM(amount) as t FROM bet_entries WHERE bet_id = ? AND side = ?', [betId, opt]);
-        return `${LETTER_EMOJI[idx] || '•'} **${opt}** — ${(row?.t || 0).toLocaleString()} sins`;
-      }));
-
-      const updatedEmbed = new EmbedBuilder()
-        .setColor('#FFB3A0')
-        .setTitle(`${title}`)
-        .setDescription(
-          `${desc ? desc + '\n\n' : ''}` +
-          `<a:moneybag:1479268556687540345> **Total Pool: ${(updatedBet?.total_pool || 0).toLocaleString()} sins**\n\n${optionLines.join('\n')}`
-        )
-        .addFields(
-          { name: `${E.CLOCK} Closes In`, value: `${hours} hours`, inline: true },
-          { name: '🆔 Bet ID',            value: `#${betId}`,       inline: true },
-        )
-        .setFooter({ text: `Created by ${author.username}` });
-      await msg.edit({ embeds: [updatedEmbed] }).catch(() => {});
-
-      await i.editReply({
-        content: `${LETTER_EMOJI[optionIdx] || ''} **${i.user.username}** bet **${amount} sins** on **${side}** for bet #${betId}!`,
-      });
-    });
   },
 
   // ── Prefix-command equivalents for placing/resolving (prompt for option) ──
@@ -264,7 +161,7 @@ module.exports = {
           .setCustomId(`bet_quick_${betId}_${i}_${amount || 0}`)
           .setLabel(opt.slice(0, 20))
           .setEmoji(LETTER_EMOJI[i] || '⚪')
-          .setStyle(ButtonStyle.Primary)
+          .setStyle(ButtonStyle.Secondary)
       )
     );
     return message.reply({ content: `Pick your outcome for **${bet.title}**:`, components: [row] });
@@ -286,7 +183,7 @@ module.exports = {
           .setCustomId(`bet_resolve_${betId}_${i}`)
           .setLabel(opt.slice(0, 20))
           .setEmoji(LETTER_EMOJI[i] || '⚪')
-          .setStyle(ButtonStyle.Success)
+          .setStyle(ButtonStyle.Secondary)
       ),
       new ButtonBuilder().setCustomId(`bet_resolve_${betId}_cancel`).setLabel('Cancel Bet').setStyle(ButtonStyle.Danger),
     );
@@ -315,7 +212,7 @@ module.exports = {
     if (winEntries.length === 0) {
       return (channelSendFn || replyFn)({ embeds: [
         new EmbedBuilder()
-          .setColor('#FFB3A0')
+          .setColor(BET_COLOR)
           .setTitle(`Bet #${betId} Resolved — ${winningOption} wins!`)
           .setDescription(`No one bet on **${winningOption}**. No payouts.`)
       ]});
@@ -330,7 +227,7 @@ module.exports = {
 
     return (channelSendFn || replyFn)({ embeds: [
       new EmbedBuilder()
-        .setColor('#FFE4A0')
+        .setColor(BET_COLOR)
         .setTitle(`${E.TROPHY} Bet #${betId} Resolved!`)
         .setDescription(`**${bet.title}**\n\nOutcome: **${winningOption}**\n\n**Payouts:**\n${payoutLines.join('\n')}`)
         .setFooter({ text: `Total pot: ${totalPool.toLocaleString()} sins` })
@@ -361,7 +258,7 @@ module.exports = {
 
     return message.reply({ embeds: [
       new EmbedBuilder()
-        .setColor('#FFB3A0')
+        .setColor(BET_COLOR)
         .setTitle(`${message.author.username}'s Bets`)
         .setDescription(lines.join('\n'))
     ]});
@@ -373,7 +270,7 @@ module.exports = {
 
     const lines = bets.map(b => `**#${b.id}** ${b.title} — ${(b.options || []).join(' vs ')} — Pool: ${b.total_pool.toLocaleString()} sins`);
     return message.reply({ embeds: [
-      new EmbedBuilder().setColor('#FFB3A0').setTitle('📋 Open Bets').setDescription(lines.join('\n'))
+      new EmbedBuilder().setColor(BET_COLOR).setTitle('📋 Open Bets').setDescription(lines.join('\n'))
     ]});
   },
 
@@ -390,7 +287,7 @@ module.exports = {
 
     return message.reply({ embeds: [
       new EmbedBuilder()
-        .setColor('#FFB3A0')
+        .setColor(BET_COLOR)
         .setTitle(`Bet #${betId}: ${bet.title}`)
         .setDescription(`${bet.description || ''}\n\n${lines.join('\n')}`)
         .addFields(
@@ -407,7 +304,7 @@ module.exports = {
       if (!markets || !markets.length) return message.reply(`${E.ERROR} No active Polymarket markets found.`);
       const lines = markets.map(m => `**${m.question}**`).join('\n');
       return message.reply({ embeds: [
-        new EmbedBuilder().setColor('#FFB3A0').setTitle('📊 Polymarket — Active Markets').setDescription(lines)
+        new EmbedBuilder().setColor(BET_COLOR).setTitle('📊 Polymarket — Active Markets').setDescription(lines)
       ]});
     } catch (e) {
       return message.reply(`${E.ERROR} Couldn't fetch Polymarket markets right now.`);
@@ -448,38 +345,147 @@ module.exports = {
     await this.handleCommand(fakeMessage, args, commandName);
   },
 
-  // ── Button handler for resolve/quick-bet prompts (registered globally) ───
+  // ── Stateless button/select handler — survives restarts, fully DB-driven ─
   async handleButton(interaction) {
     const id = interaction.customId;
 
-    // Resolve buttons: bet_resolve_<id>_<optionIdx|cancel>
+    // ── Cancel button on the live bet message: bet_cancel_<id> ─────────────
+    const cancelMatch = id.match(/^bet_cancel_(\d+)$/);
+    if (cancelMatch) {
+      const betId = parseInt(cancelMatch[1]);
+      const bet   = await db.get('SELECT * FROM bets WHERE id = ?', [betId]);
+      if (!bet) return interaction.reply({ content: `${E.ERROR} Bet not found.`, ephemeral: true });
+      const isCreator = interaction.user.id === bet.creator_id;
+      const isAdmin   = interaction.member?.permissions?.has('Administrator');
+      if (!isCreator && !isAdmin)
+        return interaction.reply({ content: `<:wrong:1495666083594502174> Only the bet creator or an admin can cancel this bet!`, ephemeral: true });
+
+      await interaction.deferUpdate().catch(() => {});
+      await this.resolveBetByOption(betId, 'cancel',
+        async (msg) => interaction.followUp(typeof msg === 'string' ? { content: msg, ephemeral: true } : { ...msg, ephemeral: true }),
+        async (msg) => interaction.channel.send(msg));
+
+      // Disable all components on the original message
+      const disabled = interaction.message.components.map(row => {
+        const newRow = ActionRowBuilder.from(row);
+        newRow.components.forEach(c => c.setDisabled(true));
+        return newRow;
+      });
+      return interaction.message.edit({ components: disabled }).catch(() => {});
+    }
+
+    // ── Picking an option (button): bet_pick_<id>_<optionIdx> ──────────────
+    // ── Picking an option (select menu): bet_select_<id> ───────────────────
+    let betId = null, optionIdx = null;
+    const pickMatch = id.match(/^bet_pick_(\d+)_(\d+)$/);
+    if (pickMatch) {
+      betId = parseInt(pickMatch[1]);
+      optionIdx = parseInt(pickMatch[2]);
+    } else if (id.match(/^bet_select_(\d+)$/) && interaction.isStringSelectMenu()) {
+      betId = parseInt(id.match(/^bet_select_(\d+)$/)[1]);
+      optionIdx = parseInt(interaction.values[0]);
+    }
+
+    if (betId !== null && optionIdx !== null) {
+      const bet = await db.get('SELECT * FROM bets WHERE id = ?', [betId]);
+      if (!bet || bet.status !== 'open') return interaction.reply({ content: `${E.ERROR} This bet is no longer open!`, ephemeral: true });
+
+      const bal = await economy.getBalance(interaction.user.id);
+      if (bal < 10) return interaction.reply({ content: `${E.ERROR} You need at least 10 sins to bet!`, ephemeral: true });
+
+      const existing = await db.get('SELECT * FROM bet_entries WHERE bet_id = ? AND user_id = ?', [betId, interaction.user.id]);
+      if (existing) return interaction.reply({ content: `<a:Warning:1497476844860215366> You already placed a bet on this one!`, ephemeral: true });
+
+      const options  = bet.options || [];
+      const amountRow = new ActionRowBuilder().addComponents(
+        ...[10, 25, 50, 100, 250].map(amt =>
+          new ButtonBuilder()
+            .setCustomId(`bet_amt_${betId}_${optionIdx}_${amt}`)
+            .setLabel(`${amt} sins`)
+            .setStyle(ButtonStyle.Secondary)
+        )
+      );
+      return interaction.reply({
+        content: `${LETTER_EMOJI[optionIdx] || ''} **${options[optionIdx]}** — How much do you want to bet?`,
+        components: [amountRow],
+        ephemeral: true,
+      });
+    }
+
+    // ── Placing the actual amount: bet_amt_<id>_<optionIdx>_<amount> ───────
+    const amtMatch = id.match(/^bet_amt_(\d+)_(\d+)_(\d+)$/);
+    if (amtMatch) {
+      const [, betIdStr, optIdxStr, amountStr] = amtMatch;
+      const betId2     = parseInt(betIdStr);
+      const optionIdx2 = parseInt(optIdxStr);
+      const amount      = parseInt(amountStr);
+
+      await interaction.deferReply({ ephemeral: true }).catch(() => {});
+
+      const bal = await economy.getBalance(interaction.user.id);
+      if (bal < amount) return interaction.editReply(`${E.ERROR} You need **${amount} sins** but only have **${bal.toLocaleString()}**!`);
+
+      const bet = await db.get('SELECT * FROM bets WHERE id = ?', [betId2]);
+      if (!bet || bet.status !== 'open') return interaction.editReply(`${E.ERROR} This bet is no longer open!`);
+
+      const existing = await db.get('SELECT * FROM bet_entries WHERE bet_id = ? AND user_id = ?', [betId2, interaction.user.id]);
+      if (existing) return interaction.editReply(`<a:Warning:1497476844860215366> You already placed a bet on this one!`);
+
+      const options = bet.options || [];
+      const side    = options[optionIdx2];
+
+      await economy.removeFunds(interaction.user.id, amount, `Bet #${betId2} (${side})`);
+      await db.run(
+        'INSERT INTO bet_entries (bet_id, user_id, username, side, amount) VALUES (?, ?, ?, ?, ?)',
+        [betId2, interaction.user.id, interaction.user.username, side, amount]
+      );
+      await db.run('UPDATE bets SET total_pool = total_pool + ? WHERE id = ?', [amount, betId2]);
+
+      // Rebuild the live embed on the original bet message
+      const updatedBet = await db.get('SELECT * FROM bets WHERE id = ?', [betId2]);
+      const updatedEmbed = await this._buildBetEmbed(updatedBet);
+      if (updatedBet.message_id && updatedBet.channel_id) {
+        try {
+          const liveChannel = await interaction.client.channels.fetch(updatedBet.channel_id);
+          const liveMsg     = await liveChannel.messages.fetch(updatedBet.message_id);
+          await liveMsg.edit({ embeds: [updatedEmbed] });
+        } catch (e) { /* message may have been deleted, ignore */ }
+      }
+
+      await interaction.editReply({
+        content: `${LETTER_EMOJI[optionIdx2] || ''} **${interaction.user.username}** bet **${amount} sins** on **${side}** for bet #${betId2}!`,
+      });
+      return;
+    }
+
+    // ── Resolve buttons: bet_resolve_<id>_<optionIdx|cancel> ────────────────
     const resolveMatch = id.match(/^bet_resolve_(\d+)_(\d+|cancel)$/);
     if (resolveMatch) {
       if (!this.isAdmin({ member: interaction.member }))
         return interaction.reply({ content: `${E.ERROR} Only admins can resolve bets!`, ephemeral: true });
       await interaction.deferUpdate().catch(() => {});
-      const betId = parseInt(resolveMatch[1]);
-      const bet   = await db.get('SELECT * FROM bets WHERE id = ?', [betId]);
-      const winningOption = resolveMatch[2] === 'cancel' ? 'cancel' : (bet?.options || [])[parseInt(resolveMatch[2])];
-      return this.resolveBetByOption(betId, winningOption,
+      const rBetId = parseInt(resolveMatch[1]);
+      const rBet   = await db.get('SELECT * FROM bets WHERE id = ?', [rBetId]);
+      const winningOption = resolveMatch[2] === 'cancel' ? 'cancel' : (rBet?.options || [])[parseInt(resolveMatch[2])];
+      return this.resolveBetByOption(rBetId, winningOption,
         async (msg) => interaction.followUp(typeof msg === 'string' ? { content: msg } : msg),
         async (msg) => interaction.channel.send(msg));
     }
 
-    // Quick-bet buttons from !bet prompt: bet_quick_<id>_<optionIdx>_<amount>
+    // ── Quick-bet buttons from !bet prompt: bet_quick_<id>_<optionIdx>_<amount> ─
     const quickMatch = id.match(/^bet_quick_(\d+)_(\d+)_(\d+)$/);
     if (quickMatch) {
       const [, betIdStr, optIdxStr, amountStr] = quickMatch;
-      const betId = parseInt(betIdStr);
-      const bet   = await db.get('SELECT * FROM bets WHERE id = ?', [betId]);
-      if (!bet || bet.status !== 'open') return interaction.reply({ content: `${E.ERROR} This bet is no longer open!`, ephemeral: true });
-      const side = (bet.options || [])[parseInt(optIdxStr)];
-      let amount = parseInt(amountStr);
+      const qBetId = parseInt(betIdStr);
+      const qBet   = await db.get('SELECT * FROM bets WHERE id = ?', [qBetId]);
+      if (!qBet || qBet.status !== 'open') return interaction.reply({ content: `${E.ERROR} This bet is no longer open!`, ephemeral: true });
+      const side    = (qBet.options || [])[parseInt(optIdxStr)];
+      const amount = parseInt(amountStr);
 
       if (!amount) {
         const amountRow = new ActionRowBuilder().addComponents(
           ...[10, 25, 50, 100, 250].map(amt =>
-            new ButtonBuilder().setCustomId(`bet_amt_${betId}_${optIdxStr}_${amt}`).setLabel(`${amt} sins`).setStyle(ButtonStyle.Secondary)
+            new ButtonBuilder().setCustomId(`bet_amt_${qBetId}_${optIdxStr}_${amt}`).setLabel(`${amt} sins`).setStyle(ButtonStyle.Secondary)
           )
         );
         return interaction.reply({ content: `How much do you want to bet on **${side}**?`, components: [amountRow], ephemeral: true });
@@ -488,13 +494,13 @@ module.exports = {
       await interaction.deferReply({ ephemeral: true });
       const bal = await economy.getBalance(interaction.user.id);
       if (bal < amount) return interaction.editReply(`${E.ERROR} You need **${amount} sins** but only have **${bal.toLocaleString()}**!`);
-      const existing = await db.get('SELECT * FROM bet_entries WHERE bet_id = ? AND user_id = ?', [betId, interaction.user.id]);
+      const existing = await db.get('SELECT * FROM bet_entries WHERE bet_id = ? AND user_id = ?', [qBetId, interaction.user.id]);
       if (existing) return interaction.editReply(`<a:Warning:1497476844860215366> You already placed a bet on this one!`);
 
-      await economy.removeFunds(interaction.user.id, amount, `Bet #${betId} (${side})`);
-      await db.run('INSERT INTO bet_entries (bet_id, user_id, username, side, amount) VALUES (?, ?, ?, ?, ?)', [betId, interaction.user.id, interaction.user.username, side, amount]);
-      await db.run('UPDATE bets SET total_pool = total_pool + ? WHERE id = ?', [amount, betId]);
-      return interaction.editReply(`<:checkmark:1495666088417956002> Bet **${amount} sins** on **${side}** for bet #${betId}!`);
+      await economy.removeFunds(interaction.user.id, amount, `Bet #${qBetId} (${side})`);
+      await db.run('INSERT INTO bet_entries (bet_id, user_id, username, side, amount) VALUES (?, ?, ?, ?, ?)', [qBetId, interaction.user.id, interaction.user.username, side, amount]);
+      await db.run('UPDATE bets SET total_pool = total_pool + ? WHERE id = ?', [amount, qBetId]);
+      return interaction.editReply(`<:checkmark:1495666088417956002> Bet **${amount} sins** on **${side}** for bet #${qBetId}!`);
     }
   },
 

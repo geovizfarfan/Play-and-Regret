@@ -575,6 +575,9 @@ async function initDB() {
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS last_cleanse TIMESTAMPTZ',
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS last_confess TIMESTAMPTZ',
     'ALTER TABLE bets ADD COLUMN IF NOT EXISTS options TEXT[] DEFAULT NULL',
+    'ALTER TABLE bets ADD COLUMN IF NOT EXISTS message_id TEXT DEFAULT NULL',
+    'ALTER TABLE bets ADD COLUMN IF NOT EXISTS channel_id TEXT DEFAULT NULL',
+    'ALTER TABLE bets ADD COLUMN IF NOT EXISTS creator_name TEXT DEFAULT NULL',
   ];
   for (const m of migrations) {
     await pool.query(m).catch(() => {});
