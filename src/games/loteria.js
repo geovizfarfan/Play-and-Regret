@@ -458,7 +458,7 @@ module.exports = {
       .setDescription(
         `**${game.players.size} players** competing!\n${E.BB_COIN} Prize Pool: **${pot.toLocaleString()} sins**\n\n` +
         (game.mode === 'auto'
-          ? `🤖 Your board **marks itself automatically** when cards are called!\n👁 Press **My Board** on any card to check your progress.`
+          ? `${E.BOT} Your board **marks itself automatically** when cards are called!\n👁 Press **My Board** on any card to check your progress.`
           : `✍️ Press **👁 My Board** on each drawn card to open your board and **click blue cards to mark them**.\nYou can mark any called card at any time — even ones you missed!`)
       )] });
 
@@ -623,7 +623,7 @@ module.exports = {
   getRulesText() {
     return [
       `**🎴 Lotería Rules**\n`,
-      `**🤖 Auto Mode** — Cards called every 8s, your board marks itself. Press **👁 My Board** on the lobby message to see your card privately.\n`,
+      `**${E.BOT} Auto Mode** — Cards called every 8s, your board marks itself. Press **👁 My Board** on the lobby message to see your card privately.\n`,
       `**✍️ Manual Mode** — Cards called every 8s. Press **👁 My Board** on the lobby message to open your card and click matching cards to mark them. 🔵 blue = called & ready to mark!\n`,
       `**<a:trophies:1507765453299122387> Win** — First to complete a row, column, or diagonal of 4 wins the pot!\n`,
       `**⏱️ Delay** — \`1m\` \`5m\` \`10m\` \`20m\` · Up to 8 players\n`,

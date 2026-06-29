@@ -47,7 +47,9 @@ const CUSTOM = {
   BET_YES:        '',   // YES side of a bet                          ✅
   BET_NO:         '',   // NO side of a bet                           ❌
   POLYMARKET:     '',   // Polymarket command                         📊
-  CLOCK:          '',   // Time remaining on bets                     ⏰
+  CLOCK:          '<a:RojasClock:1511506715453947904>',   // Time remaining on bets                     ⏰
+  TIMER:          '<a:timer:1521043207926845451>',   // Generic countdown timer
+  BOT:            '<:play_regret_bot:1521042618744700938>',   // Bot identity / robot references
 
   // ── Mexican Lotería ────────────────────────────────────────────────────────
   LOTERIA:        '',   // Lotería game header                        🎴
@@ -106,6 +108,8 @@ const FALLBACK = {
   BET_NO:         '❌',
   POLYMARKET:     '📊',
   CLOCK:          '⏰',
+  TIMER:          '⏱️',
+  BOT:            '🤖',
 
   LOTERIA:        '🎴',
   LOTERIA_MARKED: '✅',

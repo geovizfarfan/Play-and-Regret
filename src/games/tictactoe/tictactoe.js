@@ -281,7 +281,7 @@ module.exports = {
     };
     activeGames.set(gameKey, game);
 
-    const startPayload = buildTurnPayload(game, bet, `${E.TTT_HEADER} Tic-Tac-Bruh vs 🤖 Bot`);
+    const startPayload = buildTurnPayload(game, bet, `${E.TTT_HEADER} Tic-Tac-Bruh vs ${E.BOT} Bot`);
     const gameMsg = await message.channel.send({ ...startPayload, components: buildButtons(game.board, false, game.xEmoji, game.oEmoji) });
 
     const moveCollector = gameMsg.createMessageComponentCollector({ time: 300000 });

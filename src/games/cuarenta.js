@@ -10,7 +10,7 @@ const RANK_ORDER  = ['A','2','3','4','5','6','7','J','Q','K'];
 const RANK_VALUES = { A:1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,J:null,Q:null,K:null };
 const WIN_SCORE   = 40;
 const BOT_ID      = 'BOT_CUARENTA';
-const BOT_NAME    = '🤖 CuarentaBot';
+const BOT_NAME    = `${E.BOT} CuarentaBot`;
 const SUIT_CODE   = { '♠️':'S','♥️':'H','♦️':'D','♣️':'C' };
 const TIMEOUT_MS  = 180000; // 3 minutes
 
@@ -188,7 +188,7 @@ async function startGame(channel, authorId, authorUsername, is2v2, bet, replyFn,
   if (vsBot) {
     game.players.push(newPlayer(BOT_ID, BOT_NAME, 1));
     await channel.send({ embeds: [new EmbedBuilder().setColor('#D4D8F0')
-      .setTitle(`${E.CUARENTA} Cuarenta (Ecuadorian) vs 🤖 Bot`)
+      .setTitle(`${E.CUARENTA} Cuarenta (Ecuadorian) vs ${E.BOT} Bot`)
       .setThumbnail('https://deckofcardsapi.com/static/img/back.png')
       .setDescription(`**${authorUsername}** vs **${BOT_NAME}**\n\n${E.BB_COIN} Bet: **${bet} sins** · First to exactly **40 pts** wins!\n\nThe bot plays automatically. Good luck!`)] });
     return beginGame(channelId, channel);
@@ -637,7 +637,7 @@ async function endGame(channel, game, winner) {
       await stats.increment(humanWinner.id, 'cuarenta_wins');
     }
     for (const p of game.players.filter(p=>!p.isBot&&p.id!==winner.id)) await stats.increment(p.id,'cuarenta_losses');
-    await channel.send(`# ${winner.isBot ? '🤖 BOT WINS!' : `<a:trophies:1507765453299122387> ${winner.username?.toUpperCase() || 'WINNER'} WINS CUARENTA! 🇪🇨`}`).catch(()=>{});
+    await channel.send(`# ${winner.isBot ? `${E.BOT} BOT WINS!` : `<a:trophies:1507765453299122387> ${winner.username?.toUpperCase() || 'WINNER'} WINS CUARENTA! 🇪🇨`}`).catch(()=>{});
     await channel.send({ embeds: [new EmbedBuilder().setColor('#F2F5E0').setTitle(`${E.TROPHY} ${winner.isBot?'Bot Wins!':'¡Ganaste! 🇪🇨'}`)
       .setDescription(`**${winner.username}** wins with **${winner.score} pts**! 🇪🇨\n${humanWinner?`${E.BB_COIN} Prize: **${(game.bet*game.numPlayers).toLocaleString()} sins**!`:''}\n\n<a:marked:1511508970882465832> Final: ${scoreBar(game)}`)] });
   }
