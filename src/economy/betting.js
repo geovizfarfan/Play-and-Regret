@@ -4,7 +4,7 @@ const E = require('../../utils/emojis');
 const axios = require('axios');
 
 // Letter emojis for labeling options A, B, C, D...
-const LETTER_EMOJI = ['🅰️','🅱️','🅲️','🅳️','🅴️','🅵️','🅶️','🅷️','🅸️','🅹️'];
+const LETTER_EMOJI = ['🅰','🅱','🅲','🅳','🅴','🅵','🅶','🅷','🅸','🅹'];
 
 module.exports = {
   name: 'betting',
