@@ -393,7 +393,7 @@ async function launchMemory(channel, bet, sizeKey, mode, triggeredBy, hostId, gu
     });
 
   const makeButtons = () => new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(joinId).setLabel('<a:brain:1511530555588612126> Join').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId(joinId).setLabel('Join').setEmoji('<a:brain:1511530555588612126>').setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setCustomId(startId).setLabel('▶️ Start Now').setStyle(ButtonStyle.Success),
   );
 
