@@ -135,9 +135,9 @@ function scoreCards(game) {
 function turnButtons(disabled=false) {
   return [new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('cq_hand').setEmoji({ id: '1511507447704191026', name: 'eyes', animated: true }).setLabel('My Hand').setStyle(ButtonStyle.Primary).setDisabled(disabled),
-    new ButtonBuilder().setCustomId('cq_table').setLabel('<a:cards:1511530261551124561> Table').setStyle(ButtonStyle.Secondary).setDisabled(disabled),
-    new ButtonBuilder().setCustomId('cq_ronda').setLabel('<a:Loading:1511506718666784778> Ronda').setStyle(ButtonStyle.Success).setDisabled(disabled),
-    new ButtonBuilder().setCustomId('cq_cuarenta').setLabel('<:373840:1511531231756419202> Cuarenta').setStyle(ButtonStyle.Danger).setDisabled(disabled),
+    new ButtonBuilder().setCustomId('cq_table').setLabel('Table').setEmoji('<a:cards:1511530261551124561>').setStyle(ButtonStyle.Secondary).setDisabled(disabled),
+    new ButtonBuilder().setCustomId('cq_ronda').setLabel('Ronda').setEmoji('<a:Loading:1511506718666784778>').setStyle(ButtonStyle.Success).setDisabled(disabled),
+    new ButtonBuilder().setCustomId('cq_cuarenta').setLabel('Cuarenta').setEmoji('🏆').setStyle(ButtonStyle.Danger).setDisabled(disabled),
   )];
 }
 
