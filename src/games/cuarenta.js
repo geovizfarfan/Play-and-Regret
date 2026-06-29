@@ -137,7 +137,7 @@ function turnButtons(disabled=false) {
     new ButtonBuilder().setCustomId('cq_hand').setEmoji({ id: '1511507447704191026', name: 'eyes', animated: true }).setLabel('My Hand').setStyle(ButtonStyle.Primary).setDisabled(disabled),
     new ButtonBuilder().setCustomId('cq_table').setLabel('Table').setEmoji('<a:cards:1511530261551124561>').setStyle(ButtonStyle.Secondary).setDisabled(disabled),
     new ButtonBuilder().setCustomId('cq_ronda').setLabel('Ronda').setEmoji('<a:Loading:1511506718666784778>').setStyle(ButtonStyle.Success).setDisabled(disabled),
-    new ButtonBuilder().setCustomId('cq_cuarenta').setLabel('Cuarenta').setEmoji('🏆').setStyle(ButtonStyle.Danger).setDisabled(disabled),
+    new ButtonBuilder().setCustomId('cq_cuarenta').setLabel('Cuarenta').setEmoji('<a:trophies:1507765453299122387>').setStyle(ButtonStyle.Danger).setDisabled(disabled),
   )];
 }
 
