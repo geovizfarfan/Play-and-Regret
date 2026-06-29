@@ -101,8 +101,6 @@ const slashCommands = [
   new SlashCommandBuilder().setName('jackpotdraw').setDescription('Admin: Trigger lottery draw'),
   new SlashCommandBuilder().setName('jackpothistory').setDescription('Past lottery winners'),
   new SlashCommandBuilder().setName('jackpotentries').setDescription('See who has entered'),
-  new SlashCommandBuilder().setName('jackpotlive').setDescription('Admin: Pin live jackpot display')
-    .addChannelOption(o => o.setName('channel').setDescription('Channel (defaults to current)').setRequired(false)),
   new SlashCommandBuilder().setName('jackpotstart').setDescription('Admin: Start the jackpot')
     .addStringOption(o => o.setName('name').setDescription('Pot name').setRequired(false))
     .addStringOption(o => o.setName('mode').setDescription('Duration').setRequired(false).addChoices(
@@ -514,7 +512,7 @@ client.on('interactionCreate', async (interaction) => {
       return await dropsModule.handleSlash(interaction, commandName);
 
     // Jackpot
-    if (['richpot','lotteryjoin','jackpotdraw','jackpothistory','jackpotlive','jackpotstart','jackpotstop','jackpotentries'].includes(commandName))
+    if (['richpot','lotteryjoin','jackpotdraw','jackpothistory','jackpotstart','jackpotstop','jackpotentries'].includes(commandName))
       return await jackpotModule.handleSlash(interaction);
 
     // TTB + Shop
@@ -585,7 +583,7 @@ client.on('messageCreate', async (message) => {
       return await dropsModule.handleCommand(message, args, command);
 
     if (['jackpot','richpot','lottery','enter','lotteryenter','jackpotdraw','jackpothistory',
-         'jackpotlive','jackpotstart','jackpotstop','jackpotentries','potentries'].includes(command))
+         'jackpotstart','jackpotstop','jackpotentries','potentries'].includes(command))
       return await jackpotModule.handleCommand(message, args, command);
 
     if (['ttt','tictactoe','tictacbruh'].includes(command))

@@ -66,7 +66,6 @@ module.exports = {
     if (['enter', 'lotteryenter'].includes(command))                   return this.enter(message, args);
     if (command === 'jackpotdraw')                                     return this.adminDraw(message, args);
     if (command === 'jackpothistory')                                  return this.history(message);
-    if (command === 'jackpotlive')                                     return this.setLiveChannel(message, args);
     if (command === 'jackpotstart')                                    return this.adminStart(message, args);
     if (command === 'jackpotstop')                                     return this.adminStop(message, args);
     if (['jackpotentries', 'potentries'].includes(command))            return this.viewEntries(message, args);
@@ -78,7 +77,6 @@ module.exports = {
     if (cmd === 'lotteryjoin')     return this.enterSlash(interaction);
     if (cmd === 'jackpotdraw')     return this.adminDrawSlash(interaction);
     if (cmd === 'jackpothistory')  return this.historySlash(interaction);
-    if (cmd === 'jackpotlive')     return this.setLiveChannelSlash(interaction);
     if (cmd === 'jackpotstart')    return this.adminStartSlash(interaction);
     if (cmd === 'jackpotstop')     return this.adminStopSlash(interaction);
     if (cmd === 'jackpotentries')  return this.viewEntriesSlash(interaction);
@@ -742,9 +740,10 @@ function buildSessionEmbed(session, entries) {
       { name: '<a:purplefire:1479219348353716415> Pot Level',                       value: potBar,                             inline: false },
     )
     .setTimestamp()
-    .setFooter({ text: 'Updates automatically • Use /richpot to enter' });
+    .setFooter({ text: active ? 'Updates automatically • Click below to enter!' : 'This pot has ended.' });
 
-  return { embed, row: null };
+  const row = active ? buildJoinButton(session.id) : null;
+  return { embed, row };
 }
 
 
