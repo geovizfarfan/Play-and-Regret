@@ -574,6 +574,7 @@ async function initDB() {
     'ALTER TABLE user_stats ADD COLUMN IF NOT EXISTS memory_losses INT DEFAULT 0',
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS last_cleanse TIMESTAMPTZ',
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS last_confess TIMESTAMPTZ',
+    'ALTER TABLE bets ADD COLUMN IF NOT EXISTS options TEXT[] DEFAULT NULL',
   ];
   for (const m of migrations) {
     await pool.query(m).catch(() => {});

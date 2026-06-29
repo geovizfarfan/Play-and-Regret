@@ -70,21 +70,22 @@ const slashCommands = [
     .addIntegerOption(o => o.setName('amount').setDescription('New balance').setRequired(true).setMinValue(0)),
 
   // Betting
-  new SlashCommandBuilder().setName('createbet').setDescription('Create a yes/no bet')
+  new SlashCommandBuilder().setName('createbet').setDescription('Create a custom-outcome bet')
     .addStringOption(o => o.setName('title').setDescription('Bet title').setRequired(true))
+    .addStringOption(o => o.setName('options').setDescription('Comma-separated outcomes, e.g. Ecuador, Mexico, Draw').setRequired(true))
     .addStringOption(o => o.setName('description').setDescription('Description'))
     .addIntegerOption(o => o.setName('hours').setDescription('Hours until close').setMinValue(1)),
   new SlashCommandBuilder().setName('bet').setDescription('Place a bet')
     .addIntegerOption(o => o.setName('id').setDescription('Bet ID').setRequired(true))
-    .addStringOption(o => o.setName('side').setDescription('yes or no').setRequired(true).addChoices({name:'Yes',value:'yes'},{name:'No',value:'no'}))
     .addIntegerOption(o => o.setName('amount').setDescription('Amount').setRequired(true).setMinValue(10)),
   new SlashCommandBuilder().setName('bets').setDescription('List open bets'),
   new SlashCommandBuilder().setName('betinfo').setDescription('Get bet details')
     .addIntegerOption(o => o.setName('id').setDescription('Bet ID').setRequired(true)),
   new SlashCommandBuilder().setName('mybets').setDescription('Your betting history'),
   new SlashCommandBuilder().setName('resolvebet').setDescription('Admin: Resolve a bet')
-    .addIntegerOption(o => o.setName('id').setDescription('Bet ID').setRequired(true))
-    .addStringOption(o => o.setName('outcome').setDescription('Outcome').setRequired(true).addChoices({name:'Yes',value:'yes'},{name:'No',value:'no'},{name:'Cancel',value:'cancel'})),
+    .addIntegerOption(o => o.setName('id').setDescription('Bet ID').setRequired(true)),
+  new SlashCommandBuilder().setName('cancelbet').setDescription('Admin: Cancel a bet and refund everyone')
+    .addIntegerOption(o => o.setName('id').setDescription('Bet ID').setRequired(true)),
   new SlashCommandBuilder().setName('polymarket').setDescription('Browse Polymarket markets'),
 
   // Drops
@@ -445,6 +446,9 @@ client.on('interactionCreate', async (interaction) => {
     }
     if (interaction.customId.startsWith('lot_')) {
       return loteriaModule.handleButton(interaction);
+    }
+    if (interaction.customId.startsWith('bet_resolve_') || interaction.customId.startsWith('bet_quick_')) {
+      return bettingModule.handleButton(interaction);
     }
     return;
   }
