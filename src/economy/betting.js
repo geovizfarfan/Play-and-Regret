@@ -74,7 +74,7 @@ module.exports = {
     const options = bet.options || [];
     const lines = await Promise.all(options.map(async (opt, idx) => {
       const row = await db.get('SELECT SUM(amount) as t FROM bet_entries WHERE bet_id = ? AND side = ?', [bet.id, opt]);
-      return `${LETTER_EMOJI[idx] || '•'} **${opt}** — ${(row?.t || 0).toLocaleString()} sins`;
+      return `${LETTER_EMOJI[idx] || '•'} **${opt}** — ${Number(row?.t || 0).toLocaleString()} sins`;
     }));
     const hoursLeft = Math.max(0, Math.round((new Date(bet.closes_at) - Date.now()) / 3600000));
 
@@ -83,7 +83,7 @@ module.exports = {
       .setTitle(`${bet.title}`)
       .setDescription(
         `${bet.description ? bet.description + '\n\n' : ''}` +
-        `<a:moneybag:1479268556687540345> **Total Pool: ${(bet.total_pool || 0).toLocaleString()} sins**\n\n${lines.join('\n')}`
+        `<a:moneybag:1479268556687540345> **Total Pool: ${Number(bet.total_pool || 0).toLocaleString()} sins**\n\n${lines.join('\n')}`
       )
       .addFields(
         { name: `${E.CLOCK} Closes In`, value: `${hoursLeft} hours`, inline: true },
@@ -223,8 +223,8 @@ module.exports = {
     await db.run("UPDATE bets SET status = 'resolved', outcome = ? WHERE id = ?", [winningOption, betId]);
     await this._disableLiveMessage(bet);
     const winEntries = entries.filter(e => e.side === winningOption);
-    const winPool     = winEntries.reduce((sum, e) => sum + e.amount, 0);
-    const totalPool    = entries.reduce((sum, e) => sum + e.amount, 0);
+    const winPool     = winEntries.reduce((sum, e) => sum + Number(e.amount), 0);
+    const totalPool    = entries.reduce((sum, e) => sum + Number(e.amount), 0);
 
     if (winEntries.length === 0) {
       if (totalPool > 0) await jackpot.addToDrawFund(totalPool).catch(() => {});
@@ -238,7 +238,7 @@ module.exports = {
 
     const payoutLines = [];
     for (const entry of winEntries) {
-      const payout = Math.floor((entry.amount / winPool) * totalPool);
+      const payout = Math.floor((Number(entry.amount) / winPool) * totalPool);
       await economy.addFunds(entry.user_id, payout, `Bet #${betId} win (${winningOption})`);
       payoutLines.push(`${entry.username}: +${payout.toLocaleString()} sins`);
     }
@@ -286,7 +286,7 @@ module.exports = {
     const bets = await db.all("SELECT * FROM bets WHERE status = 'open' ORDER BY id DESC LIMIT 10");
     if (!bets.length) return message.reply(`${E.INFO} No open bets right now! Create one with \`/createbet\`.`);
 
-    const lines = bets.map(b => `**#${b.id}** ${b.title} — ${(b.options || []).join(' vs ')} — Pool: ${b.total_pool.toLocaleString()} sins`);
+    const lines = bets.map(b => `**#${b.id}** ${b.title} — ${(b.options || []).join(' vs ')} — Pool: ${Number(b.total_pool).toLocaleString()} sins`);
     return message.reply({ embeds: [
       new EmbedBuilder().setColor(BET_COLOR).setTitle('📋 Open Bets').setDescription(lines.join('\n'))
     ]});
@@ -300,7 +300,7 @@ module.exports = {
     const options = bet.options || [];
     const lines = await Promise.all(options.map(async (opt, idx) => {
       const row = await db.get('SELECT SUM(amount) as t, COUNT(*) as c FROM bet_entries WHERE bet_id = ? AND side = ?', [betId, opt]);
-      return `${LETTER_EMOJI[idx] || '•'} **${opt}** — ${(row?.t || 0).toLocaleString()} sins (${row?.c || 0} bettors)`;
+      return `${LETTER_EMOJI[idx] || '•'} **${opt}** — ${Number(row?.t || 0).toLocaleString()} sins (${row?.c || 0} bettors)`;
     }));
 
     return message.reply({ embeds: [
@@ -310,7 +310,7 @@ module.exports = {
         .setDescription(`${bet.description || ''}\n\n${lines.join('\n')}`)
         .addFields(
           { name: 'Status', value: bet.status, inline: true },
-          { name: 'Total Pool', value: `${bet.total_pool.toLocaleString()} sins`, inline: true },
+          { name: 'Total Pool', value: `${Number(bet.total_pool).toLocaleString()} sins`, inline: true },
         )
     ]});
   },
