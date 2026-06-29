@@ -3,9 +3,9 @@ const {
   ModalBuilder, TextInputBuilder, TextInputStyle,
   StringSelectMenuBuilder, StringSelectMenuOptionBuilder,
 } = require('discord.js');
-const { economy } = require('../../utils/database');
-const jackpot = require('../../utils/jackpot');
-const E = require('../../utils/emojis');
+const { economy } = require('../utils/database');
+const jackpot = require('../utils/jackpot');
+const E = require('../utils/emojis');
 
 const CURRENCY = 'sins';
 const POT_NAME = 'Jackpot';

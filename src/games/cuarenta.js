@@ -1,7 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { economy, stats } = require('../../utils/database');
-const E = require('../../utils/emojis');
-const jackpot = require('../../utils/jackpot');
+const { economy, stats } = require('../utils/database');
+const E = require('../utils/emojis');
+const jackpot = require('../utils/jackpot');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SUITS       = ['♠️','♥️','♦️','♣️'];

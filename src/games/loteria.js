@@ -3,9 +3,9 @@ const { execFile } = require('child_process');
 const path = require('path');
 const fs   = require('fs');
 const os   = require('os');
-const { economy, stats } = require('../../utils/database');
-const E = require('../../utils/emojis');
-const jackpot = require('../../utils/jackpot');
+const { economy, stats } = require('../utils/database');
+const E = require('../utils/emojis');
+const jackpot = require('../utils/jackpot');
 
 const CARD_IMAGES = Object.fromEntries(Array.from({length: 54}, (_, i) => [i+1, require('path').join(__dirname, '../games/loteria_images', `${i+1}.png`)]));
 

@@ -15,9 +15,9 @@
  */
 
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { economy } = require('../../utils/database');
-const jackpot     = require('../../utils/jackpot');
-const E           = require('../../utils/emojis');
+const { economy } = require('../utils/database');
+const jackpot     = require('../utils/jackpot');
+const E           = require('../utils/emojis');
 
 const DROP_TTL_MS        = 2 * 60 * 1000;   // 2 minutes
 const DROP_COOLDOWN_MS   = 1 * 60 * 60 * 1000; // 1 hour for drop

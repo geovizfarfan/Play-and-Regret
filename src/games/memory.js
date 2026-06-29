@@ -5,8 +5,8 @@
  */
 
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { economy, stats, db } = require('../../utils/database');
-const jackpot = require('../../utils/jackpot');
+const { economy, stats, db } = require('../utils/database');
+const jackpot = require('../utils/jackpot');
 
 const EVENT_HOST_ROLE = process.env.EVENT_HOST_ROLE || 'Event Host';
 const activeGames     = new Map();

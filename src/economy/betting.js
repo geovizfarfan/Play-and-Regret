@@ -1,8 +1,8 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
-const { db, economy } = require('../../utils/database');
-const E = require('../../utils/emojis');
+const { db, economy } = require('../utils/database');
+const E = require('../utils/emojis');
 const axios = require('axios');
-const jackpot = require('../../utils/jackpot');
+const jackpot = require('../utils/jackpot');
 
 const BET_COLOR = '#B19CD9'; // lavender purple
 

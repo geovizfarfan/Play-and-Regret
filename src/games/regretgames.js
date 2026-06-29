@@ -14,8 +14,8 @@ const {
   EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle,
   StringSelectMenuBuilder,
 } = require('discord.js');
-const { db, economy } = require('../../utils/database');
-const jackpot = require('../../utils/jackpot');
+const { db, economy } = require('../utils/database');
+const jackpot = require('../utils/jackpot');
 const story   = require('./rg_story');
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────

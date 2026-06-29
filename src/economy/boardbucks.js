@@ -1,6 +1,6 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { economy, stats, db } = require('../../utils/database');
-const E = require('../../utils/emojis');
+const { economy, stats, db } = require('../utils/database');
+const E = require('../utils/emojis');
 
 const sins = 'sins';
 const CURRENCY = 'sins';
@@ -579,7 +579,7 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
     const regret = await economy.getRegret(target.id);
 
     // RS profile
-    const { db } = require('../../utils/database');
+    const { db } = require('../utils/database');
     const rsPlayer = await db.get('SELECT * FROM rs_players WHERE user_id = ?', [target.id]).catch(() => null);
 
     return message.reply({ embeds: [

@@ -1,7 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
-const { economy } = require('../../../utils/database');
-const shop = require('../../../utils/shop');
-const E = require('../../../utils/emojis');
+const { economy } = require('../../utils/database');
+const shop = require('../../utils/shop');
+const E = require('../../utils/emojis');
 
 const CURRENCY = 'sins';
 
