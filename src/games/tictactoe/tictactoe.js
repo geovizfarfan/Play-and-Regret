@@ -344,8 +344,8 @@ module.exports = {
     const xEmoji = xShop?.emoji || null;
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('ttt_openjoin').setLabel('⚔️ Accept Challenge!').setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId('ttt_opendecline').setLabel('❌ Cancel').setStyle(ButtonStyle.Danger)
+      new ButtonBuilder().setCustomId('ttt_openjoin').setLabel('<:sword:1495666991187361943> Accept Challenge!').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId('ttt_opendecline').setLabel('<:wrong:1495666083594502174> Cancel').setStyle(ButtonStyle.Danger)
     );
 
     const content = [
@@ -368,7 +368,7 @@ module.exports = {
           return interaction.reply({ content: `${E.ERROR} Only the host can cancel!`, ephemeral: true });
         activeGames.delete(gameKey);
         openCollector.stop();
-        return openMsg.edit({ content: `❌ **${message.author.username}** cancelled the challenge.`, components: [] });
+        return openMsg.edit({ content: `<:wrong:1495666083594502174> **${message.author.username}** cancelled the challenge.`, components: [] });
       }
 
       if (interaction.customId === 'ttt_openjoin') {
@@ -449,7 +449,7 @@ module.exports = {
     openCollector.on('end', (_, reason) => {
       if (reason === 'time') {
         activeGames.delete(gameKey);
-        openMsg.edit({ content: `⏰ **${message.author.username}\'s** open challenge expired — no one joined.`, components: [] }).catch(() => {});
+        openMsg.edit({ content: `<a:RojasClock:1511506715453947904> **${message.author.username}\'s** open challenge expired — no one joined.`, components: [] }).catch(() => {});
       }
     });
   },
@@ -480,8 +480,8 @@ module.exports = {
       .setFooter({ text: 'Challenge expires in 60 seconds' });
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('ttt_accept').setLabel('✅ Accept').setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId('ttt_decline').setLabel('❌ Decline').setStyle(ButtonStyle.Danger)
+      new ButtonBuilder().setCustomId('ttt_accept').setLabel('<:checkmark:1495666088417956002> Accept').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId('ttt_decline').setLabel('<:wrong:1495666083594502174> Decline').setStyle(ButtonStyle.Danger)
     );
 
     const challengeMsg = await message.channel.send({ embeds: [challengeEmbed], components: [row] });
@@ -564,7 +564,7 @@ module.exports = {
     });
 
     collector.on('end', (_, reason) => {
-      if (reason === 'time') challengeMsg.edit({ content: '⏰ Challenge expired.', embeds: [], components: [] }).catch(() => {});
+      if (reason === 'time') challengeMsg.edit({ content: '<a:RojasClock:1511506715453947904> Challenge expired.', embeds: [], components: [] }).catch(() => {});
     });
   },
 };

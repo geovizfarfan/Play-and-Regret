@@ -68,7 +68,7 @@ async function launchBigBag(channel, totalAmount, droppedBy) {
     return new EmbedBuilder()
       .setColor(done ? '#555555' : '#C9B1FF')
       .setDescription(done
-        ? `<:Sins:1478993005187698789> **Big Bag — Closed!**\n\n${claimers > 0 ? `**${claimers} member${claimers !== 1 ? 's' : ''}** grabbed from the bag.` : 'Nobody grabbed anything.'}\n${remaining > 0 ? `<a:583778moneyfly:1479271753392853023> **${remaining.toLocaleString()} sins** unclaimed → <a:jackpot:1479203793806557385>` : '✅ Bag fully emptied!'}`
+        ? `<:Sins:1478993005187698789> **Big Bag — Closed!**\n\n${claimers > 0 ? `**${claimers} member${claimers !== 1 ? 's' : ''}** grabbed from the bag.` : 'Nobody grabbed anything.'}\n${remaining > 0 ? `<a:583778moneyfly:1479271753392853023> **${remaining.toLocaleString()} sins** unclaimed → <a:jackpot:1479203793806557385>` : '<:checkmark:1495666088417956002> Bag fully emptied!'}`
         : `<:Sins:1478993005187698789> **Big Bag Drop!** **${droppedBy}** threw a bag of sins! <a:moneybag:1479268556687540345>\n\nClick fast — each grab gets a random slice! <a:run:1479270296140910653>\n\n<a:moneybag:1479268556687540345> **${remaining.toLocaleString()} sins** remaining\n${bar} ${pct}% claimed\n\n<:countdown:1479295748884529215> Expires in 2 mins`)
       .addFields(
         { name: '<a:moneybag:1479268556687540345> Total Bag',  value: `${totalAmount.toLocaleString()} sins`, inline: true },
@@ -96,7 +96,7 @@ async function launchBigBag(channel, totalAmount, droppedBy) {
       return interaction.followUp({ content: `🎒 The bag is empty!`, ephemeral: true });
     }
     if (claimers.has(interaction.user.id)) {
-      return interaction.followUp({ content: `⚠️ You already grabbed from this bag!`, ephemeral: true });
+      return interaction.followUp({ content: `<a:Warning:1497476844860215366> You already grabbed from this bag!`, ephemeral: true });
     }
 
     // Random slice — between 5% and 25% of remaining, min 1
@@ -180,7 +180,7 @@ async function launchQuickDrop(channel, amount, dropper) {
     if (claimed) return;
     if (interaction.user.id === dropper.id) {
       await interaction.deferUpdate();
-      return interaction.followUp({ content: `⚠️ You can't claim your own drop!`, ephemeral: true });
+      return interaction.followUp({ content: `<a:Warning:1497476844860215366> You can't claim your own drop!`, ephemeral: true });
     }
 
     await interaction.deferUpdate();
@@ -259,8 +259,8 @@ module.exports = {
         await launchBigBag(interaction.channel, amount, interaction.user.username);
       } catch (err) {
         console.error('[bigbag error]', err.stack || err);
-        await interaction.editReply(`❌ Error: ${err.message}`).catch(() =>
-          interaction.reply({ content: `❌ Error: ${err.message}`, ephemeral: true }).catch(() => {})
+        await interaction.editReply(`<:wrong:1495666083594502174> Error: ${err.message}`).catch(() =>
+          interaction.reply({ content: `<:wrong:1495666083594502174> Error: ${err.message}`, ephemeral: true }).catch(() => {})
         );
       }
 
@@ -288,7 +288,7 @@ module.exports = {
 
   async handleCommand(message, args, command) {
     const amount = parseInt(args[0]);
-    if (!amount || amount < 1) return message.reply(`❌ Specify an amount! e.g. \`!bigbag 500\``);
+    if (!amount || amount < 1) return message.reply(`<:wrong:1495666083594502174> Specify an amount! e.g. \`!bigbag 500\``);
 
     if (command === 'bigbag') {
       if (!hasHostRole(message.member)) return message.reply(`<:wrong:1495666083594502174> Only admins and **${EVENT_HOST_ROLE}** can throw a Big Bag!`);

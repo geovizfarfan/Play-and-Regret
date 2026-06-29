@@ -21,7 +21,7 @@ const STREAK_BONUSES = [
   { min: 3,  bonus: 100,  label: '<a:purplefire:1479219348353716415><a:purplefire:1479219348353716415> 3-Win Streak Bonus!'   },
   { min: 5,  bonus: 250,  label: '⚡ 5-Win Streak Bonus!'     },
   { min: 10, bonus: 600,  label: '💎 10-Win Streak Bonus!'    },
-  { min: 20, bonus: 1500, label: '👑 LEGENDARY STREAK Bonus!' },
+  { min: 20, bonus: 1500, label: '<:crown:1479234159183401051> LEGENDARY STREAK Bonus!' },
 ];
 
 function getStreakBonus(streak) {

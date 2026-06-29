@@ -967,7 +967,7 @@ async function resolveWinnerAuto(season, client) {
 
   if (arenaChannel) await arenaChannel.send({ embeds: [
     new EmbedBuilder().setColor('#FF00AA')
-      .setTitle('👑 REGRET GAMES — WINNER')
+      .setTitle('<:crown:1479234159183401051> REGRET GAMES — WINNER')
       .setDescription(
         `# ${winner.username}\n` +
         `*Not because you were good. Because everyone else was worse.*\n\n` +

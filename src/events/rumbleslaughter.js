@@ -331,18 +331,18 @@ const REVIVE_LINES = [
 const AUTO_REVIVE_LINES = [
   '🎰 the arena spun the wheel of chaos and landed on @user. they\'re back. nobody asked.',
   '<a:eyes:1511507447704191026> the arena looked at @user\'s corpse and said not yet. terrifying.',
-  '🎲 luck intervened specifically for @user. the odds were wrong. they\'re alive.',
+  '<a:dice_roll:1507764402013868154> luck intervened specifically for @user. the odds were wrong. they\'re alive.',
   '💀 @user was eliminated but the arena changed its mind. chaos reigns.',
   '🩸 @user got a free pass from the arena. don\'t read into it.',
   '<a:eyes:1511507447704191026> something happened and @user is alive again. the arena won\'t explain.',
   '🎰 random revival activated. @user is somehow still your problem.',
   '💀 the arena glitched in @user\'s favor. they\'re back. stay mad.',
-  '🎲 @user was dead for exactly 0.3 seconds. the arena had other plans.',
+  '<a:dice_roll:1507764402013868154> @user was dead for exactly 0.3 seconds. the arena had other plans.',
   '<a:eyes:1511507447704191026> @user got lucky. disgustingly unfairly lucky. they\'re alive.',
   '🩸 the arena resurrected @user for sport. enjoy the chaos.',
   '🎰 revival rolled. @user won the worst lottery. they\'re back.',
   '💀 @user got un-eliminated. this is not standard procedure.',
-  '🎲 the arena decided @user\'s story wasn\'t over. questionable decision.',
+  '<a:dice_roll:1507764402013868154> the arena decided @user\'s story wasn\'t over. questionable decision.',
   '<a:eyes:1511507447704191026> @user should be dead. they are not. nobody is explaining this.',
 ];
 
@@ -754,7 +754,7 @@ async function runGame(channel, game) {
   if (hasStaffVsMembers || forcedSvM) {
     await channel.send({ embeds: [
       new EmbedBuilder().setColor('#CC0000')
-        .setTitle('⚔️ STAFF VS MEMBERS')
+        .setTitle('<:sword:1495666991187361943> STAFF VS MEMBERS')
         .setDescription(
           forcedSvM
             ? `**This is an official Staff vs Members battle.**\nStaff are on one side. Everyone else is on the other.\nThe arena has taken sides. yours is already chosen.`
@@ -1336,10 +1336,10 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
       `Join the fight. Gain power. Collect weapons. Or get eliminated in the most embarrassing way possible.\n\n` +
       `<:Sins:1478993005187698789> Entry fee: **${bet} sins**\n` +
       (eraKey && eraKey !== 'default' ? `<a:sparkle:1511506717584920696> Era: **${era.name || eraKey}**\n` : '') +
-      (gameMode === 'staffvsmembers' ? `⚔️ **Mode: Staff vs Members** — teams auto-assigned\n` : '') +
-      ((gameMode === 'rolevrole' || gameMode === 'rolevs' || gameMode === 'rolevroле') && roleAId && roleBId ? `⚔️ **Mode: Role vs Role** — <@&${roleAId}> vs <@&${roleBId}>\n` : '') +
+      (gameMode === 'staffvsmembers' ? `<:sword:1495666991187361943> **Mode: Staff vs Members** — teams auto-assigned\n` : '') +
+      ((gameMode === 'rolevrole' || gameMode === 'rolevs' || gameMode === 'rolevroле') && roleAId && roleBId ? `<:sword:1495666991187361943> **Mode: Role vs Role** — <@&${roleAId}> vs <@&${roleBId}>\n` : '') +
       (roleRestrict ? `🔒 **Restricted:** <@&${roleRestrict}> members only\n` : '') +
-      `${tsUnix ? `⏰ **Starts:** <t:${tsUnix}:F> (<t:${tsUnix}:R>)` : '<a:purplesparkle:1479210541691175054> Host will start manually with `!rumble`'}\n\n` +
+      `${tsUnix ? `<a:RojasClock:1511506715453947904> **Starts:** <t:${tsUnix}:F> (<t:${tsUnix}:R>)` : '<a:purplesparkle:1479210541691175054> Host will start manually with `!rumble`'}\n\n` +
       `*Most of you will lose. Loudly.*`
     )
     .addFields({ name: '<:member:1495666085121491024> Signed Up', value: '**0** players' })
@@ -1591,7 +1591,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
         const msg = await channel.send({ embeds: [
           new EmbedBuilder().setColor('#6B2FA0')
             .setTitle('♻️ Rumble Slaughter — Restored')
-            .setDescription(`Bot restarted but the arena is still open.\n\n<:Sins:1478993005187698789> Entry: **${row.bet} sins** — use \`!rsjoin\` or click Join.\n${fireAt ? `⏰ Starts: <t:${Math.floor(fireAt.getTime()/1000)}:F>` : 'Use `!startgame` to fire.'}`)
+            .setDescription(`Bot restarted but the arena is still open.\n\n<:Sins:1478993005187698789> Entry: **${row.bet} sins** — use \`!rsjoin\` or click Join.\n${fireAt ? `<a:RojasClock:1511506715453947904> Starts: <t:${Math.floor(fireAt.getTime()/1000)}:F>` : 'Use `!startgame` to fire.'}`)
             .addFields({ name: '<a:purplecheck:1478983961450643538> Already In', value: savedPlayers.length ? savedPlayers.map(p => getDisplayName(p)).join(', ') : 'Nobody yet' })
         ], components: [
           new ActionRowBuilder().addComponents(
@@ -2642,7 +2642,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
           { name: '<:Sins:1478993005187698789> Entry',     value: `${game.bet} sins`,            inline: true },
           { name: '<:member:1495666085121491024> Signed Up', value: `${game.players.length}`,       inline: true },
           { name: '<a:marked:1511508970882465832> Phase',     value: game.phase,                     inline: true },
-          { name: '⏰ Fires At',  value: tsUnix ? `<t:${tsUnix}:F> (<t:${tsUnix}:R>)` : 'Manual (`!startgame`)', inline: false },
+          { name: '<a:RojasClock:1511506715453947904> Fires At',  value: tsUnix ? `<t:${tsUnix}:F> (<t:${tsUnix}:R>)` : 'Manual (`!startgame`)', inline: false },
           { name: '👤 Host',      value: game.hostName,                  inline: true },
         )
         .setFooter({ text: '!startgame to fire now • !cancelevent to cancel' })

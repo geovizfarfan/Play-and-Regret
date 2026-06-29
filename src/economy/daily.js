@@ -152,7 +152,7 @@ function getStreakEmoji(streak) {
   if (streak >= 50)  return '<a:hmmdevil:1495665623219306647>🩸<a:pray:1495665631775817778>';
   if (streak >= 30)  return '🩸<a:pray:1495665631775817778>';
   if (streak >= 14)  return '<a:purplefire:1479219348353716415><a:hmmdevil:1495665623219306647>';
-  if (streak >= 7)   return '🎲<a:purplefire:1479219348353716415>';
+  if (streak >= 7)   return '<a:dice_roll:1507764402013868154><a:purplefire:1479219348353716415>';
   if (streak >= 3)   return '😬<a:purplefire:1479219348353716415>';
   return '<a:pepeclownwave84:1495665629649436672>';
 }
@@ -245,7 +245,7 @@ async function handleDaily(userId, username, replyFn) {
     return replyFn({
       embeds: [new EmbedBuilder()
         .setColor('#2B0057')
-        .setDescription(`⏰ not yet. come back in **${result.hours}h ${result.minutes}m**.\nyou'll log the regret then. <a:pray:1495665631775817778>`)
+        .setDescription(`<a:RojasClock:1511506715453947904> not yet. come back in **${result.hours}h ${result.minutes}m**.\nyou'll log the regret then. <a:pray:1495665631775817778>`)
       ]
     });
   }
@@ -294,7 +294,7 @@ async function handleCleanse(userId, username, replyFn) {
     const h = Math.floor(cooldownLeft / 3_600_000);
     const m = Math.floor((cooldownLeft % 3_600_000) / 60_000);
     return replyFn({ embeds: [new EmbedBuilder().setColor('#2B0057')
-      .setDescription(`⏰ cleanse is on cooldown. **${h}h ${m}m** remaining.\nyou can't escape your regret that fast. <a:hmmdevil:1495665623219306647>`)
+      .setDescription(`<a:RojasClock:1511506715453947904> cleanse is on cooldown. **${h}h ${m}m** remaining.\nyou can't escape your regret that fast. <a:hmmdevil:1495665623219306647>`)
     ]});
   }
 
@@ -379,7 +379,7 @@ async function handleConfess(userId, username, replyFn) {
     const h = Math.floor(cooldownLeft / 3_600_000);
     const m = Math.floor((cooldownLeft % 3_600_000) / 60_000);
     return replyFn({ embeds: [new EmbedBuilder().setColor('#2B0057')
-      .setDescription(`⏰ too soon to confess again. **${h}h ${m}m** left.\nyou need to live with what you did first. <a:hmmdevil:1495665623219306647>`)
+      .setDescription(`<a:RojasClock:1511506715453947904> too soon to confess again. **${h}h ${m}m** left.\nyou need to live with what you did first. <a:hmmdevil:1495665623219306647>`)
     ]});
   }
 

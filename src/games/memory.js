@@ -319,7 +319,7 @@ async function runGame(channel, players, bet, sizeKey, guild, mode) {
           stats.increment(players[0].id, 'memory_losses').catch(() => {});
           await channel.send({ embeds: [
             new EmbedBuilder().setColor('#555555')
-              .setTitle('⏰ Time\'s Up!')
+              .setTitle('<a:RojasClock:1511506715453947904> Time\'s Up!')
               .setDescription(`**${players[0].username}** found **${totalMatched}/${size.pairs}** pairs in **${moves}** moves.\n💸 Bet lost.`)
           ]});
         }
@@ -437,7 +437,7 @@ async function launchMemory(channel, bet, sizeKey, mode, triggeredBy, hostId, gu
     const g = activeGames.get(channelId);
     if (!g || g.phase !== 'signup') return;
     const closed = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(joinId).setLabel('⏰ Closed').setStyle(ButtonStyle.Secondary).setDisabled(true),
+      new ButtonBuilder().setCustomId(joinId).setLabel('<a:RojasClock:1511506715453947904> Closed').setStyle(ButtonStyle.Secondary).setDisabled(true),
       new ButtonBuilder().setCustomId(startId).setLabel('▶️ Started').setStyle(ButtonStyle.Secondary).setDisabled(true),
     );
     await signupMsg.edit({ components: [closed] }).catch(() => {});

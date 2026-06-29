@@ -218,7 +218,7 @@ async function runBlackjack(channel, players, bet) {
       col.on('end', (_, reason) => {
         if (reason === 'time' && !pd.bust && !pd.stand) {
           pd.stand = true;
-          channel.send(`⏰ **${pd.username}** ran out of time and auto-stands at **${handTotal(pd.hand)}**.`);
+          channel.send(`<a:RojasClock:1511506715453947904> **${pd.username}** ran out of time and auto-stands at **${handTotal(pd.hand)}**.`);
         }
         turnMsg.edit({ components: [] }).catch(() => {});
         resolve();

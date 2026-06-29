@@ -384,7 +384,7 @@ async function initDB() {
     CREATE TABLE IF NOT EXISTS rs_players (
       user_id             TEXT PRIMARY KEY,
       username            TEXT NOT NULL DEFAULT '',
-      emoji_tag           TEXT DEFAULT '👑',
+      emoji_tag           TEXT DEFAULT '',
       extra_emoji         TEXT DEFAULT '',
       xp                  INT DEFAULT 0,
       total_xp            INT DEFAULT 0,

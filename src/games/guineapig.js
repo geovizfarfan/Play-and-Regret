@@ -330,7 +330,7 @@ async function launchCuy(channel, bet, rounds, triggeredBy, hostId) {
     if (!g || g.phase !== 'signup') return;
 
     const closed = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(joinId).setLabel('⏰ Closed').setStyle(ButtonStyle.Secondary).setDisabled(true),
+      new ButtonBuilder().setCustomId(joinId).setLabel('<a:RojasClock:1511506715453947904> Closed').setStyle(ButtonStyle.Secondary).setDisabled(true),
       new ButtonBuilder().setCustomId(startId).setLabel('▶️ Started').setStyle(ButtonStyle.Secondary).setDisabled(true),
     );
     await gameMsg.edit({ components: [closed] }).catch(() => {});

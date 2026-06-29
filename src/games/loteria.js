@@ -12,7 +12,7 @@ const CARD_IMAGES = Object.fromEntries(Array.from({length: 54}, (_, i) => [i+1, 
 // ─── Cards ────────────────────────────────────────────────────────────────────
 const LOTERIA_CARDS = [
   { name:'El Gallo',       emoji:'🐓', n:1  }, { name:'El Diablito',    emoji:'😈', n:2  },
-  { name:'La Dama',        emoji:'👑', n:3  }, { name:'El Catrín',      emoji:'🎩', n:4  },
+  { name:'La Dama',        emoji:'<:crown:1479234159183401051>', n:3  }, { name:'El Catrín',      emoji:'🎩', n:4  },
   { name:'El Paraguas',    emoji:'☂️', n:5  }, { name:'La Sirena',      emoji:'🧜', n:6  },
   { name:'La Escalera',    emoji:'🪜', n:7  }, { name:'La Botella',     emoji:'🍾', n:8  },
   { name:'El Barril',      emoji:'🛢️', n:9  }, { name:'El Árbol',       emoji:'🌳', n:10 },
@@ -34,7 +34,7 @@ const LOTERIA_CARDS = [
   { name:'La Rosa',        emoji:'🌹', n:41 }, { name:'La Calavera',    emoji:'☠️', n:42 },
   { name:'La Campana',     emoji:'🔔', n:43 }, { name:'El Cantarito',   emoji:'🏺', n:44 },
   { name:'El Venado',      emoji:'🦌', n:45 }, { name:'El Sol',         emoji:'☀️', n:46 },
-  { name:'La Corona',      emoji:'👑', n:47 }, { name:'La Chalupa',     emoji:'🛶', n:48 },
+  { name:'La Corona',      emoji:'<:crown:1479234159183401051>', n:47 }, { name:'La Chalupa',     emoji:'🛶', n:48 },
   { name:'El Pino',        emoji:'🌲', n:49 }, { name:'El Pescado',     emoji:'🐟', n:50 },
   { name:'La Palma',       emoji:'🌴', n:51 }, { name:'La Maceta',      emoji:'🪴', n:52 },
   { name:'El Arpa',        emoji:'<a:Loading:1511506718666784778>', n:53 }, { name:'La Rana',        emoji:'🐸', n:54 },
@@ -145,7 +145,7 @@ function renderGrid(board, marked, drawnCards) {
   return board.map((c, i) => {
     const called = drawnCards.some(d => d.n === c.n);
     const isMarked = marked.has(i);
-    return isMarked ? `✅` : called ? `🔵` : c.emoji;
+    return isMarked ? `<:checkmark:1495666088417956002>` : called ? `🔵` : c.emoji;
   }).reduce((rows, cell, i) => {
     if (i % 4 === 0) rows.push([]);
     rows[rows.length - 1].push(cell);
@@ -408,7 +408,7 @@ module.exports = {
 
             await inter.reply({
               embeds: [new EmbedBuilder().setColor('#C9B1FF')
-                .setTitle('🏆 ¡LOTERÍA! You won!')
+                .setTitle('<a:trophies:1507765453299122387> ¡LOTERÍA! You won!')
                 .setDescription(renderGrid(pd.board, pd.marked, g.drawnCards))
                 .setFooter({ text: `+${pot.toLocaleString()} sins added to your balance!` })],
               components: [],
@@ -417,8 +417,8 @@ module.exports = {
 
             return inter.channel.send({ embeds: [new EmbedBuilder().setColor('#C9B1FF')
               .setTitle(`<a:trophies:1507765453299122387> ¡LOTERÍA!`)
-              .setDescription(`🏆 <@${inter.user.id}> wins with a **${win}**!\n${E.BB_COIN} Prize: **${pot.toLocaleString()} sins**!`)
-              .setFooter({ text: '¡Felicidades! 🏆' })] });
+              .setDescription(`<a:trophies:1507765453299122387> <@${inter.user.id}> wins with a **${win}**!\n${E.BB_COIN} Prize: **${pot.toLocaleString()} sins**!`)
+              .setFooter({ text: '¡Felicidades! <a:trophies:1507765453299122387>' })] });
           }
 
           // Show updated board
@@ -568,8 +568,8 @@ module.exports = {
     const names = winners.map(w => `<@${w.uid}>`).join(', ');
     await channel.send({ embeds: [new EmbedBuilder().setColor('#C9B1FF')
       .setTitle('<a:trophies:1507765453299122387> ¡LOTERÍA!')
-      .setDescription(`🏆 ${names} wins!\n${E.BB_COIN} Each gets **${share.toLocaleString()} sins**!`)
-      .setFooter({ text: '¡Felicidades! 🏆' })] });
+      .setDescription(`<a:trophies:1507765453299122387> ${names} wins!\n${E.BB_COIN} Each gets **${share.toLocaleString()} sins**!`)
+      .setFooter({ text: '¡Felicidades! <a:trophies:1507765453299122387>' })] });
   },
 
   // ─── Cancel ───────────────────────────────────────────────────────────────
@@ -682,15 +682,15 @@ module.exports = {
 
         await interaction.reply({
           embeds: [new EmbedBuilder().setColor('#C9B1FF')
-            .setTitle('🏆 ¡LOTERÍA! You won!')
+            .setTitle('<a:trophies:1507765453299122387> ¡LOTERÍA! You won!')
             .setDescription(renderGrid(pd.board, pd.marked, g.drawnCards))
             .setFooter({ text: `+${pot.toLocaleString()} sins added to your balance!` })],
           ephemeral: true,
         });
         return interaction.channel.send({ embeds: [new EmbedBuilder().setColor('#C9B1FF')
-          .setTitle('🏆 ¡LOTERÍA!')
-          .setDescription(`🏆 <@${interaction.user.id}> wins with a **${win}**!\n${E.BB_COIN} Prize: **${pot.toLocaleString()} sins**!`)
-          .setFooter({ text: '¡Felicidades! 🏆' })] });
+          .setTitle('<a:trophies:1507765453299122387> ¡LOTERÍA!')
+          .setDescription(`<a:trophies:1507765453299122387> <@${interaction.user.id}> wins with a **${win}**!\n${E.BB_COIN} Prize: **${pot.toLocaleString()} sins**!`)
+          .setFooter({ text: '¡Felicidades! <a:trophies:1507765453299122387>' })] });
       }
 
       return interaction.reply(await buildBoardMsg(pd, g.drawnCards, true));

@@ -43,7 +43,7 @@ module.exports = {
       await shop.equip(interaction.user.id, tokenId);
       const slotLabel = token.slot === 'ttt_piece' ? 'piece (X & O)' : 'turn indicator';
       return interaction.editReply({
-        content: `✅ **${token.emoji} ${token.name}** is now your **${slotLabel}**!`,
+        content: `<:checkmark:1495666088417956002> **${token.emoji} ${token.name}** is now your **${slotLabel}**!`,
         embeds: [], components: []
       });
     }
@@ -98,11 +98,11 @@ module.exports = {
       } else {
         await shop.equip(user.id, tokenId);
       }
-      return replyFn(`✅ **${token.emoji} ${token.name}** is free and equipped! Use \`/inventory\` to assign it to X or O.`);
+      return replyFn(`<:checkmark:1495666088417956002> **${token.emoji} ${token.name}** is free and equipped! Use \`/inventory\` to assign it to X or O.`);
     }
     const already = await shop.hasToken(user.id, tokenId);
     if (already) {
-      return replyFn(`✅ You already own **${token.emoji} ${token.name}**! Use \`/inventory\` to equip it to X or O.`);
+      return replyFn(`<:checkmark:1495666088417956002> You already own **${token.emoji} ${token.name}**! Use \`/inventory\` to equip it to X or O.`);
     }
     await economy.getUser(user.id, user.username);
     const bal = await economy.getBalance(user.id);
@@ -139,7 +139,7 @@ module.exports = {
     await economy.removeFunds(user.id, price, `Shop: ${itemType}`);
     await shop.setItem(user.id, itemType, emoji);
     const labels = { ttt_x: 'X Piece', ttt_o: 'O Piece', ping_emoji: 'Turn Indicator' };
-    return replyFn(`✅ Equipped ${emoji} as your **${labels[itemType]}**!`);
+    return replyFn(`<:checkmark:1495666088417956002> Equipped ${emoji} as your **${labels[itemType]}**!`);
   },
 
   // ── Inventory ─────────────────────────────────────────────────────────────────
@@ -201,7 +201,7 @@ module.exports = {
     if (!has) return message.reply(`${E.ERROR} You don't own that token!`);
     const token = shop.CATALOG.find(t => t.id === tokenId);
     await shop.equip(message.author.id, tokenId);
-    return message.reply(`✅ Equipped **${token.emoji} ${token.name}** as your ${shop.SLOT_LABELS[token.slot]}!`);
+    return message.reply(`<:checkmark:1495666088417956002> Equipped **${token.emoji} ${token.name}** as your ${shop.SLOT_LABELS[token.slot]}!`);
   },
 
   async equipSlash(interaction) {
@@ -210,7 +210,7 @@ module.exports = {
     const inventory = await shop.getInventory(interaction.user.id);
 
     if (!inventory || inventory.length === 0) {
-      return interaction.editReply(`❌ You don't own any tokens yet! Use \`/store_tictacbruh\` to buy some.`);
+      return interaction.editReply(`<:wrong:1495666083594502174> You don't own any tokens yet! Use \`/store_tictacbruh\` to buy some.`);
     }
 
     const options = inventory.slice(0, 25).map(t => ({
@@ -238,12 +238,12 @@ module.exports = {
       const tokenId = i.values[0];
       const token   = shop.CATALOG.find(t => t.id === tokenId);
       await shop.equip(interaction.user.id, tokenId);
-      await i.update({ content: `✅ **${token?.emoji || ''} ${token?.name || tokenId}** equipped as your piece!`, components: [] });
+      await i.update({ content: `<:checkmark:1495666088417956002> **${token?.emoji || ''} ${token?.name || tokenId}** equipped as your piece!`, components: [] });
     });
 
     collector.on('end', (_, reason) => {
       if (reason === 'time') {
-        interaction.editReply({ content: `⏰ Equip timed out.`, components: [] }).catch(() => {});
+        interaction.editReply({ content: `<a:RojasClock:1511506715453947904> Equip timed out.`, components: [] }).catch(() => {});
       }
     });
   },

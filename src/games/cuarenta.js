@@ -158,7 +158,7 @@ async function awardTimeoutWin(channel, game, timedOutIdx) {
   const loser  = g.players[timedOutIdx];
   const winner = g.players.find(p => p.id !== loser.id);
   if (!winner) return;
-  await channel.send({ embeds: [new EmbedBuilder().setColor('#D4D8F0').setTitle('⏰ Time Out!')
+  await channel.send({ embeds: [new EmbedBuilder().setColor('#D4D8F0').setTitle('<a:RojasClock:1511506715453947904> Time Out!')
     .setDescription(`**${loser.username}** took too long (3 minutes).\n**${winner.username}** wins by default!\n${E.BB_COIN} Prize: **${g.bet*g.numPlayers} sins**`)] });
   await endGame(channel, g, winner);
 }
@@ -746,7 +746,7 @@ module.exports = {
       `**${E.CUARENTA} Cuarenta (Ecuadorian) — Rules** *(pagat.com)*\n`,
       `**<a:cards:1511530261551124561> Deck:** 40 cards — A 2 3 4 5 6 7 J Q K (remove 8s/9s/10s). A=1 … 7=7. J/Q/K have no value.\n`,
       `**<:conroller:1511532204415778897> Turn:** Press <a:eyes:1511507447704191026> My Hand → see your cards → pick one to play.\n`,
-      `**⚔️ Match:** Same rank as a table card → capture it.\n`,
+      `**<:sword:1495666991187361943> Match:** Same rank as a table card → capture it.\n`,
       `**➕ Addition:** A–7 can capture table cards that add up to your card's value.\n`,
       `**🔢 Sequence:** After any capture, also take the next-higher card(s) from the table in unbroken order (A-2-3-4-5-6-7-J-Q-K).\n`,
       `**⚡ Caída +2pts:** Capturing the PREVIOUS player's last card by matching = Caída.\n`,
