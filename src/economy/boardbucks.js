@@ -182,17 +182,18 @@ module.exports = {
 
     // Show preview with confirm/cancel
     const confirmRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`give_confirm:${message.author.id}:${target.id}:${amount}`).setLabel('Confirm').setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId(`give_cancel:${message.author.id}`).setLabel('Cancel').setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId(`give_confirm:${message.author.id}:${target.id}:${amount}`).setLabel('Confirm').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`give_cancel:${message.author.id}`).setLabel('Cancel').setStyle(ButtonStyle.Secondary),
     );
 
     return message.reply({ embeds: [
       new EmbedBuilder().setColor('#D8B4FE')
-        .setTitle('<:Sins:1478993005187698789> Confirm Transfer')
+        .setTitle('<:Sins:1478993005187698789> Sins Transfer')
         .setDescription(
-          `<a:moneybag:1479268556687540345> **You\'re sending:** ${amount.toLocaleString()} sins\n` +
-          `<:wrong:1495666083594502174> **Tax (10%):** ${tax.toLocaleString()} sins\n` +
-          `<:checkmark:1495666088417956002> **${target.username} receives:** ${received.toLocaleString()} sins`
+          `**Recipient:** ${target.username}\n` +
+          `**They receive:** ${received.toLocaleString()} sins\n` +
+          `**Tax (10%):** ${tax.toLocaleString()} sins\n` +
+          `**Total cost:** ${amount.toLocaleString()} sins`
         )
     ], components: [confirmRow] });
   },

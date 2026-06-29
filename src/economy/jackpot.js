@@ -35,7 +35,7 @@ function buildJoinButton(sessionId, disabled = false) {
     new ButtonBuilder()
       .setCustomId(`sins_rich_join:${sessionId}`)
       .setLabel('Enter Jackpot!')
-      .setStyle(ButtonStyle.Success)
+      .setStyle(ButtonStyle.Secondary)
       .setDisabled(disabled)
   );
 }
