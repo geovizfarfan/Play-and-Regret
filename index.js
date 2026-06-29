@@ -447,8 +447,15 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.customId.startsWith('lot_')) {
       return loteriaModule.handleButton(interaction);
     }
-    if (interaction.customId.startsWith('bet_resolve_') || interaction.customId.startsWith('bet_quick_')) {
-      return bettingModule.handleButton(interaction);
+    if (interaction.customId.startsWith('bet_resolve_') || interaction.customId.startsWith('bet_quick_') || interaction.customId.startsWith('bet_amt_') || interaction.customId.startsWith('bet_pick_') || interaction.customId.startsWith('bet_select_') || interaction.customId.startsWith('bet_cancel_')) {
+      try {
+        return await bettingModule.handleButton(interaction);
+      } catch (err) {
+        console.error('[Betting button error]', err);
+        if (!interaction.replied && !interaction.deferred) {
+          return interaction.reply({ content: 'Something went wrong with that bet action.', ephemeral: true }).catch(() => {});
+        }
+      }
     }
     return;
   }
