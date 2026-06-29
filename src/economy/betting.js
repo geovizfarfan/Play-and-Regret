@@ -4,7 +4,13 @@ const E = require('../../utils/emojis');
 const axios = require('axios');
 
 // Letter emojis for labeling options A, B, C, D...
-const LETTER_EMOJI = ['🅰','🅱','🅲','🅳','🅴','🅵','🅶','🅷','🅸','🅹'];
+const LETTER_EMOJI_ID = [
+  { name: 'A_', id: '1521014752091045989' },
+  { name: 'B_', id: '1521014753265320197' },
+  { name: 'C_', id: '1521014754313764874' },
+  { name: 'D_', id: '1521014755056287744' },
+];
+const LETTER_EMOJI = LETTER_EMOJI_ID.map(e => `<:${e.name}:${e.id}>`);
 
 module.exports = {
   name: 'betting',
