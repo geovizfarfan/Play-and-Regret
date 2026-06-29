@@ -65,9 +65,9 @@ const slashCommands = [
   new SlashCommandBuilder().setName('take').setDescription('Admin: Remove sins from a user')
     .addUserOption(o => o.setName('user').setDescription('Target user').setRequired(true))
     .addIntegerOption(o => o.setName('amount').setDescription('Amount').setRequired(true).setMinValue(1)),
-  new SlashCommandBuilder().setName('setbal').setDescription('Admin: Set a user\'s balance')
+  new SlashCommandBuilder().setName('grantsins').setDescription('Owner: Grant sins to a user (minted, untaxed, no balance deduction)')
     .addUserOption(o => o.setName('user').setDescription('Target user').setRequired(true))
-    .addIntegerOption(o => o.setName('amount').setDescription('New balance').setRequired(true).setMinValue(0)),
+    .addIntegerOption(o => o.setName('amount').setDescription('Amount to grant').setRequired(true).setMinValue(1)),
 
   // Betting
   new SlashCommandBuilder().setName('createbet').setDescription('Create a custom-outcome bet')
@@ -502,7 +502,7 @@ client.on('interactionCreate', async (interaction) => {
         case 'recap':       return await rgModule.recap(interaction);
       }
     }
-    if (['sins','transfer','beg','leaderboard','profile','give','take','setbal','taxcalc'].includes(commandName))
+    if (['sins','transfer','beg','leaderboard','profile','give','take','grantsins','taxcalc'].includes(commandName))
       return await economyModule.handleSlash(interaction, commandName);
 
     // Betting
@@ -575,7 +575,7 @@ client.on('messageCreate', async (message) => {
   try {
     if (['daily','cleanse','confess'].includes(command))
       return await dailyModule.handleCommand(message, args, command);
-    if (['balance','bal','sins','give','take','transfer','beg','leaderboard','lb','stats','profile','setbal','richest','taxcalc','history','guide','faq','help'].includes(command))
+    if (['balance','bal','sins','give','take','transfer','beg','leaderboard','lb','stats','profile','grantsins','richest','taxcalc','history','guide','faq','help'].includes(command))
       return await economyModule.handleCommand(message, args, command);
 
     if (['createbet','bet','bets','resolvebet','betinfo','cancelbet','mybets','polymarket'].includes(command))

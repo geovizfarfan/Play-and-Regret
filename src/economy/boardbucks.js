@@ -141,7 +141,7 @@ module.exports = {
       case 'daily':                            return this.daily(message);
       case 'leaderboard': case 'lb': case 'richest': return this.leaderboard(message);
       case 'stats': case 'profile':            return this.profile(message, args);
-      case 'setbal':                           return this.setBalance(message, args);
+      case 'grantsins':                        return this.grantSins(message, args);
     }
   },
 
@@ -611,16 +611,16 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
   },
 
   // ── Set balance (admin) ──────────────────────────────────────────────────────
-  async setBalance(message, args) {
-    if (!this.isAdmin(message) && !this.isOwner(message))
-      return message.reply(`${E.ERROR} You need the Admin role for this!`);
+  async grantSins(message, args) {
+    if (!this.isOwner(message))
+      return message.reply(`${E.ERROR} Only the server owner can grant sins!`);
     const target = message.mentions?.users?.first() || null;
     const amount = parseInt(args[1]);
-    if (!target || isNaN(amount) || amount < 0)
-      return message.reply(`${E.ERROR} Usage: \`!setbal @user <amount>\``);
+    if (!target || isNaN(amount) || amount <= 0)
+      return message.reply(`${E.ERROR} Usage: \`!grantsins @user <amount>\``);
     await economy.getUser(target.id, target.username);
-    await economy.setFunds(target.id, amount);
-    return message.reply(`${E.SUCCESS} Set **${target.username}**'s balance to **${amount.toLocaleString()} sins**!`);
+    await economy.addFunds(target.id, amount, `Granted by owner`);
+    return message.reply(`${E.SUCCESS} Granted **${amount.toLocaleString()} sins** to **${target.username}**! (minted — no balance was deducted)`);
   },
 
   // ── Slash handler ────────────────────────────────────────────────────────────
@@ -654,7 +654,7 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
       return;
     }
 
-    const isPublicCmd = ['leaderboard','give','take','setbal','balance','sins','bal'].includes(commandName); // profile is private
+    const isPublicCmd = ['leaderboard','give','take','grantsins','balance','sins','bal'].includes(commandName); // profile is private
     await interaction.deferReply({ ephemeral: !isPublicCmd });
     fakeMessage.reply = async (data) => interaction.editReply(typeof data === 'string' ? { content: data } : data);
     await this.handleCommand(fakeMessage, args, commandName);
