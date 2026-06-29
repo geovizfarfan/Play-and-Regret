@@ -1993,11 +1993,15 @@ module.exports = {
     const season = await getActiveSeason(interaction.guild.id);
     if (!season) return interaction.reply({ content: '<:wrong:1495666083594502174> No active Regret Games.', ephemeral: true });
 
-    const options = Object.entries(EVENT_TYPES).map(([key, val]) => ({
-      label: val.label,
-      value: key,
-      description: val.desc,
-    }));
+    const options = Object.entries(EVENT_TYPES).map(([key, val]) => {
+      const match = val.label.match(/^(<a?:\w+:\d+>)\s*(.*)$/);
+      return {
+        label: match ? match[2] : val.label,
+        value: key,
+        description: val.desc,
+        emoji: match ? match[1] : undefined,
+      };
+    });
 
     const row = new ActionRowBuilder().addComponents(
       new StringSelectMenuBuilder()
