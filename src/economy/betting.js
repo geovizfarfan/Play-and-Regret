@@ -2,6 +2,7 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelect
 const { db, economy } = require('../../utils/database');
 const E = require('../../utils/emojis');
 const axios = require('axios');
+const jackpot = require('../../utils/jackpot');
 
 const BET_COLOR = '#B19CD9'; // lavender purple
 
@@ -191,6 +192,20 @@ module.exports = {
   },
 
   // Generic resolve, called by either the button collector or directly
+  async _disableLiveMessage(bet) {
+    if (!bet.message_id || !bet.channel_id || !this._client) return;
+    try {
+      const channel = await this._client.channels.fetch(bet.channel_id);
+      const msg     = await channel.messages.fetch(bet.message_id);
+      const disabled = msg.components.map(row => {
+        const newRow = ActionRowBuilder.from(row);
+        newRow.components.forEach(c => c.setDisabled(true));
+        return newRow;
+      });
+      await msg.edit({ components: disabled });
+    } catch (e) { /* message may be gone, ignore */ }
+  },
+
   async resolveBetByOption(betId, winningOption, replyFn, channelSendFn) {
     const bet = await db.get('SELECT * FROM bets WHERE id = ?', [betId]);
     if (!bet) return replyFn(`${E.ERROR} Bet #${betId} not found!`);
@@ -201,20 +216,23 @@ module.exports = {
     if (winningOption === 'cancel') {
       for (const entry of entries) await economy.addFunds(entry.user_id, entry.amount, `Bet #${betId} cancelled`);
       await db.run("UPDATE bets SET status = 'cancelled' WHERE id = ?", [betId]);
+      await this._disableLiveMessage(bet);
       return replyFn(`<:checkmark:1495666088417956002> Bet #${betId} cancelled. All ${entries.length} bettors refunded!`);
     }
 
     await db.run("UPDATE bets SET status = 'resolved', outcome = ? WHERE id = ?", [winningOption, betId]);
+    await this._disableLiveMessage(bet);
     const winEntries = entries.filter(e => e.side === winningOption);
     const winPool     = winEntries.reduce((sum, e) => sum + e.amount, 0);
     const totalPool    = entries.reduce((sum, e) => sum + e.amount, 0);
 
     if (winEntries.length === 0) {
+      if (totalPool > 0) await jackpot.addToDrawFund(totalPool).catch(() => {});
       return (channelSendFn || replyFn)({ embeds: [
         new EmbedBuilder()
           .setColor(BET_COLOR)
           .setTitle(`Bet #${betId} Resolved — ${winningOption} wins!`)
-          .setDescription(`No one bet on **${winningOption}**. No payouts.`)
+          .setDescription(`No one bet on **${winningOption}**. ${totalPool > 0 ? `**${totalPool.toLocaleString()} sins** sent to the jackpot pool!` : 'No payouts.'}`)
       ]});
     }
 
@@ -313,6 +331,7 @@ module.exports = {
 
   // ── Slash command entry point ─────────────────────────────────────────────
   async handleSlash(interaction, commandName) {
+    if (!this._client) this._client = interaction.client;
     if (commandName === 'createbet') {
       const title   = interaction.options.getString('title');
       const desc    = interaction.options.getString('description') || '';
@@ -347,6 +366,7 @@ module.exports = {
 
   // ── Stateless button/select handler — survives restarts, fully DB-driven ─
   async handleButton(interaction) {
+    if (!this._client) this._client = interaction.client;
     const id = interaction.customId;
 
     // ── Cancel button on the live bet message: bet_cancel_<id> ─────────────
