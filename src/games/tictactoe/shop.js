@@ -113,7 +113,7 @@ module.exports = {
     return replyFn({ embeds: [
       new EmbedBuilder()
         .setColor('#B3FFD9')
-        .setTitle(`<:sins:1478993005187698789> Purchase Successful!`)
+        .setTitle(`<:sins:1522321533307981945> Purchase Successful!`)
         .setDescription(`${token.emoji} **${token.name}** added to your collection!\nUse \`/inventory\` to equip it as your X or O piece.`)
         .addFields(
           { name: 'Token',   value: `${token.emoji} ${token.name}`,                  inline: true },
@@ -259,7 +259,7 @@ async function buildShopDisplay(user) {
     .setColor('#FFD4A0')
     .setTitle(`<a:purplesparkle:1479210541691175054> Tic-Tac-Bruh <:bruh:1479246568589754418>`)
     .setDescription(
-      `<:sins:1478993005187698789> **Balance: ${bal.toLocaleString()} sins**\n` +
+      `<:sins:1522321533307981945> **Balance: ${bal.toLocaleString()} sins**\n` +
       `🎮 **Active Token:** ${equipped ? `${equipped.emoji} ${equipped.name}` : 'Default'}\n\n` +
       `Pick a token below to buy and use in every game.`
     )

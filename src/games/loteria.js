@@ -275,7 +275,7 @@ module.exports = {
         .setTitle(`<a:mexicoflag:1511506713755516961> ¡LOTERÍA! — ${mode === 'manual' ? 'Manual' : 'Auto'} Mode`)
         .setDescription(
           `**${message.author.username}** is hosting Lotería!\n\n` +
-          `<:Sins:1478993005187698789> Entry: **${bet} Sins** · 10% to Jackpot\n` +
+          `<:sins:1522321533307981945> Entry: **${bet} Sins** · 10% to Jackpot\n` +
           `<a:RojasClock:1511506715453947904> **${cardSpeedLabel}** per card\n` +
           `<a:calendar:1479266779837632562> Starts: ${startLabel}\n\n` +
           `${mode === 'auto'

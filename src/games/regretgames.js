@@ -1622,7 +1622,7 @@ module.exports = {
           '*You are entering voluntarily. That makes this worse.*\n\n' +
           'A multi-day survival game. Survive events, vote out enemies, betray your friends.\n' +
           'Last player standing wins the pot.\n\n' +
-          `<:Sins:1478993005187698789> **Entry Fee:** ${fee} sins\n` +
+          `<:sins:1522321533307981945> **Entry Fee:** ${fee} sins\n` +
           '<a:purplesparkle:1479210541691175054> **Prize Pot:** 90% of all entry fees\n' +
           '<:purp_caveira50:1495665632845369354> **Risk:** REGRET, betrayal, public embarrassment\n\n' +
           '*Nobody forced you to click join.*'
@@ -1706,7 +1706,7 @@ module.exports = {
               '*You are entering voluntarily. That makes this worse.*\n\n' +
               'A multi-day survival game. Survive events, vote out enemies, betray your friends.\n' +
               'Last player standing wins the pot.\n\n' +
-              `<:Sins:1478993005187698789> **Entry Fee:** ${season.entry_fee} sins\n` +
+              `<:sins:1522321533307981945> **Entry Fee:** ${season.entry_fee} sins\n` +
               '<a:purplesparkle:1479210541691175054> **Prize Pot:** 90% of all entry fees\n' +
               '<:purp_caveira50:1495665632845369354> **Risk:** REGRET, betrayal, public embarrassment\n\n' +
               `<:member:1495666085121491024> **Players joined: ${count}**\n\n` +
@@ -2095,7 +2095,7 @@ module.exports = {
         .setDescription(
           `**${winner.username}** survived.\n\n` +
           `*Not because you were good. Because everyone else was worse.*\n\n` +
-          `<:Sins:1478993005187698789> **+${prize.toLocaleString()} sins**\n` +
+          `<:sins:1522321533307981945> **+${prize.toLocaleString()} sins**\n` +
           `<a:hmmdevil:1495665623219306647> **Final REGRET:** ${winner.regret}\n` +
           `<a:purplesparkle:1479210541691175054> **Title:** Regret Royalty\n\n` +
           `**Season Results:**\n` +

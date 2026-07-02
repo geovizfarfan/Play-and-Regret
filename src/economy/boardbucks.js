@@ -103,20 +103,20 @@ const BEG_JACKPOT = [
 
 const DAILY_MESSAGES = [
   (a) => `🎁 Daily reward claimed. Please spend it irresponsibly.`,
-  (a) => `<:Sins:1478993005187698789> Your daily allowance from the chaos treasury: **${a} sins**`,
+  (a) => `<:sins:1522321533307981945> Your daily allowance from the chaos treasury: **${a} sins**`,
   (a) => `<a:MVP24:1495665626688131183> The Board Princess treasury reluctantly gives you **${a} sins**.`,
   (a) => `<a:dice_roll:1507764402013868154> Daily gambling funds have been issued. Try not to lose them in 10 seconds.`,
   (a) => `💸 The casino has refilled your bad decisions fund. **${a} sins** loaded.`,
   (a) => `🎁 Daily chaos stipend delivered. The treasury is already regretting it.`,
   (a) => `<a:jackpot:1479203793806557385> Congratulations. You are temporarily solvent. **+${a} sins**`,
   (a) => `<a:MVP24:1495665626688131183> Royal funding has been approved. Spend it unwisely.`,
-  (a) => `<:Sins:1478993005187698789> Spend this wisely. (You won't.) **+${a} sins**`,
+  (a) => `<:sins:1522321533307981945> Spend this wisely. (You won't.) **+${a} sins**`,
   (a) => `<a:dice_roll:1507764402013868154> Today's budget for regret: **${a} sins**`,
   (a) => `💸 Your daily financial mistake starter pack has arrived. **${a} sins** enclosed.`,
   (a) => `🎁 The treasury regrets this decision already. **+${a} sins**`,
   (a) => `<a:jackpot:1479203793806557385> You are now funded to make poor choices. **${a} sins** disbursed.`,
   (a) => `<a:MVP24:1495665626688131183> A small donation from the royal chaos fund. **${a} sins** — use it to ruin the economy.`,
-  (a) => `<:Sins:1478993005187698789> Today's allowance for irresponsible gambling. **${a} sins** — go forth.`,
+  (a) => `<:sins:1522321533307981945> Today's allowance for irresponsible gambling. **${a} sins** — go forth.`,
   (a) => `<a:dice_roll:1507764402013868154> Go forth and immediately lose this money. **+${a} sins**`,
   (a) => `💸 Daily funding for questionable decisions: **${a} sins**.`,
   (a) => `🎁 The bot reluctantly hands you **${a} sins**. Don't make it weird.`,
@@ -156,11 +156,11 @@ module.exports = {
     const avatar = typeof target.displayAvatarURL === 'function' ? target.displayAvatarURL() : null;
     return message.reply({ embeds: [
       new EmbedBuilder().setColor('#D8B4FE')
-        .setTitle('<:Sins:1478993005187698789> Sins Balance')
+        .setTitle('<:sins:1522321533307981945> Sins Balance')
         .setThumbnail(avatar)
         .addFields(
           { name: '<:member:1495666085121491024> Player', value: target.username,                 inline: true },
-          { name: '<:Sins:1478993005187698789> Sins',     value: `**${bal.toLocaleString()}**`,   inline: true },
+          { name: '<:sins:1522321533307981945> Sins',     value: `**${bal.toLocaleString()}**`,   inline: true },
           { name: '<a:hmmdevil:1495665623219306647> Regret', value: `**${regret.toLocaleString()}**`, inline: true },
         )
     ]});
@@ -188,7 +188,7 @@ module.exports = {
 
     return message.reply({ embeds: [
       new EmbedBuilder().setColor('#D8B4FE')
-        .setTitle('<:Sins:1478993005187698789> Sins Transfer')
+        .setTitle('<:sins:1522321533307981945> Sins Transfer')
         .setDescription(
           `**Recipient:** ${target.username}\n` +
           `**They receive:** ${received.toLocaleString()} sins\n` +
@@ -212,7 +212,7 @@ module.exports = {
     await jackpot.addToDrawFund(tax).catch(() => {});
     return replyFn({ embeds: [
       new EmbedBuilder().setColor('#D8B4FE')
-        .setTitle('<:Sins:1478993005187698789> Sins Given!')
+        .setTitle('<:sins:1522321533307981945> Sins Given!')
         .setDescription(
           `Sent **${received.toLocaleString()} sins** to **${target.username}**!\n` +
           `<a:moneybag:1479268556687540345> **${tax.toLocaleString()} sins** (10%) went to the jackpot.`
@@ -287,7 +287,7 @@ module.exports = {
 
     const dropMsg = await message.channel.send({ embeds: [
       new EmbedBuilder().setColor('#D8B4FE')
-        .setTitle('<:Sins:1478993005187698789> sins DROP!')
+        .setTitle('<:sins:1522321533307981945> sins DROP!')
         .setDescription(`**${message.author.username}** dropped **${amount.toLocaleString()} sins**!\n\nFirst to press the button claims it all! 🏃`)
         .setFooter({ text: 'Drop expires in 5 minutes' })
     ], components: [claimBtn] });
@@ -440,7 +440,7 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
     );
     const reply = await message.reply({ embeds: [
       new EmbedBuilder().setColor('#C9B1FF')
-        .setTitle('<:Sins:1478993005187698789> Tax Calculator')
+        .setTitle('<:sins:1522321533307981945> Tax Calculator')
         .setDescription(
           `*To deliver **${want.toLocaleString()} Sins** after tax:*\n\n` +
           `<a:moneybag:1479268556687540345> **You need to send:** ${mustSend.toLocaleString()} Sins\n` +
@@ -466,14 +466,14 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
         .setTitle('<a:purplesparkle:1479210541691175054> Play & Regret — Server Guide')
         .setDescription('Everything you need to know about Sins, games, and how the bot works.')
         .addFields(
-          { name: '<:Sins:1478993005187698789> Sins', value: 'The server currency. Earn them, spend them, give them, lose them.', inline: true },
+          { name: '<:sins:1522321533307981945> Sins', value: 'The server currency. Earn them, spend them, give them, lose them.', inline: true },
           { name: '<:purp_caveira50:1495665632845369354> Regret', value: 'A score that rises when you do questionable things. High Regret = high risk.', inline: true },
           { name: '<a:jackpot:1479203793806557385> Jackpot', value: 'A weekly pot that grows from taxes and game draws. Closest number wins everything.', inline: true },
         ),
 
       // Economy
       new EmbedBuilder().setColor('#D8B4FE')
-        .setTitle('<:Sins:1478993005187698789> Economy Commands')
+        .setTitle('<:sins:1522321533307981945> Economy Commands')
         .addFields(
           { name: '`!daily`', value: 'Claim your daily Sins. Streak builds for bigger rewards. No Regret added.', inline: false },
           { name: '`!beg`', value: 'Hourly beg. You might earn Sins, lose Sins, or gain Regret. A gamble.', inline: false },
@@ -588,7 +588,7 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
         .setTitle(`<:member:1495666085121491024> ${target.username}'s Profile`)
         .setThumbnail(target.displayAvatarURL ? target.displayAvatarURL() : null)
         .addFields(
-          { name: '<:Sins:1478993005187698789> Balance',    value: `${bal.toLocaleString()} sins`,                    inline: true },
+          { name: '<:sins:1522321533307981945> Balance',    value: `${bal.toLocaleString()} sins`,                    inline: true },
           { name: '<:purp_caveira50:1495665632845369354> Regret', value: `${regret.toLocaleString()}`,               inline: true },
           { name: '<a:purplefire:1479219348353716415> Daily Streak', value: `${user.daily_streak||0} day${(user.daily_streak||0) !== 1 ? 's' : ''}`, inline: true },
           { name: '​', value: '​', inline: false },

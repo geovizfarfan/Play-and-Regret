@@ -1082,7 +1082,7 @@ async function runGame(channel, game) {
           .setTitle('<a:MVP24:1495665626688131183> ROLE VS ROLE — WINNERS')
           .setDescription(
             `${winTeamName} **wins the match!**\n\n` +
-            `<:Sins:1478993005187698789> **+${share.toLocaleString()} sins** each\n` +
+            `<:sins:1522321533307981945> **+${share.toLocaleString()} sins** each\n` +
             `Winners: ${winTeam.map(p => getDisplayName(p)).join(', ')}\n\n` +
             `*${players.length} entered. The roles have settled it.*`
           )
@@ -1136,7 +1136,7 @@ async function runGame(channel, game) {
         .setTitle('<a:MVP24:1495665626688131183> RUMBLE SLAUGHTER — CHAMPION')
         .setDescription(
           `${winLine}\n\n` +
-          `<:Sins:1478993005187698789> **+${share.toLocaleString()} sins** <a:hmmdevil:1495665623219306647>\n` +
+          `<:sins:1522321533307981945> **+${share.toLocaleString()} sins** <a:hmmdevil:1495665623219306647>\n` +
           `<:purp_caveira50:1495665632845369354> **+${REGRET_WINNER} regret** (winning here isn't clean)\n` +
           `<a:moneybag:1479268556687540345> **${tax.toLocaleString()} sins** → jackpot (10% tax)\n\n` +
           `*${pick(streakLines)}*\n\n` +
@@ -1334,7 +1334,7 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
       `**${hostName}** opened the arena.\n\n` +
       `Welcome to the most disrespectful arena in existence.\n` +
       `Join the fight. Gain power. Collect weapons. Or get eliminated in the most embarrassing way possible.\n\n` +
-      `<:Sins:1478993005187698789> Entry fee: **${bet} sins**\n` +
+      `<:sins:1522321533307981945> Entry fee: **${bet} sins**\n` +
       (eraKey && eraKey !== 'default' ? `<a:sparkle:1511506717584920696> Era: **${era.name || eraKey}**\n` : '') +
       (gameMode === 'staffvsmembers' ? `<:sword:1495666991187361943> **Mode: Staff vs Members** — teams auto-assigned\n` : '') +
       ((gameMode === 'rolevrole' || gameMode === 'rolevs' || gameMode === 'rolevroле') && roleAId && roleBId ? `<:sword:1495666991187361943> **Mode: Role vs Role** — <@&${roleAId}> vs <@&${roleBId}>\n` : '') +
@@ -1415,7 +1415,7 @@ async function fireGame(channel) {
       .setDescription(
         `**${game.players.length} competitors** have entered.\n\n` +
         game.players.map((p, i) => `**${i + 1}.** ${getDisplayName(p)}`).join('\n') +
-        `\n\n<:Sins:1478993005187698789> Prize Pool: **${(game.bet * game.players.length).toLocaleString()} sins**\n` +
+        `\n\n<:sins:1522321533307981945> Prize Pool: **${(game.bet * game.players.length).toLocaleString()} sins**\n` +
         `<a:moneybag:1479268556687540345> Jackpot Tax: **${Math.floor(game.bet * game.players.length * JACKPOT_TAX).toLocaleString()} sins**\n\n` +
         `*The rest of you… good luck. You'll need it.*`
       )
@@ -1591,7 +1591,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
         const msg = await channel.send({ embeds: [
           new EmbedBuilder().setColor('#6B2FA0')
             .setTitle('♻️ Rumble Slaughter — Restored')
-            .setDescription(`Bot restarted but the arena is still open.\n\n<:Sins:1478993005187698789> Entry: **${row.bet} sins** — use \`!rsjoin\` or click Join.\n${fireAt ? `<a:RojasClock:1511506715453947904> Starts: <t:${Math.floor(fireAt.getTime()/1000)}:F>` : 'Use `!startgame` to fire.'}`)
+            .setDescription(`Bot restarted but the arena is still open.\n\n<:sins:1522321533307981945> Entry: **${row.bet} sins** — use \`!rsjoin\` or click Join.\n${fireAt ? `<a:RojasClock:1511506715453947904> Starts: <t:${Math.floor(fireAt.getTime()/1000)}:F>` : 'Use `!startgame` to fire.'}`)
             .addFields({ name: '<a:purplecheck:1478983961450643538> Already In', value: savedPlayers.length ? savedPlayers.map(p => getDisplayName(p)).join(', ') : 'Nobody yet' })
         ], components: [
           new ActionRowBuilder().addComponents(
@@ -2347,7 +2347,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
           { name: '<a:MVP24:1495665626688131183> Winner',     value: winner?.username || 'nobody',    inline: true },
           { name: '<:purp_caveira50:1495665632845369354> First Dead', value: firstDead?.username || 'nobody', inline: true },
           { name: '<:member:1495666085121491024> Players',    value: `${match.player_count}`,         inline: true },
-          { name: '<:Sins:1478993005187698789> Pot',        value: `${Number(match.pot).toLocaleString()} sins`, inline: true },
+          { name: '<:sins:1522321533307981945> Pot',        value: `${Number(match.pot).toLocaleString()} sins`, inline: true },
         )
         .addFields({ name: '<a:1stplace:1487504691880263791> Finish Order', value: finishLines.join('\n') || 'no data', inline: false })
         .setFooter({ text: `Played: ${new Date(match.played_at).toLocaleString()}` }),
@@ -2639,7 +2639,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
       new EmbedBuilder().setColor('#6B2FA0')
         .setTitle('<:sword:1495666991187361943> Rumble Slaughter — Schedule')
         .addFields(
-          { name: '<:Sins:1478993005187698789> Entry',     value: `${game.bet} sins`,            inline: true },
+          { name: '<:sins:1522321533307981945> Entry',     value: `${game.bet} sins`,            inline: true },
           { name: '<:member:1495666085121491024> Signed Up', value: `${game.players.length}`,       inline: true },
           { name: '<a:marked:1511508970882465832> Phase',     value: game.phase,                     inline: true },
           { name: '<a:RojasClock:1511506715453947904> Fires At',  value: tsUnix ? `<t:${tsUnix}:F> (<t:${tsUnix}:R>)` : 'Manual (`!startgame`)', inline: false },

@@ -76,7 +76,7 @@ function streakMsg(userId) {
 function makeSignupEmbed(players, bet, timeLabel, mode = 'multi') {
   return new EmbedBuilder()
     .setColor('#1A1A2E')
-    .setTitle('<:OOPS:1478993005187698789> BLACKJACK — Signups Open!')
+    .setTitle('<:sins:1522321533307981945> BLACKJACK — Signups Open!')
     .setDescription(
       `**Beat the dealer. Don't bust. Simple.**\n\n` +
       `<a:moneybag:1479268556687540345> Bet: **${bet} sins** per player\n` +

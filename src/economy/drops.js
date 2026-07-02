@@ -68,8 +68,8 @@ async function launchBigBag(channel, totalAmount, droppedBy) {
     return new EmbedBuilder()
       .setColor(done ? '#555555' : '#C9B1FF')
       .setDescription(done
-        ? `<:Sins:1478993005187698789> **Big Bag — Closed!**\n\n${claimers > 0 ? `**${claimers} member${claimers !== 1 ? 's' : ''}** grabbed from the bag.` : 'Nobody grabbed anything.'}\n${remaining > 0 ? `<a:583778moneyfly:1479271753392853023> **${remaining.toLocaleString()} sins** unclaimed → <a:jackpot:1479203793806557385>` : '<:checkmark:1495666088417956002> Bag fully emptied!'}`
-        : `<:Sins:1478993005187698789> **Big Bag Drop!** **${droppedBy}** threw a bag of sins! <a:moneybag:1479268556687540345>\n\nClick fast — each grab gets a random slice! <a:run:1479270296140910653>\n\n<a:moneybag:1479268556687540345> **${remaining.toLocaleString()} sins** remaining\n${bar} ${pct}% claimed\n\n<:countdown:1479295748884529215> Expires in 2 mins`)
+        ? `<:sins:1522321533307981945> **Big Bag — Closed!**\n\n${claimers > 0 ? `**${claimers} member${claimers !== 1 ? 's' : ''}** grabbed from the bag.` : 'Nobody grabbed anything.'}\n${remaining > 0 ? `<a:583778moneyfly:1479271753392853023> **${remaining.toLocaleString()} sins** unclaimed → <a:jackpot:1479203793806557385>` : '<:checkmark:1495666088417956002> Bag fully emptied!'}`
+        : `<:sins:1522321533307981945> **Big Bag Drop!** **${droppedBy}** threw a bag of sins! <a:moneybag:1479268556687540345>\n\nClick fast — each grab gets a random slice! <a:run:1479270296140910653>\n\n<a:moneybag:1479268556687540345> **${remaining.toLocaleString()} sins** remaining\n${bar} ${pct}% claimed\n\n<:countdown:1479295748884529215> Expires in 2 mins`)
       .addFields(
         { name: '<a:moneybag:1479268556687540345> Total Bag',  value: `${totalAmount.toLocaleString()} sins`, inline: true },
         { name: '<:members:1479293571709534311> Claimers',     value: `${claimers}`,                          inline: true },
@@ -144,7 +144,7 @@ async function launchBigBag(channel, totalAmount, droppedBy) {
     if (reason === 'time' && remaining > 0) {
       const bagQuip = EXPIRED_QUIPS[Math.floor(Math.random() * EXPIRED_QUIPS.length)];
       await channel.send(
-        `<a:583778moneyfly:1479271753392853023> **Drop Expired** Nobody grabbed the remaining **${remaining.toLocaleString()}** <:Sins:1478993005187698789>. ${bagQuip} <a:583778moneyfly:1479271753392853023>`
+        `<a:583778moneyfly:1479271753392853023> **Drop Expired** Nobody grabbed the remaining **${remaining.toLocaleString()}** <:sins:1522321533307981945>. ${bagQuip} <a:583778moneyfly:1479271753392853023>`
       );
     }
   });
@@ -159,9 +159,9 @@ async function launchQuickDrop(channel, amount, dropper) {
     .setColor(done ? '#555555' : '#C9B1FF')
     .setDescription(done
       ? (claimedBy
-        ? `<a:congrats:1478999022072238222> **Drop CLAIMED!**\n**${claimedBy}** snatched **${amount.toLocaleString()}** <:Sins:1478993005187698789> from <@${dropper.id}>! <a:moneybag:1479268556687540345>`
-        : `<a:583778moneyfly:1479271753392853023> **Drop Expired**\nNobody claimed the **${amount.toLocaleString()}** <:Sins:1478993005187698789> in time. ${quip || 'It vanished into thin air!'} <a:583778moneyfly:1479271753392853023>`)
-      : `<:Sins:1478993005187698789> **sins DROP!** <@${dropper.id}> dropped **${amount.toLocaleString()} sins**! <a:moneybag:1479268556687540345>\n\nFirst to press the button claims it all! <a:run:1479270296140910653>\n\n⏳ Drop expires in 2 minutes`)
+        ? `<a:congrats:1478999022072238222> **Drop CLAIMED!**\n**${claimedBy}** snatched **${amount.toLocaleString()}** <:sins:1522321533307981945> from <@${dropper.id}>! <a:moneybag:1479268556687540345>`
+        : `<a:583778moneyfly:1479271753392853023> **Drop Expired**\nNobody claimed the **${amount.toLocaleString()}** <:sins:1522321533307981945> in time. ${quip || 'It vanished into thin air!'} <a:583778moneyfly:1479271753392853023>`)
+      : `<:sins:1522321533307981945> **sins DROP!** <@${dropper.id}> dropped **${amount.toLocaleString()} sins**! <a:moneybag:1479268556687540345>\n\nFirst to press the button claims it all! <a:run:1479270296140910653>\n\n⏳ Drop expires in 2 minutes`)
     .setFooter({ text: done ? 'Drop over.' : 'One winner only!' });
 
   const btn = new ActionRowBuilder().addComponents(
@@ -199,7 +199,7 @@ async function launchQuickDrop(channel, amount, dropper) {
 
     await msg.edit({ embeds: [makeEmbed(true, interaction.user.username)], components: [disabledBtn] }).catch(() => {});
     await interaction.followUp({
-      content: `<a:congrats:1478999022072238222> **Drop CLAIMED!** **${interaction.user.username}** snatched **${amount.toLocaleString()}** <:Sins:1478993005187698789> from ${dropper.username}! <a:moneybag:1479268556687540345>`,
+      content: `<a:congrats:1478999022072238222> **Drop CLAIMED!** **${interaction.user.username}** snatched **${amount.toLocaleString()}** <:sins:1522321533307981945> from ${dropper.username}! <a:moneybag:1479268556687540345>`,
     });
 
     collector.stop('claimed');
