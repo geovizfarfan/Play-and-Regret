@@ -79,12 +79,8 @@ async function handleRRMessage(message, client) {
     const parsed = parseBattleStartEmbed(message);
     if (!parsed) return;
 
-    const postChannel = config.announce_channel_id
-      ? client.channels.cache.get(config.announce_channel_id) || message.channel
-      : message.channel;
-
     const descLines = [
-      config.battle_message || 'Time to rumble! Good luck everyone <a:purplesparkle:1479210541691175054> — may the baddest win.',
+      'Time to rumble! Good luck everyone <a:purplesparkle:1479210541691175054> — may the baddest win.',
       '',
       `<a:moneybag:1479268556687540345> **Reward:** ${config.reward_amount ? Number(config.reward_amount).toLocaleString() : '?'} sins <:sins:1522321533307981945>`,
     ];
@@ -99,11 +95,10 @@ async function handleRRMessage(message, client) {
 
     if (config.battle_image) battleEmbed.setImage(config.battle_image);
 
-    // Build ping content from up to 3 roles
     const pings = [config.ping_role1_id, config.ping_role2_id, config.ping_role3_id]
       .filter(Boolean).map(id => `<@&${id}>`).join(' ');
 
-    await postChannel.send({ content: pings || '', embeds: [battleEmbed] });
+    await message.channel.send({ content: pings || '', embeds: [battleEmbed] });
     return;
   }
 
@@ -162,12 +157,8 @@ async function handleRRMessage(message, client) {
       if (member?.user) winEmbed.setThumbnail(member.user.displayAvatarURL({ dynamic: true }));
     }
 
-    const postChannel = config.announce_channel_id
-      ? client.channels.cache.get(config.announce_channel_id) || message.channel
-      : message.channel;
-
-    await postChannel.send({ embeds: [winEmbed] });
-    await postChannel.send(`${winnerMention} Battle Finished! You can start a new \`/battle\` now!`);
+    await message.channel.send({ embeds: [winEmbed] });
+    await message.channel.send(`${winnerMention} Battle Finished! You can start a new \`/battle\` now!`);
   }
 }
 
@@ -195,41 +186,35 @@ module.exports = {
     }
     await interaction.deferReply({ ephemeral: true });
 
-    const channel         = interaction.options.getChannel('channel') || interaction.channel;
-    const winnerRole      = interaction.options.getRole('winner_role');
-    const pingRole1       = interaction.options.getRole('ping_role1');
-    const pingRole2       = interaction.options.getRole('ping_role2');
-    const pingRole3       = interaction.options.getRole('ping_role3');
-    const nextChannel     = interaction.options.getChannel('next_channel');
-    const announceChannel = interaction.options.getChannel('announce_channel');
-    const reward          = interaction.options.getInteger('reward');
-    const battleMsg       = interaction.options.getString('battle_message');
-    const image           = interaction.options.getString('image');
-    const color           = interaction.options.getString('embed_color') || '#cab2fb';
+    const channel    = interaction.options.getChannel('channel');
+    const winnerRole = interaction.options.getRole('winner_role');
+    const pingRole1  = interaction.options.getRole('ping_role1');
+    const pingRole2  = interaction.options.getRole('ping_role2');
+    const pingRole3  = interaction.options.getRole('ping_role3');
+    const nextChannel = interaction.options.getChannel('next_channel');
+    const reward     = interaction.options.getInteger('reward');
+    const image      = interaction.options.getString('image');
+    const color      = interaction.options.getString('embed_color') || '#cab2fb';
 
     await db.run(`
       INSERT INTO rr_channel_config
         (channel_id, guild_id, winner_role_id, ping_role1_id, ping_role2_id, ping_role3_id,
-         next_channel_id, announce_channel_id, reward_amount, battle_message,
-         battle_image, embed_color, total_games, total_players)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,0,0)
+         next_channel_id, reward_amount, battle_image, embed_color, total_games, total_players)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,0,0)
       ON CONFLICT (channel_id) DO UPDATE SET
-        winner_role_id      = EXCLUDED.winner_role_id,
-        ping_role1_id       = EXCLUDED.ping_role1_id,
-        ping_role2_id       = EXCLUDED.ping_role2_id,
-        ping_role3_id       = EXCLUDED.ping_role3_id,
-        next_channel_id     = EXCLUDED.next_channel_id,
-        announce_channel_id = EXCLUDED.announce_channel_id,
-        reward_amount       = EXCLUDED.reward_amount,
-        battle_message      = EXCLUDED.battle_message,
-        battle_image        = EXCLUDED.battle_image,
-        embed_color         = EXCLUDED.embed_color
+        winner_role_id  = EXCLUDED.winner_role_id,
+        ping_role1_id   = EXCLUDED.ping_role1_id,
+        ping_role2_id   = EXCLUDED.ping_role2_id,
+        ping_role3_id   = EXCLUDED.ping_role3_id,
+        next_channel_id = EXCLUDED.next_channel_id,
+        reward_amount   = EXCLUDED.reward_amount,
+        battle_image    = EXCLUDED.battle_image,
+        embed_color     = EXCLUDED.embed_color
     `, [
       channel.id, interaction.guild.id,
       winnerRole?.id || null,
       pingRole1?.id || null, pingRole2?.id || null, pingRole3?.id || null,
-      nextChannel?.id || null, announceChannel?.id || null,
-      reward || null, battleMsg || null, image || null, color,
+      nextChannel?.id || null, reward || null, image || null, color,
     ]);
 
     const pingList = [pingRole1, pingRole2, pingRole3].filter(Boolean)
@@ -238,14 +223,14 @@ module.exports = {
     const embed = new EmbedBuilder()
       .setColor(color)
       .setTitle('<:play_regret_bot:1521042618744700938> Rumble Royale Channel Configured!')
-      .setDescription(`Monitoring <#${channel.id}> for Rumble Royale battles.`)
+      .setDescription(`Monitoring <#${channel.id}> for Rumble Royale battles.\n\nRun \`/rrsetup\` again anytime to update settings.`)
       .addFields(
-        { name: '<a:trophies:1507765453299122387> Winner Role',    value: winnerRole ? `<@&${winnerRole.id}>` : '—',                     inline: true },
-        { name: '<a:purplesparkle:1479210541691175054> Ping Roles', value: pingList,                                                      inline: true },
-        { name: '<a:moneybag:1479268556687540345> Reward',         value: reward ? `${Number(reward).toLocaleString()} sins` : '—',      inline: true },
-        { name: '<a:rumblesword:1522338907465842789> Next Room',   value: nextChannel ? `<#${nextChannel.id}>` : '—',                    inline: true },
-        { name: '<:member:1495666085121491024> Announce In',       value: announceChannel ? `<#${announceChannel.id}>` : 'Same channel', inline: true },
-        { name: '<a:fire1:1495666086534844516> Image',             value: image ? '✓ Set' : '—',                                         inline: true },
+        { name: '<a:trophies:1507765453299122387> Winner Role',     value: winnerRole ? `<@&${winnerRole.id}>` : '—',                inline: true },
+        { name: '<a:purplesparkle:1479210541691175054> Ping Roles', value: pingList,                                                 inline: true },
+        { name: '<a:moneybag:1479268556687540345> Reward',          value: `${Number(reward).toLocaleString()} sins`,                inline: true },
+        { name: '<a:rumblesword:1522338907465842789> Next Room',    value: nextChannel ? `<#${nextChannel.id}>` : '—',              inline: true },
+        { name: '<a:Fire:1495641973128691803> Image',               value: image ? '✓ Set' : '—',                                   inline: true },
+        { name: '🎨 Embed Color',                                   value: color,                                                    inline: true },
       );
 
     return interaction.editReply({ embeds: [embed] });

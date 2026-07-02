@@ -214,9 +214,7 @@ const slashCommands = [
     .addRoleOption(o => o.setName('ping_role2').setDescription('Second role to ping on battle start'))
     .addRoleOption(o => o.setName('ping_role3').setDescription('Third role to ping on battle start'))
     .addChannelOption(o => o.setName('next_channel').setDescription('Next battle room to link'))
-    .addChannelOption(o => o.setName('announce_channel').setDescription('Channel to post announcements in'))
     .addStringOption(o => o.setName('image').setDescription('Image or GIF URL for battle start announcement'))
-    .addStringOption(o => o.setName('battle_message').setDescription('Custom message for battle start'))
     .addStringOption(o => o.setName('embed_color').setDescription('Embed color hex (default: #cab2fb)')),
   new SlashCommandBuilder().setName('rrstats').setDescription('Rumble Royale stats')
     .addChannelOption(o => o.setName('channel').setDescription('Channel to view stats for'))
