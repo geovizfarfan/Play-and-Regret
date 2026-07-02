@@ -101,6 +101,16 @@ async function handleRRMessage(message, client) {
     const pings = [config.ping_role1_id, config.ping_role2_id, config.ping_role3_id]
       .filter(Boolean).map(id => `<@&${id}>`).join(' ');
 
+    // Store the host username for later pinging when battle ends
+    if (parsed.host) {
+      // Try to find the host member by username
+      const members = await message.guild.members.fetch({ query: parsed.host, limit: 1 }).catch(() => null);
+      const hostMember = members?.first();
+      if (hostMember) {
+        await db.run('UPDATE rr_channel_config SET last_host = $1 WHERE channel_id = $2',
+          [hostMember.id, message.channel.id]).catch(() => {});
+      }
+    }
     await message.channel.send({ content: pings || '', embeds: [battleEmbed] });
     return;
   }
@@ -152,7 +162,8 @@ async function handleRRMessage(message, client) {
       .setDescription(descLines.join('\n'));
 
     if (config.next_channel_id) {
-      winEmbed.setFooter({ text: `-# NEXT: #${config.next_channel_id}` });
+      winEmbed.setFooter({ text: `NEXT: #next-room` });
+      winEmbed.setDescription(winEmbed.data.description + `\n-# **NEXT:** <#${config.next_channel_id}>`);
     }
 
     if (userId) {
@@ -161,7 +172,9 @@ async function handleRRMessage(message, client) {
     }
 
     await message.channel.send({ embeds: [winEmbed] });
-    await message.channel.send(`${winnerMention} Battle Finished! You can start a new \`/battle\` now!`);
+    // Ping the host (stored from battle start) or fall back to winner mention
+    const hostPing = config.last_host ? `<@${config.last_host}>` : winnerMention;
+    await message.channel.send(`${hostPing} Battle Finished! You can start a new \`/battle\` now!`);
   }
 }
 

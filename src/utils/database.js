@@ -579,6 +579,7 @@ async function initDB() {
     'ALTER TABLE bets ADD COLUMN IF NOT EXISTS channel_id TEXT DEFAULT NULL',
     'ALTER TABLE bets ADD COLUMN IF NOT EXISTS creator_name TEXT DEFAULT NULL',
     'CREATE TABLE IF NOT EXISTS rr_channel_config (channel_id TEXT PRIMARY KEY, guild_id TEXT NOT NULL, winner_role_id TEXT, ping_role1_id TEXT, ping_role2_id TEXT, ping_role3_id TEXT, next_channel_id TEXT, announce_channel_id TEXT, reward_amount BIGINT DEFAULT 0, battle_message TEXT, battle_image TEXT, embed_color TEXT DEFAULT \'#cab2fb\', total_games INT DEFAULT 0, total_players INT DEFAULT 0)',
+    'ALTER TABLE rr_channel_config ADD COLUMN IF NOT EXISTS last_host TEXT DEFAULT NULL',
     'CREATE TABLE IF NOT EXISTS rr_stats (id SERIAL PRIMARY KEY, guild_id TEXT NOT NULL, channel_id TEXT, user_id TEXT NOT NULL, username TEXT, wins INT DEFAULT 0, losses INT DEFAULT 0, games INT DEFAULT 0, UNIQUE(guild_id, user_id))',
   ];
   for (const m of migrations) {
