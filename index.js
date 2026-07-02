@@ -207,18 +207,17 @@ const slashCommands = [
   new SlashCommandBuilder().setName('rsprofile').setDescription('View your Rumble Slaughter profile')
     .addUserOption(o => o.setName('user').setDescription('User to view')),
   new SlashCommandBuilder().setName('rrsetup').setDescription('Admin: Configure Rumble Royale tracking for a channel')
-    .addChannelOption(o => o.setName('channel').setDescription('Channel to monitor (default: current)'))
+    .addChannelOption(o => o.setName('channel').setDescription('Channel to monitor').setRequired(true))
+    .addIntegerOption(o => o.setName('reward').setDescription('Sins to give winner').setRequired(true).setMinValue(1))
+    .addRoleOption(o => o.setName('ping_role1').setDescription('Role to ping on battle start').setRequired(true))
     .addRoleOption(o => o.setName('winner_role').setDescription('Role to assign to winner'))
-    .addRoleOption(o => o.setName('host_role').setDescription('Role to ping when battle ends'))
-    .addRoleOption(o => o.setName('call_role').setDescription('Role to ping when battle starts'))
-    .addChannelOption(o => o.setName('next_channel').setDescription('Next battle channel to link'))
+    .addRoleOption(o => o.setName('ping_role2').setDescription('Second role to ping on battle start'))
+    .addRoleOption(o => o.setName('ping_role3').setDescription('Third role to ping on battle start'))
+    .addChannelOption(o => o.setName('next_channel').setDescription('Next battle room to link'))
     .addChannelOption(o => o.setName('announce_channel').setDescription('Channel to post announcements in'))
-    .addIntegerOption(o => o.setName('reward').setDescription('Sins to give winner').setMinValue(1))
-    .addStringOption(o => o.setName('battle_message').setDescription('Custom message for battle start announcement'))
-    .addStringOption(o => o.setName('win_message').setDescription('Custom message for winner announcement'))
-    .addStringOption(o => o.setName('battle_title').setDescription('Custom title for battle start embed'))
-    .addStringOption(o => o.setName('join_emoji').setDescription('Emoji to auto-react to battle start (e.g. ⚔️)'))
-    .addStringOption(o => o.setName('embed_color').setDescription('Embed color hex (default: #9B2DF0)')),
+    .addStringOption(o => o.setName('image').setDescription('Image or GIF URL for battle start announcement'))
+    .addStringOption(o => o.setName('battle_message').setDescription('Custom message for battle start'))
+    .addStringOption(o => o.setName('embed_color').setDescription('Embed color hex (default: #cab2fb)')),
   new SlashCommandBuilder().setName('rrstats').setDescription('Rumble Royale stats')
     .addChannelOption(o => o.setName('channel').setDescription('Channel to view stats for'))
     .addUserOption(o => o.setName('user').setDescription('User to view stats for')),
