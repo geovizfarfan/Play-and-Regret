@@ -34,7 +34,6 @@ const tttModule       = require('./src/games/tictactoe/tictactoe');
 const shopModule      = require('./src/games/tictactoe/shop');
 
 const rsModule        = require('./src/events/rumbleslaughter');
-const rrModule        = require('./src/events/rumbleroyale');
 
 // ── Client ────────────────────────────────────────────────────────────────────
 const client = new Client({
@@ -206,20 +205,6 @@ const slashCommands = [
     .addRoleOption(o => o.setName('roleb').setDescription('Team B role (Role vs Role mode)').setRequired(false)),
   new SlashCommandBuilder().setName('rsprofile').setDescription('View your Rumble Slaughter profile')
     .addUserOption(o => o.setName('user').setDescription('User to view')),
-  new SlashCommandBuilder().setName('rrsetup').setDescription('Admin: Configure Rumble Royale tracking for a channel')
-    .addChannelOption(o => o.setName('channel').setDescription('Channel to monitor').setRequired(true))
-    .addIntegerOption(o => o.setName('reward').setDescription('Sins to give winner').setRequired(true).setMinValue(1))
-    .addRoleOption(o => o.setName('ping_role1').setDescription('Role to ping on battle start').setRequired(true))
-    .addRoleOption(o => o.setName('winner_role').setDescription('Role to assign to winner'))
-    .addRoleOption(o => o.setName('ping_role2').setDescription('Second role to ping on battle start'))
-    .addRoleOption(o => o.setName('ping_role3').setDescription('Third role to ping on battle start'))
-    .addChannelOption(o => o.setName('next_channel').setDescription('Next battle room to link'))
-    .addStringOption(o => o.setName('image').setDescription('Image or GIF URL for battle start announcement'))
-    .addStringOption(o => o.setName('embed_color').setDescription('Embed color hex (default: #cab2fb)')),
-  new SlashCommandBuilder().setName('rrstats').setDescription('Rumble Royale stats')
-    .addChannelOption(o => o.setName('channel').setDescription('Channel to view stats for'))
-    .addUserOption(o => o.setName('user').setDescription('User to view stats for')),
-  new SlashCommandBuilder().setName('rrglobalstats').setDescription('Compare Rumble Royale vs Rumble Slaughter stats'),
   new SlashCommandBuilder().setName('rsleaderboard').setDescription('Rumble Slaughter XP leaderboard'),
   new SlashCommandBuilder().setName('openbackpack').setDescription('Open one of your backpacks')
     .addStringOption(o => o.setName('type').setDescription('Backpack type').setRequired(true).addChoices(
@@ -317,7 +302,6 @@ client.once('clientReady', async () => {
   client.user.setActivity('/help | Play & Regret', { type: 4 });
 
   rsModule.init(client);
-  rrModule.init(client);
 
   // ── Startup refund — refund any players stuck in games from before restart ──
   try {
@@ -558,8 +542,6 @@ client.on('interactionCreate', async (interaction) => {
       return await memoryModule.handleSlash(interaction, commandName);
 
     // Rumble Slaughter
-    if (['rrsetup','rrstats','rrglobalstats'].includes(commandName))
-      return await rrModule.handleSlash(interaction, commandName);
     if (['rumbleslaughter','rsprofile','rsleaderboard','openbackpack','rsinventory',
          'rsjoin','eras','setera','addbounty','clearbounties','bounties','rsmatchstats','rsstats','rshalloffame',
          'setemoji','addemoji','pickemoji','rig','unrig','staffrole','riggedmode','rigrandom','givebackpack'].includes(commandName))
