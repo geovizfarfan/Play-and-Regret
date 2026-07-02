@@ -66,10 +66,13 @@ function parseBattleStartEmbed(message) {
 
 async function handleRRMessage(message, client) {
   if (message.author.id !== RUMBLE_ROYALE_BOT_ID) return;
-  if (!message.embeds?.length) return;
+  console.log('[RumbleRoyale] Message from RR bot detected in channel', message.channel.id, '| embeds:', message.embeds?.length);
+  if (!message.embeds?.length) { console.log('[RumbleRoyale] No embeds, skipping'); return; }
 
   const config = await getConfig(message.channel.id);
+  console.log('[RumbleRoyale] Config for channel:', config ? 'FOUND' : 'NOT FOUND');
   if (!config) return;
+  console.log('[RumbleRoyale] Embed title:', message.embeds[0]?.title);
 
   const embed = message.embeds[0];
   const title = embed.title || '';
