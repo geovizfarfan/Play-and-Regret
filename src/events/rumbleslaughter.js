@@ -697,6 +697,14 @@ async function runGame(channel, game) {
   // Get log channel — falls back to arena channel if not set
   const logChannel = await getLogChannel(channel.client, channel);
 
+  // Era color palette — drives every embed color for the rest of the match
+  const eraData      = getEra(game.era || 'default');
+  const eraColors     = eraData.colors || {};
+  const ERA_PRIMARY   = eraColors.primary   || eraData.color || '#6B2FA0';
+  const ERA_DANGER    = eraColors.danger    || eraData.color || '#6B2FA0';
+  const ERA_HIGHLIGHT = eraColors.highlight || eraData.color || '#6B2FA0';
+  const ERA_GOLD      = eraColors.gold      || eraData.color || '#6B2FA0';
+
   // Determine rig status per player
   for (const p of alive) {
     // Role-based rig check
@@ -742,7 +750,7 @@ async function runGame(channel, game) {
         return `${getDisplayName(p)} — **${labels[p.rig_level] || p.rig_level}**`;
       });
       await channel.send({ embeds: [
-        new EmbedBuilder().setColor('#FF69B4')
+        new EmbedBuilder().setColor(ERA_DANGER)
           .setTitle('<a:MVP24:1495665626688131183> Rigged Mode Enabled. Cry About It.')
           .setDescription(lines.join('\n') + '\n\n*This round has been legally compromised.*')
       ]});
@@ -753,7 +761,7 @@ async function runGame(channel, game) {
   const forcedSvM = game.mode === 'staffvsmembers';
   if (hasStaffVsMembers || forcedSvM) {
     await channel.send({ embeds: [
-      new EmbedBuilder().setColor('#CC0000')
+      new EmbedBuilder().setColor(ERA_PRIMARY)
         .setTitle('<:sword:1495666991187361943> STAFF VS MEMBERS')
         .setDescription(
           forcedSvM
@@ -766,7 +774,6 @@ async function runGame(channel, game) {
 
   // Track stats for XP distribution
   // Load era-specific message pools
-  const eraData     = getEra(game.era || 'default');
   const ERA_FIGHT   = (eraData.fight   && eraData.fight.length)   ? eraData.fight   : FIGHT_LINES;
   const ERA_WIN     = (eraData.win     && eraData.win.length)     ? eraData.win     : WIN_LINES;
   const ERA_ELIM    = (eraData.elim    && eraData.elim.length)    ? eraData.elim    : ELIM_LINES;
@@ -774,7 +781,6 @@ async function runGame(channel, game) {
   const ERA_HUMIL   = (eraData.humiliation && eraData.humiliation.length) ? eraData.humiliation : HUMILIATION_LINES;
   const ERA_REVIVE  = (eraData.revive  && eraData.revive.length)  ? eraData.revive  : REVIVE_LINES;
   const ERA_AREVIVE = (eraData.autoRevive && eraData.autoRevive.length)   ? eraData.autoRevive  : AUTO_REVIVE_LINES;
-  const ERA_COLOR   = eraData.color || '#6B2FA0';
 
   const elimCounts      = new Map();
   const survived        = new Set();
@@ -785,7 +791,7 @@ async function runGame(channel, game) {
   if (eraData.intro && eraData.intro.length) {
     await channel.send({ embeds: [
       new EmbedBuilder()
-        .setColor(ERA_COLOR)
+        .setColor(ERA_PRIMARY)
         .setTitle(`✨ ${eraData.name}`)
         .setDescription(`*${pick(eraData.intro)}*`)
     ]}).catch(() => {});
@@ -924,7 +930,7 @@ async function runGame(channel, game) {
 
     // Round embed — fight lines go to arena, elimination lines go to log
     const arenaEmbed = new EmbedBuilder()
-      .setColor(ERA_COLOR)
+      .setColor(ERA_PRIMARY)
       .setTitle(`<:purp_caveira50:1495665632845369354> Round ${round}`)
       .setDescription(events.join('\n') || '*The arena holds its breath. Nobody moves. Embarrassing.*')
       .addFields({ name: `<a:purplefire:1479219348353716415> Still Alive (${alive.length})`, value: alive.map(p => revivedPlayers.has(p.user_id) ? getDisplayName(p) + ' *(revived)*' : getDisplayName(p)).join(', ') || 'Nobody.' });
@@ -933,7 +939,7 @@ async function runGame(channel, game) {
 
     if (logEvents.length > 0) {
       const logEmbed = new EmbedBuilder()
-        .setColor('#BF00FF')
+        .setColor(ERA_HIGHLIGHT)
         .setTitle(`📋 Round ${round} — Eliminations`)
         .setDescription(logEvents.join('\n'));
       await logChannel.send({ embeds: [logEmbed] });
@@ -1054,7 +1060,7 @@ async function runGame(channel, game) {
   if (!alive.length) {
     await jackpot.addToDrawFund(payout);
     await channel.send({ embeds: [
-      new EmbedBuilder().setColor('#CC0000')
+      new EmbedBuilder().setColor(ERA_DANGER)
         .setTitle('<:purp_caveira50:1495665632845369354> Everyone died. Even the arena is embarrassed.')
         .setDescription(`**${pot.toLocaleString()} sins** goes to the jackpot. Nobody deserved it anyway.`)
     ]});
@@ -1078,11 +1084,11 @@ async function runGame(channel, game) {
       if (share === 0) await jackpot.addToDrawFund(payout);
 
       await channel.send({ embeds: [
-        new EmbedBuilder().setColor(ERA_COLOR)
+        new EmbedBuilder().setColor(ERA_HIGHLIGHT)
           .setTitle('<a:MVP24:1495665626688131183> ROLE VS ROLE — WINNERS')
           .setDescription(
             `${winTeamName} **wins the match!**\n\n` +
-            `<:sins:1522321533307981945> **+${share.toLocaleString()} sins** each\n` +
+            `<a:SINS:1522338223613804724> **+${share.toLocaleString()} sins** each\n` +
             `Winners: ${winTeam.map(p => getDisplayName(p)).join(', ')}\n\n` +
             `*${players.length} entered. The roles have settled it.*`
           )
@@ -1132,11 +1138,11 @@ async function runGame(channel, game) {
     const winLine = pick(ERA_WIN).replace('@winner', `**${getDisplayName(winner)}**`);
     await channel.send(`# <a:MVP24:1495665626688131183> ${getDisplayName(winner).toUpperCase()} IS THE CHAMPION <a:MVP24:1495665626688131183>`).catch(()=>{});
     await channel.send({ embeds: [
-      new EmbedBuilder().setColor(ERA_COLOR)
+      new EmbedBuilder().setColor(ERA_HIGHLIGHT)
         .setTitle('<a:MVP24:1495665626688131183> RUMBLE SLAUGHTER — CHAMPION')
         .setDescription(
           `${winLine}\n\n` +
-          `<:sins:1522321533307981945> **+${share.toLocaleString()} sins** <a:hmmdevil:1495665623219306647>\n` +
+          `<a:SINS:1522338223613804724> **+${share.toLocaleString()} sins** <a:hmmdevil:1495665623219306647>\n` +
           `<:purp_caveira50:1495665632845369354> **+${REGRET_WINNER} regret** (winning here isn't clean)\n` +
           `<a:moneybag:1479268556687540345> **${tax.toLocaleString()} sins** → jackpot (10% tax)\n\n` +
           `*${pick(streakLines)}*\n\n` +
@@ -1278,7 +1284,7 @@ async function runGame(channel, game) {
         'VOID — @' + b.target_name + ' (' + (b.void_reason || 'cancelled') + ') → prize: **' + b.prize + '**' + (b.payee ? ' (from: ' + b.payee + ')' : '')
       );
 
-      const embed = new EmbedBuilder().setColor('#FF00AA').setTitle('<a:target:1495665634279821485> Bounty Results');
+      const embed = new EmbedBuilder().setColor(ERA_GOLD).setTitle('<a:target:1495665634279821485> Bounty Results');
       if (claimedLines.length) embed.addFields({ name: '<:checkmark:1495666088417956002> Winners', value: claimedLines.join('\n'), inline: false });
       if (voidLines.length)   embed.addFields({ name: '<:wrong:1495666083594502174> Voided',  value: voidLines.join('\n'),   inline: false });
       embed.setDescription('*Huge thanks to everyone who added bounties! <a:confetti:1495667283870089307>*\n*Bounty rewards are paid out by the players who donated them.*')
@@ -1294,22 +1300,14 @@ async function runGame(channel, game) {
     [channel.id]
   ).catch(() => {});
 
-  // ── Post-game roast embed ─────────────────────────────────────────────────────
-  const loserRoasts = loserIds.slice(0, 5).map(uid => {
-    const p = players.find(pl => pl.user_id === uid);
-    if (!p) return null;
-    return pick(ERA_ELIM).replace('@user', `**${getDisplayName(p)}**`);
-  }).filter(Boolean);
-
-  await channel.send({ embeds: [
-    new EmbedBuilder().setColor('#BF00FF')
-      .setTitle('<a:purplecheck:1478983961450643538> Post-Game Regret Report')
-      .setDescription(
-        (loserRoasts.length ? loserRoasts.join('\n') + '\n\n' : '') +
-        '*everyone who died gained regret. use /cleanse to cope.*' +
-        (postGameMilestones.length ? '\n\n**XP Milestones:**\n' + postGameMilestones.join('\n') : '')
-      )
-  ]}).catch(() => {});
+  // XP/backpack milestones — sent standalone now that the Post-Game Regret Report is gone
+  if (postGameMilestones.length) {
+    await channel.send({ embeds: [
+      new EmbedBuilder().setColor(ERA_HIGHLIGHT)
+        .setTitle('<a:purplecheck:1478983961450643538> Match Milestones')
+        .setDescription(postGameMilestones.join('\n'))
+    ]}).catch(() => {});
+  }
 }
 
 // ─── LAUNCH SIGNUP ────────────────────────────────────────────────────────────
@@ -1327,14 +1325,15 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
   await db.run('DELETE FROM rs_bounties WHERE channel_id = ?', [channel.id]).catch(() => {});
 
   const tsUnix = fireAt ? Math.floor(fireAt.getTime() / 1000) : null;
+  const lobbyColor = (era.colors && era.colors.primary) || era.color || '#CC0000';
   const embed  = new EmbedBuilder()
-    .setColor('#CC0000')
+    .setColor(lobbyColor)
     .setTitle('<:sword:1495666991187361943> RUMBLE SLAUGHTER: You Thought You Ate <:sword:1495666991187361943>')
     .setDescription(
       `**${hostName}** opened the arena.\n\n` +
       `Welcome to the most disrespectful arena in existence.\n` +
       `Join the fight. Gain power. Collect weapons. Or get eliminated in the most embarrassing way possible.\n\n` +
-      `<:sins:1522321533307981945> Entry fee: **${bet} sins**\n` +
+      `<a:SINS:1522338223613804724> Entry fee: **${bet} sins**\n` +
       (eraKey && eraKey !== 'default' ? `<a:sparkle:1511506717584920696> Era: **${era.name || eraKey}**\n` : '') +
       (gameMode === 'staffvsmembers' ? `<:sword:1495666991187361943> **Mode: Staff vs Members** — teams auto-assigned\n` : '') +
       ((gameMode === 'rolevrole' || gameMode === 'rolevs' || gameMode === 'rolevroле') && roleAId && roleBId ? `<:sword:1495666991187361943> **Mode: Role vs Role** — <@&${roleAId}> vs <@&${roleBId}>\n` : '') +
@@ -1409,13 +1408,16 @@ async function fireGame(channel) {
   );
   await game.message?.edit({ components: [disabledBtn] }).catch(() => {});
 
+  const sealedEra   = getEra(game.era || 'default');
+  const sealedColor = (sealedEra.colors && sealedEra.colors.danger) || sealedEra.color || '#8B0000';
+
   await channel.send({ embeds: [
-    new EmbedBuilder().setColor('#8B0000')
+    new EmbedBuilder().setColor(sealedColor)
       .setTitle('<:sword:1495666991187361943> THE ARENA IS SEALED.')
       .setDescription(
         `**${game.players.length} competitors** have entered.\n\n` +
         game.players.map((p, i) => `**${i + 1}.** ${getDisplayName(p)}`).join('\n') +
-        `\n\n<:sins:1522321533307981945> Prize Pool: **${(game.bet * game.players.length).toLocaleString()} sins**\n` +
+        `\n\n<a:SINS:1522338223613804724> Prize Pool: **${(game.bet * game.players.length).toLocaleString()} sins**\n` +
         `<a:moneybag:1479268556687540345> Jackpot Tax: **${Math.floor(game.bet * game.players.length * JACKPOT_TAX).toLocaleString()} sins**\n\n` +
         `*The rest of you… good luck. You'll need it.*`
       )
@@ -1591,7 +1593,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
         const msg = await channel.send({ embeds: [
           new EmbedBuilder().setColor('#6B2FA0')
             .setTitle('♻️ Rumble Slaughter — Restored')
-            .setDescription(`Bot restarted but the arena is still open.\n\n<:sins:1522321533307981945> Entry: **${row.bet} sins** — use \`!rsjoin\` or click Join.\n${fireAt ? `<a:RojasClock:1511506715453947904> Starts: <t:${Math.floor(fireAt.getTime()/1000)}:F>` : 'Use `!startgame` to fire.'}`)
+            .setDescription(`Bot restarted but the arena is still open.\n\n<a:SINS:1522338223613804724> Entry: **${row.bet} sins** — use \`!rsjoin\` or click Join.\n${fireAt ? `<a:RojasClock:1511506715453947904> Starts: <t:${Math.floor(fireAt.getTime()/1000)}:F>` : 'Use `!startgame` to fire.'}`)
             .addFields({ name: '<a:purplecheck:1478983961450643538> Already In', value: savedPlayers.length ? savedPlayers.map(p => getDisplayName(p)).join(', ') : 'Nobody yet' })
         ], components: [
           new ActionRowBuilder().addComponents(
@@ -2347,7 +2349,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
           { name: '<a:MVP24:1495665626688131183> Winner',     value: winner?.username || 'nobody',    inline: true },
           { name: '<:purp_caveira50:1495665632845369354> First Dead', value: firstDead?.username || 'nobody', inline: true },
           { name: '<:member:1495666085121491024> Players',    value: `${match.player_count}`,         inline: true },
-          { name: '<:sins:1522321533307981945> Pot',        value: `${Number(match.pot).toLocaleString()} sins`, inline: true },
+          { name: '<a:SINS:1522338223613804724> Pot',        value: `${Number(match.pot).toLocaleString()} sins`, inline: true },
         )
         .addFields({ name: '<a:1stplace:1487504691880263791> Finish Order', value: finishLines.join('\n') || 'no data', inline: false })
         .setFooter({ text: `Played: ${new Date(match.played_at).toLocaleString()}` }),
@@ -2639,7 +2641,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
       new EmbedBuilder().setColor('#6B2FA0')
         .setTitle('<:sword:1495666991187361943> Rumble Slaughter — Schedule')
         .addFields(
-          { name: '<:sins:1522321533307981945> Entry',     value: `${game.bet} sins`,            inline: true },
+          { name: '<a:SINS:1522338223613804724> Entry',     value: `${game.bet} sins`,            inline: true },
           { name: '<:member:1495666085121491024> Signed Up', value: `${game.players.length}`,       inline: true },
           { name: '<a:marked:1511508970882465832> Phase',     value: game.phase,                     inline: true },
           { name: '<a:RojasClock:1511506715453947904> Fires At',  value: tsUnix ? `<t:${tsUnix}:F> (<t:${tsUnix}:R>)` : 'Manual (`!startgame`)', inline: false },

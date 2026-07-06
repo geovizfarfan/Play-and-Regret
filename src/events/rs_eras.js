@@ -8,14 +8,16 @@ const ERAS = {
   // ── DEFAULT ────────────────────────────────────────────────────────────────
   default: {
     name: 'Rumble Slaughter: You Thought You Ate',
-    color: '#d896ff',
+    color: '#f3bce4', // legacy fallback = primary
+    colors: { primary: '#f3bce4', danger: '#d487d5', highlight: '#bd6cc8', gold: '#9059aa' },
     intro: null, // uses default lobby
   },
 
   // ── GUT FEELING ERA ────────────────────────────────────────────────────────
   'gut feeling era': {
     name: 'Gut Feeling Era',
-    color: '#fc708e',
+    color: '#fdadc8', // legacy fallback = primary
+    colors: { primary: '#fdadc8', danger: '#cd5789', highlight: '#ee8cb3', gold: '#924974' },
     intro: [
       'something in the air smells like blood and bad decisions. trust your gut. it\'s already wrong.',
       'the arena opened. your instincts said run. you stayed anyway.',
@@ -91,7 +93,8 @@ const ERAS = {
   // ── DARLING I BITE ─────────────────────────────────────────────────────────
   'darling i bite': {
     name: 'Darling I Bite',
-    color: '#fe019a',
+    color: '#fbc2e5', // legacy fallback = primary
+    colors: { primary: '#fbc2e5', danger: '#fe96ad', highlight: '#ef8aac', gold: '#c25a7d' },
     intro: [
       'darling i bite era. come close. that\'s how this works.',
       'the arena is dressed for dinner and you\'re the course.',
@@ -164,7 +167,8 @@ const ERAS = {
   // ── BADDIE BODY COUNT ──────────────────────────────────────────────────────
   'baddie body count': {
     name: 'Baddie Body Count',
-    color: '#00b8ff',
+    color: '#bee3f5', // legacy fallback = primary
+    colors: { primary: '#bee3f5', danger: '#9ac5d8', highlight: '#a1aebe', gold: '#f7859c' },
     intro: [
       'baddie body count era. the count is going up. so is the confidence.',
       'neon. glam. dominant. the arena just became the most dangerous runway.',
@@ -237,7 +241,8 @@ const ERAS = {
   // ── KISS THEN KILL ─────────────────────────────────────────────────────────
   'kiss then kill': {
     name: 'Kiss Then Kill',
-    color: '#FF6B9A',
+    color: '#fde4e8', // legacy fallback = primary
+    colors: { primary: '#fde4e8', danger: '#fdabb9', highlight: '#f598b3', gold: '#ce688d' },
     intro: [
       'kiss then kill era. in that order. don\'t mix it up.',
       'the arena is romantic tonight. that\'s the most dangerous thing it could be.',
@@ -310,7 +315,8 @@ const ERAS = {
   // ── EAT OR BE EATEN ────────────────────────────────────────────────────────
   'eat or be eaten': {
     name: 'Eat or Be Eaten',
-    color: '#fefacc',
+    color: '#feb5a6', // legacy fallback = primary
+    colors: { primary: '#feb5a6', danger: '#ffa38c', highlight: '#ffe489', gold: '#7adad2' },
     intro: [
       'eat or be eaten era. the arena doesn\'t do nuance tonight.',
       'primal. feral. survival only. no room for anything else.',
@@ -383,7 +389,8 @@ const ERAS = {
   // ── BLOOD BUFFET ───────────────────────────────────────────────────────────
   'blood buffet': {
     name: 'Blood Buffet',
-    color: '#e20000',
+    color: '#ffe5ca', // legacy fallback = primary
+    colors: { primary: '#ffe5ca', danger: '#fdd2b2', highlight: '#ff988f', gold: '#c55a6a' },
     intro: [
       'blood buffet era. everyone\'s on the menu. help yourself.',
       'the arena laid out a spread. you\'re all invited. none of you are guests.',
@@ -456,7 +463,8 @@ const ERAS = {
   // ── SERVED YOU WRONG ───────────────────────────────────────────────────────
   'served you wrong': {
     name: 'Served You Wrong',
-    color: '#ffffff',
+    color: '#fee9ee', // legacy fallback = primary
+    colors: { primary: '#fee9ee', danger: '#f8c2cf', highlight: '#ec95a8', gold: '#df8f9a' },
     intro: [
       'served you wrong era. the arena has a list. you\'re on it.',
       'acid purple. electric blue. and a very specific grudge.',
@@ -529,7 +537,8 @@ const ERAS = {
   // ── NO SURVIVORS ERA ───────────────────────────────────────────────────────
   'no survivors era': {
     name: 'No Survivors Era',
-    color: '#000000',
+    color: '#f1dcbf', // legacy fallback = primary
+    colors: { primary: '#f1dcbf', danger: '#d4b386', highlight: '#9ab78b', gold: '#7f784e' },
     intro: [
       'no survivors era. the name is accurate. enter accordingly.',
       'matte black. steel gray. blood accent. the arena means this literally.',
@@ -602,7 +611,8 @@ const ERAS = {
   // ── YOU THOUGHT WRONG ──────────────────────────────────────────────────────
   'you thought wrong': {
     name: 'You Thought Wrong',
-    color: '#f5a67c',
+    color: '#fddbf4', // legacy fallback = primary
+    colors: { primary: '#fddbf4', danger: '#d9b9e0', highlight: '#c7d8b6', gold: '#cf8cb8' },
     intro: [
       'you thought wrong era. every assumption you walked in with is incorrect.',
       'neon yellow. glitch purple. chaotic. delusional. correct.',
@@ -675,7 +685,8 @@ const ERAS = {
   // ── DELULU DESTROYER ───────────────────────────────────────────────────────
   'delulu destroyer': {
     name: 'Delulu Destroyer',
-    color: '#00fff9',
+    color: '#e0bfea', // legacy fallback = primary
+    colors: { primary: '#e0bfea', danger: '#bb94cb', highlight: '#d69bc9', gold: '#935aa9' },
     intro: [
       'delulu destroyer era. the most unhinged night this arena has ever hosted.',
       'electric green. neon magenta. static black. nothing makes sense. perfect.',
@@ -748,7 +759,8 @@ const ERAS = {
   // ── EAT DIRT ERA ───────────────────────────────────────────────────────────
   'eat dirt era': {
     name: 'Eat Dirt Era',
-    color: '#a6fd29',
+    color: '#d6e3b7', // legacy fallback = primary
+    colors: { primary: '#d6e3b7', danger: '#bfb174', highlight: '#e98b72', gold: '#959c69' },
     intro: [
       'eat dirt era. the arena is not being metaphorical.',
       'dirt brown. dust beige. dark red. grounded. humiliating. correct.',
