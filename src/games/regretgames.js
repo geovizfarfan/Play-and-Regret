@@ -338,7 +338,7 @@ async function resolveRGBounties(channelId, eliminatedId, eliminatedName, elimin
         ),
       ];
       await channel.send({ embeds: [
-        new EmbedBuilder().setColor('#FF00AA')
+        new EmbedBuilder().setColor('#B19CC5')
           .setTitle('<a:target:1495665634279821485> Bounty Update')
           .setDescription(lines.join('\n'))
           .setFooter({ text: 'Bounty rewards are paid manually by the listed payee.' })
@@ -369,7 +369,7 @@ async function resolveRGWinnerBounties(channelId, winnerId, winnerName, channel)
     );
 
     await channel.send({ embeds: [
-      new EmbedBuilder().setColor('#FF00AA')
+      new EmbedBuilder().setColor('#B19CC5')
         .setTitle('<a:target:1495665634279821485> Winner Bounty Claimed')
         .setDescription(lines.join('\n'))
         .setFooter({ text: 'Bounty rewards are paid manually by the listed payee.' })
@@ -656,7 +656,7 @@ async function processHungerEvent(season, alive, arenaChannel) {
   }
 
   await arenaChannel.send({ embeds: [
-    new EmbedBuilder().setColor('#CC5500')
+    new EmbedBuilder().setColor('#8697C2')
       .setTitle(`<a:BBQ:1497476838367170710> ${dayName} — Hunger Event`)
       .setDescription(lines.join('\n'))
       .setImage(GIFS.hunger)
@@ -693,7 +693,7 @@ async function processChaosEvent(season, alive, arenaChannel) {
   }
 
   await arenaChannel.send({ embeds: [
-    new EmbedBuilder().setColor('#7A0000')
+    new EmbedBuilder().setColor('#96C3D8')
       .setTitle(`<:purp_caveira50:1495665632845369354> ${dayName} — Chaos Event`)
       .setDescription(lines.join('\n'))
       .setImage(GIFS.chaos)
@@ -722,7 +722,7 @@ async function processBlessingEvent(season, alive, arenaChannel) {
   }
 
   await arenaChannel.send({ embeds: [
-    new EmbedBuilder().setColor('#9D00FF')
+    new EmbedBuilder().setColor('#F9F2DC')
       .setTitle(`<a:purplesparkle:1479210541691175054> ${dayName} — Queen\'s Blessing`)
       .setDescription(lines.join('\n'))
       .setImage(GIFS.blessing)
@@ -734,7 +734,7 @@ async function processMassacreEvent(season, alive, arenaChannel) {
   const dayName = getDayName(season.current_day);
   if (alive.length <= 2) {
     return arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#000000')
+      new EmbedBuilder().setColor('#3392A3')
         .setTitle(`<:sword:1495666991187361943> ${dayName} — Massacre Refused`)
         .setDescription('*Too few players remain. The arena spares them. For now. The finale needs witnesses.*')
     ]});
@@ -768,7 +768,7 @@ async function processMassacreEvent(season, alive, arenaChannel) {
   }
 
   await arenaChannel.send({ embeds: [
-    new EmbedBuilder().setColor('#000000')
+    new EmbedBuilder().setColor('#3392A3')
       .setTitle(`<:sword:1495666991187361943> ${dayName} — MASSACRE`)
       .setDescription(lines.join('\n\n'))
       .setImage(GIFS.massacre)
@@ -790,7 +790,7 @@ async function processRouletteEvent(season, alive, arenaChannel) {
     const mainLine = pick(ROULETTE_WIN)(target.username, amount);
     const reactLine = watcher ? '\n' + pick(ROULETTE_REACT)(watcher.username, target.username) : '';
     await arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#8A2BE2')
+      new EmbedBuilder().setColor('#96C3D8')
         .setTitle(`<a:jackpot:1479203793806557385> ${dayName} — Regret Roulette`)
         .setDescription(`*${opener}*\n\n${mainLine}${reactLine}`)
         .setImage(GIFS.roulette)
@@ -800,7 +800,7 @@ async function processRouletteEvent(season, alive, arenaChannel) {
     const mainLine = pick(ROULETTE_LOSE)(target.username, amount);
     const reactLine = watcher ? '\n' + pick(ROULETTE_REACT)(watcher.username, target.username) : '';
     await arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#8A2BE2')
+      new EmbedBuilder().setColor('#96C3D8')
         .setTitle(`<a:jackpot:1479203793806557385> ${dayName} — Regret Roulette`)
         .setDescription(`*${opener}*\n\n${mainLine}${reactLine}`)
         .setImage(GIFS.roulette)
@@ -825,7 +825,7 @@ async function processTheftEvent(season, alive, arenaChannel) {
   const witnessLine = witness ? '\n' + pick(THEFT_WITNESS)(witness.username, thief.username, victim.username) : '';
 
   await arenaChannel.send({ embeds: [
-    new EmbedBuilder().setColor('#5A0F2E')
+    new EmbedBuilder().setColor('#8697C2')
       .setTitle(`<a:583778moneyfly:1479271753392853023> ${dayName} — Mass Theft`)
       .setDescription(`*${pick(THEFT_OPENERS)}*\n\n${mainLine}${witnessLine}`)
       .setImage(GIFS.theft)
@@ -839,7 +839,7 @@ async function processBetrayalEvent(season, alive, arenaChannel) {
   if (!alliances.length) {
     const loner = alive.length > 0 ? pick(alive) : null;
     return arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#5A0F2E').setTitle(`<a:snake12:1497477227963613334> ${dayName} — Betrayal Wave`)
+      new EmbedBuilder().setColor('#8697C2').setTitle(`<a:snake12:1497477227963613334> ${dayName} — Betrayal Wave`)
         .setDescription(
           `*No active alliances found. Nobody trusted anyone enough.*\n\n` +
           (loner ? `***${loner.username}** stood alone and looked around. The arena looked back.*` : '')
@@ -857,7 +857,7 @@ async function processBetrayalEvent(season, alive, arenaChannel) {
   const mainLine = pick(BETRAYAL_EXPOSED)(target.username_a, target.username_b, witness);
 
   await arenaChannel.send({ embeds: [
-    new EmbedBuilder().setColor('#5A0F2E')
+    new EmbedBuilder().setColor('#8697C2')
       .setTitle(`<a:snake12:1497477227963613334> ${dayName} — BETRAYAL WAVE`)
       .setDescription(`*${pick(BETRAYAL_OPENERS)}*\n\n${mainLine}`)
       .setImage(GIFS.betrayal)
@@ -871,7 +871,7 @@ async function processConfessionEvent(season, alive, arenaChannel) {
 
   if (!votes.length) {
     return arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#C9B1FF').setTitle(`<a:SS_PurpleCandles:1497476841433464873> ${dayName} — Confession Phase`)
+      new EmbedBuilder().setColor('#CCC0D6').setTitle(`<a:SS_PurpleCandles:1497476841433464873> ${dayName} — Confession Phase`)
         .setDescription('*No votes have been cast yet. Nothing to expose. The arena is disappointed in all of you.*')
         .setImage(GIFS.confession)
     ]});
@@ -882,7 +882,7 @@ async function processConfessionEvent(season, alive, arenaChannel) {
   const reactLine = exposed ? '\n\n' + pick(CONFESSION_REACT)(exposed.username) : '';
 
   await arenaChannel.send({ embeds: [
-    new EmbedBuilder().setColor('#C9B1FF')
+    new EmbedBuilder().setColor('#CCC0D6')
       .setTitle(`<a:SS_PurpleCandles:1497476841433464873> ${dayName} — CONFESSION PHASE`)
       .setDescription(
         `*${pick(CONFESSION_OPENERS)}*\n\n` +
@@ -909,7 +909,7 @@ async function launchRGGame(season, client, guildId, arenaChannel) {
   await jackpot.addToDrawFund(tax).catch(() => {});
 
   await arenaChannel.send({ embeds: [
-    new EmbedBuilder().setColor('#CC0000')
+    new EmbedBuilder().setColor('#56A5BA')
       .setTitle('<:sword:1495666991187361943> THE REGRET GAMES BEGIN')
       .setDescription(
         `**${players.length} players** entered.
@@ -945,7 +945,7 @@ async function resolveWinnerAuto(season, client) {
 
   if (!alive.length) {
     if (arenaChannel) await arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#000000')
+      new EmbedBuilder().setColor('#3392A3')
         .setTitle('<a:larry_cry:1497476839608815706> NO SURVIVORS')
         .setDescription('*Everyone was eliminated. There is no winner. The arena is satisfied.*')
     ]}).catch(() => {});
@@ -966,7 +966,7 @@ async function resolveWinnerAuto(season, client) {
   ).catch(() => {});
 
   if (arenaChannel) await arenaChannel.send({ embeds: [
-    new EmbedBuilder().setColor('#FF00AA')
+    new EmbedBuilder().setColor('#B19CC5')
       .setTitle('<:crown:1479234159183401051> REGRET GAMES — WINNER')
       .setDescription(
         `# ${winner.username}\n` +
@@ -1014,7 +1014,7 @@ async function runAutoDay(season, client, day) {
   ];
 
   await arenaChannel.send({ embeds: [
-    new EmbedBuilder().setColor('#6B2FA0')
+    new EmbedBuilder().setColor('#B4CBDD')
       .setTitle(`<a:xddd:1497476845577437316> ${getDayName(day)}`)
       .setDescription(`# ${getDayName(day)}\n\n` + (DAY_INTROS[day]||'*The game continues.*'))
       .setDescription(DAY_INTROS[day]||'*The game continues.*')
@@ -1037,7 +1037,7 @@ async function runAutoDay(season, client, day) {
   });
 
   await arenaChannel.send({ embeds: [
-    new EmbedBuilder().setColor('#4B0082')
+    new EmbedBuilder().setColor('#C1C4D5')
       .setTitle(`<a:purplefire:1479219348353716415> Day ${day} — The Arena Watches`)
       .setDescription(storyLines.join('\n'))
   ]}).catch(()=>{});
@@ -1079,7 +1079,7 @@ async function runAutoDay(season, client, day) {
     const voteEndsAt  = Math.floor((Date.now()+VOTE_MS)/1000);
     await voteChannel.send({ content: `${pingList}\n<a:Warning:1497476844860215366> **Time to vote!** Closes <t:${voteEndsAt}:R>` }).catch(()=>{});
     await voteChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#CC0000')
+      new EmbedBuilder().setColor('#56A5BA')
         .setTitle(`<a:purplesparkle:1479210541691175054> ${getDayName(day)} — Voting Opens`)
         .setDescription(`Pick someone to eliminate.\n*Or don\'t. Let fate decide.*\n\n<a:calendar:1479266779837632562> Closes <t:${voteEndsAt}:R>`)
     ], components: [voteRow] }).catch(()=>{});
@@ -1177,7 +1177,7 @@ async function killPlayers(season, count, cause, arenaChannel, deadToday) {
     }
     deadToday.push({ ...victim, title });
     await arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#7A0000')
+      new EmbedBuilder().setColor('#96C3D8')
         .setDescription(`${killLine}
 > *${getInsult(victim.regret||0)}* — **${title}**`)
     ]}).catch(() => {});
@@ -1200,7 +1200,7 @@ async function runDay1Confession(season, alive, arenaChannel) {
     confessionLines.push(story.pick(story.DAY_BEATS)(p.username, others));
   }
   await arenaChannel.send({ embeds: [
-    new EmbedBuilder().setColor('#C9B1FF')
+    new EmbedBuilder().setColor('#CCC0D6')
       .setTitle('<a:SS_PurpleCandles:1497476841433464873> Day 1 — Confessions')
       .setDescription(confessionLines.join('\n'))
   ]}).catch(() => {});
@@ -1221,7 +1221,7 @@ async function runDay1Confession(season, alive, arenaChannel) {
   }
   allianceLines.push('\n*Day 1 ends without blood. The arena is patient. Tomorrow it won\'t be.*');
   await arenaChannel.send({ embeds: [
-    new EmbedBuilder().setColor('#6B2FA0')
+    new EmbedBuilder().setColor('#B4CBDD')
       .setTitle('<a:purplesparkle:1479210541691175054> Alliances Form')
       .setDescription(allianceLines.join('\n'))
   ]}).catch(() => {});
@@ -1292,7 +1292,7 @@ async function runDay5Roulette(season, alive, arenaChannel, deadToday, client) {
     }
   }
   await arenaChannel.send({ embeds: [
-    new EmbedBuilder().setColor('#8A2BE2')
+    new EmbedBuilder().setColor('#96C3D8')
       .setTitle('<a:jackpot:1479203793806557385> Day 5 — Regret Roulette')
       .setDescription(lines.join('\n'))
       .setFooter({ text: 'The wheel has no favorites.' })
@@ -1313,7 +1313,7 @@ async function runDay5Roulette(season, alive, arenaChannel, deadToday, client) {
     await resolveRGBounties(season.arena_channel_id, victim.user_id, victim.username, killer.user_id, killer.username, 'roulette', arenaChannel);
     deadToday.push({ ...victim, title });
     await arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#8A2BE2')
+      new EmbedBuilder().setColor('#96C3D8')
         .setDescription(`${killLine}
 > Final title: **${title}**`)
     ]}).catch(() => {});
@@ -1355,7 +1355,7 @@ async function autoCloseVote(season, day, arenaChannel, voteChannel, client, dea
       deadToday.push(unlucky);
       voteVictim = unlucky;
       await arenaChannel.send({ embeds: [
-        new EmbedBuilder().setColor('#CC0000')
+        new EmbedBuilder().setColor('#56A5BA')
           .setTitle('<a:larry_cry:1497476839608815706> No Votes — Arena Decides')
           .setDescription(`${killLine}\n\n> *${getInsult(unlucky.regret||0)}*\n> Final title: **${title}**`)
       ]}).catch(()=>{});
@@ -1367,7 +1367,7 @@ async function autoCloseVote(season, day, arenaChannel, voteChannel, client, dea
 
     // Vote results to vote channel
     await voteChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#333333')
+      new EmbedBuilder().setColor('#C1C4D5')
         .setTitle(`<a:purplesparkle:1479210541691175054> Vote Results — ${getDayName(day)}`)
         .setDescription(votes.map(v=>`• **${v.target_name}** — ${v.total} vote(s)`).join('\n'))
         .setFooter(topTied.length>1 ? { text: 'Tie broken randomly.' } : null)
@@ -1376,7 +1376,7 @@ async function autoCloseVote(season, day, arenaChannel, voteChannel, client, dea
     if (await hasItem(season.id, elim.target_id, 'queens_insurance')) {
       await removeItem(season.id, elim.target_id, 'queens_insurance');
       await arenaChannel.send({ embeds: [
-        new EmbedBuilder().setColor('#9D00FF')
+        new EmbedBuilder().setColor('#F9F2DC')
           .setTitle('<a:MVP24:1495665626688131183> SAVED — Queen\'s Insurance')
           .setDescription(`**${elim.target_name}** had the most votes but used Queen\'s Insurance. Survived.`)
       ]}).catch(()=>{});
@@ -1391,7 +1391,7 @@ async function autoCloseVote(season, day, arenaChannel, voteChannel, client, dea
       deadToday.push(player||{ user_id: elim.target_id, username: elim.target_name, regret: 0 });
       voteVictim = player;
       await arenaChannel.send({ embeds: [
-        new EmbedBuilder().setColor('#CC0000')
+        new EmbedBuilder().setColor('#56A5BA')
           .setTitle('<a:larry_cry:1497476839608815706> VOTED OUT')
           .setDescription(`${killLine}\n\n> *${getInsult(player?.regret||0)}*\n> Final title: **${title}**`)
           .setFooter({ text: 'Thank you for being content.' })
@@ -1419,7 +1419,7 @@ async function autoCloseVote(season, day, arenaChannel, voteChannel, client, dea
         await db.run('UPDATE rg_players SET title=$1 WHERE season_id=$2 AND user_id=$3', [exTitle, season.id, extra.user_id]);
         deadToday.push(extra);
         await arenaChannel.send({ embeds: [
-          new EmbedBuilder().setColor('#5A0F2E')
+          new EmbedBuilder().setColor('#8697C2')
             .setTitle('<:purp_caveira50:1495665632845369354> Post-Vote — More Blood')
             .setDescription(`${exKill}\n> Final title: **${exTitle}**`)
         ]}).catch(()=>{});
@@ -1442,7 +1442,7 @@ async function autoCloseVote(season, day, arenaChannel, voteChannel, client, dea
       return story.pick(story.NIGHT_BEATS_SURVIVOR)(p.username, others.length > 0 ? others : ['the darkness']);
     });
     await arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#1a0033')
+      new EmbedBuilder().setColor('#3392A3')
         .setTitle('<a:SS_PurpleCandles:1497476841433464873> Night Falls')
         .setDescription(nightLines.join('\n'))
         .setFooter({ text: 'Sleep lightly. Most of them aren\'t.' })
@@ -1454,7 +1454,7 @@ async function autoCloseVote(season, day, arenaChannel, voteChannel, client, dea
   if (deadToday.length > 0) {
     const names = deadToday.map(p=>`<:purp_caveira50:1495665632845369354> **${p.username}**`).join('\n');
     await arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#000000')
+      new EmbedBuilder().setColor('#3392A3')
         .setTitle(`☠️ THE DEAD — ${getDayName(day)}`)
         .setDescription(names || 'Nobody died today.')
     ]}).catch(()=>{});
@@ -1483,7 +1483,7 @@ async function runDay7Finale(season, alive, arenaChannel, client) {
   let current = await getAlivePlayers(season.id);
   if (current.length > target) {
     await arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#CC0000')
+      new EmbedBuilder().setColor('#56A5BA')
         .setTitle('<:sword:1495666991187361943> Day 7 — The Final Hours')
         .setDescription(`*${current.length} remain. Only **${target}** will see the finale.*`)
     ]}).catch(() => {});
@@ -1500,7 +1500,7 @@ async function runDay7Finale(season, alive, arenaChannel, client) {
       await db.run('UPDATE rg_players SET title=$1 WHERE season_id=$2 AND user_id=$3', [title, season.id, victim.user_id]);
       await resolveRGBounties(season.arena_channel_id, victim.user_id, victim.username, killer.user_id, killer.username, 'finale', arenaChannel);
       await arenaChannel.send({ embeds: [
-        new EmbedBuilder().setColor('#CC0000').setDescription(`${killLine}\n> Final title: **${title}**`)
+        new EmbedBuilder().setColor('#56A5BA').setDescription(`${killLine}\n> Final title: **${title}**`)
       ]}).catch(() => {});
       await sleep(600);
     }
@@ -1516,7 +1516,7 @@ async function runDay7Finale(season, alive, arenaChannel, client) {
     await economy.addFunds(blessed.user_id, 500, "Queen's Final Blessing").catch(() => {});
     await db.run('UPDATE rg_players SET regret = GREATEST(0, regret - 300) WHERE season_id=$1 AND user_id=$2', [season.id, blessed.user_id]);
     await arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#9D00FF')
+      new EmbedBuilder().setColor('#F9F2DC')
         .setTitle("<a:purplesparkle:1479210541691175054> Queen\'s Final Blessing")
         .setImage(GIFS.day7_blessing)
         .setDescription(
@@ -1538,7 +1538,7 @@ async function runDay7Finale(season, alive, arenaChannel, client) {
       }
     }
     await arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#8A2BE2')
+      new EmbedBuilder().setColor('#96C3D8')
         .setTitle('<a:jackpot:1479203793806557385> Final Roulette')
         .setDescription(`*One last spin.*\n\n${rlines.join('\n')}`)
         .setImage(GIFS.day7_roulette)
@@ -1558,7 +1558,7 @@ async function runDay7Finale(season, alive, arenaChannel, client) {
       await eliminatePlayer(season.id, p.user_id, 'Final Day');
       await db.run('UPDATE rg_players SET title=$1 WHERE season_id=$2 AND user_id=$3', [title, season.id, p.user_id]);
       await arenaChannel.send({ embeds: [
-        new EmbedBuilder().setColor('#CC0000').setDescription(`${killLine}\n> Final title: **${title}**`)
+        new EmbedBuilder().setColor('#56A5BA').setDescription(`${killLine}\n> Final title: **${title}**`)
       ]}).catch(() => {});
       await sleep(600);
     }
@@ -1616,7 +1616,7 @@ module.exports = {
     );
 
     await arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#CC0000')
+      new EmbedBuilder().setColor('#56A5BA')
         .setTitle('<a:MVP24:1495665626688131183> PLAY & REGRET: THE REGRET GAMES')
         .setDescription(
           '*You are entering voluntarily. That makes this worse.*\n\n' +
@@ -1700,7 +1700,7 @@ module.exports = {
         );
         if (signupMsg) {
           const updatedEmbed = new EmbedBuilder()
-            .setColor('#CC0000')
+            .setColor('#56A5BA')
             .setTitle('<a:MVP24:1495665626688131183> PLAY & REGRET: THE REGRET GAMES')
             .setDescription(
               '*You are entering voluntarily. That makes this worse.*\n\n' +
@@ -1719,7 +1719,7 @@ module.exports = {
     }
 
     return interaction.reply({ embeds: [
-      new EmbedBuilder().setColor('#6B2FA0')
+      new EmbedBuilder().setColor('#B4CBDD')
         .setTitle('<a:hmmdevil:1495665623219306647> You\'re In — Regret Games')
         .setDescription(
           `Entry fee of **${season.entry_fee} sins** deducted.\n\n` +
@@ -1769,7 +1769,7 @@ module.exports = {
         await db.run('UPDATE rg_players SET title = $1 WHERE season_id = $2 AND user_id = $3', [title, season.id, p.user_id]);
       }
       await arenaChannel.send({ embeds: [
-        new EmbedBuilder().setColor('#CC0000')
+        new EmbedBuilder().setColor('#56A5BA')
           .setTitle('<a:larry_cry:1497476839608815706> FINAL DAY — Arena Intervention')
           .setDescription(
             `*It is Day 5. The arena has no patience for a slow finish.*
@@ -1802,7 +1802,7 @@ module.exports = {
     const intro = DAY_INTROS[updated.current_day] || '*The arena continues. The survivors are fewer. The tension is not.*';
 
     await arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#6B2FA0')
+      new EmbedBuilder().setColor('#B4CBDD')
         .setTitle(`<a:xddd:1497476845577437316> ${getDayName(updated.current_day)}`)
         .setImage(getDayGif(updated.current_day) || '')
         .setDescription(
@@ -1841,7 +1841,7 @@ module.exports = {
     );
 
     await votesChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#CC0000')
+      new EmbedBuilder().setColor('#56A5BA')
         .setTitle('<a:purplesparkle:1479210541691175054> VOTING IS OPEN')
         .setDescription(
           `**${getDayName(season.current_day)} — Vote**\n\n` +
@@ -1926,7 +1926,7 @@ module.exports = {
 
     if (!votes.length) {
       if (votesChannel) await votesChannel.send({ embeds: [
-        new EmbedBuilder().setColor('#333333').setTitle('<a:purplesparkle:1479210541691175054> Voting Closed').setDescription('No votes were cast. Nobody was eliminated. How anticlimactic.')
+        new EmbedBuilder().setColor('#C1C4D5').setTitle('<a:purplesparkle:1479210541691175054> Voting Closed').setDescription('No votes were cast. Nobody was eliminated. How anticlimactic.')
       ]});
       return interaction.reply({ content: 'Voting closed. No votes.', ephemeral: true });
     }
@@ -1940,7 +1940,7 @@ module.exports = {
     if (await hasItem(season.id, eliminated.target_id, 'queens_insurance')) {
       await removeItem(season.id, eliminated.target_id, 'queens_insurance');
       if (arenaChannel) await arenaChannel.send({ embeds: [
-        new EmbedBuilder().setColor('#9D00FF')
+        new EmbedBuilder().setColor('#F9F2DC')
           .setTitle('<a:MVP24:1495665626688131183> VOTE RESULT — SAVED')
           .setDescription(
             `**${eliminated.target_name}** received the most votes with **${topVotes}** votes.\n\n` +
@@ -1959,7 +1959,7 @@ module.exports = {
     const voteLines = votes.map(v => `• **${v.target_name}** — ${v.total} vote(s)`).join('\n');
 
     if (arenaChannel) await arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#CC0000')
+      new EmbedBuilder().setColor('#56A5BA')
         .setTitle('<a:larry_cry:1497476839608815706> ELIMINATED BY VOTE')
         .setDescription(
           `**${eliminated.target_name}** has been voted out.\n\n` +
@@ -1971,7 +1971,7 @@ module.exports = {
     ]});
 
     if (votesChannel) await votesChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#333333')
+      new EmbedBuilder().setColor('#C1C4D5')
         .setTitle('<a:purplesparkle:1479210541691175054> Vote Results — Day ' + season.current_day)
         .setDescription(voteLines)
         .setFooter(topTied.length > 1 ? { text: 'Tie resolved randomly.' } : null)
@@ -2007,7 +2007,7 @@ module.exports = {
     );
 
     return interaction.reply({ embeds: [
-      new EmbedBuilder().setColor('#9D00FF')
+      new EmbedBuilder().setColor('#F9F2DC')
         .setTitle('<a:MVP24:1495665626688131183> Trigger a Regret Games Event')
         .setDescription('Pick the event type. The bot will choose who it affects.')
     ], components: [row], ephemeral: true });
@@ -2070,7 +2070,7 @@ module.exports = {
 
     if (!alive.length) {
       if (arenaChannel) await arenaChannel.send({ embeds: [
-        new EmbedBuilder().setColor('#000000').setTitle('<a:larry_cry:1497476839608815706> NO SURVIVORS')
+        new EmbedBuilder().setColor('#3392A3').setTitle('<a:larry_cry:1497476839608815706> NO SURVIVORS')
           .setDescription('Everyone was eliminated. There is no winner. The arena is satisfied.')
           .setFooter({ text: 'Congratulations. You honored the name: Play & Regret.' })
       ]});
@@ -2085,7 +2085,7 @@ module.exports = {
     await db.run('UPDATE rg_players SET title = $1 WHERE season_id = $2 AND user_id = $3', ['Regret Royalty', season.id, winner.user_id]);
 
     if (arenaChannel) await arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#FF00AA')
+      new EmbedBuilder().setColor('#B19CC5')
         .setTitle('<a:MVP24:1495665626688131183> REGRET GAMES WINNER')
         .setImage(GIFS.winner)
         .setDescription(
@@ -2196,7 +2196,7 @@ module.exports = {
 
     const arenaChannel = await getArenaChannel(season, interaction.client);
     if (arenaChannel) await arenaChannel.send({ embeds: [
-      new EmbedBuilder().setColor('#5A0F2E')
+      new EmbedBuilder().setColor('#8697C2')
         .setTitle('<a:snake12:1497477227963613334> BETRAYAL DETECTED')
         .setDescription(
           `**${interaction.user.username}** betrayed **${targetPlayer.username}**.\n\n` +
@@ -2277,7 +2277,7 @@ module.exports = {
     const items = Object.entries(SHOP_ITEMS).map(([id, item]) =>
       `• **${item.name}** — ${item.cost} sins\n  *${item.desc}*`
     ).join('\n\n');
-    const embed = new EmbedBuilder().setColor('#C9B1FF')
+    const embed = new EmbedBuilder().setColor('#CCC0D6')
       .setTitle('<:pd_zPurple_Pin:1495665628672037046> Regret Games Shop')
       .setDescription((season ? items : '*No active Regret Games.*') + '\n\nUse `/rg buy` to purchase.');
     try {
@@ -2312,7 +2312,7 @@ module.exports = {
     );
 
     return interaction.reply({ embeds: [
-      new EmbedBuilder().setColor('#C9B1FF')
+      new EmbedBuilder().setColor('#CCC0D6')
         .setTitle('<a:moneybag:1479268556687540345> Buy an Item')
         .setDescription('Select an item to purchase:')
     ], components: [row], ephemeral: true });
@@ -2361,7 +2361,7 @@ module.exports = {
           .addOptions(targetOptions.slice(0, 25))
       );
       return interaction.reply({ embeds: [
-        new EmbedBuilder().setColor('#C9B1FF')
+        new EmbedBuilder().setColor('#CCC0D6')
           .setTitle('<a:hmmdevil:1495665623219306647> Public Humiliation Pass')
           .setDescription('Select who to publicly humiliate:')
       ], components: [targetRow], ephemeral: true });
@@ -2389,7 +2389,7 @@ module.exports = {
     });
 
     return interaction.reply({ embeds: [
-      new EmbedBuilder().setColor('#C9B1FF')
+      new EmbedBuilder().setColor('#CCC0D6')
         .setTitle('<a:purplefire:1479219348353716415> REGRET LEADERBOARD')
         .setDescription(
           '*A public list of people making increasingly worse decisions.*\n\n' +
@@ -2439,7 +2439,7 @@ ${vs.join('\n')}`)
     ).join('\n') || '*No betrayals recorded.*';
 
     return interaction.reply({ embeds: [
-      new EmbedBuilder().setColor('#6B2FA0')
+      new EmbedBuilder().setColor('#B4CBDD')
         .setTitle('<:pd_zPurple_Pin:1495665628672037046> Regret Games Recap')
         .addFields(
           { name: '<a:larry_cry:1497476839608815706> Elimination Order', value: timeline.slice(0, 1024), inline: false },
@@ -2460,7 +2460,7 @@ ${vs.join('\n')}`)
     const all   = await getAllPlayers(season.id);
 
     return interaction.reply({ embeds: [
-      new EmbedBuilder().setColor('#6B2FA0')
+      new EmbedBuilder().setColor('#B4CBDD')
         .setTitle('<:pd_zPurple_Pin:1495665628672037046> Regret Games Status')
         .addFields(
           { name: 'Day',           value: `**${season.current_day}**`,             inline: true },
