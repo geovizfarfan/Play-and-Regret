@@ -159,7 +159,7 @@ async function runGame(channel, players, bet, sizeKey, guild, mode) {
       : `<a:target:1495665634279821485> **${moves}** moves${streak >= 2 ? ` • <a:purplefire:1479219348353716415> **${streak} streak!**` : ''}`;
 
     return new EmbedBuilder()
-      .setColor('#9B59B6')
+      .setColor('#C9B1FF')
       .setTitle(`<a:brain:1511530555588612126> Memory Game${mode === 'multi' ? ' — Multiplayer' : ` — ${players[0].username}`}`)
       .setDescription(
         (mode === 'multi' ? `**${currentPlayer().username}'s turn!**\n` : '') +
@@ -379,7 +379,7 @@ async function launchMemory(channel, bet, sizeKey, mode, triggeredBy, hostId, gu
   activeGames.set(channelId, game);
 
   const makeSignupEmbed = () => new EmbedBuilder()
-    .setColor('#9B59B6')
+    .setColor('#C9B1FF')
     .setTitle('<a:brain:1511530555588612126> Memory Game — Signups!')
     .setDescription(
       `**Find matching emoji pairs before your opponents!**\n\n` +
@@ -430,7 +430,7 @@ async function launchMemory(channel, bet, sizeKey, mode, triggeredBy, hostId, gu
     await economy.trackGameEntry(interaction.user.id, interaction.user.username, interaction.channel?.id || channelId, 'Memory', bet).catch(()=>{});
     g.players.push({ id: interaction.user.id, username: interaction.user.username });
     await signupMsg.edit({ embeds: [makeSignupEmbed()], components: [makeButtons()] });
-    await interaction.followUp({ content: `<:purpleverified:1479305124336767147> **${interaction.user.username}** joined! Player **${g.players.length}**` });
+    await interaction.followUp({ content: `<:purpleverified:1479305124336767147> **${interaction.user.username}** joined! Player **${g.players.length}**`, ephemeral: true });
   });
 
   collector.on('end', async (_, reason) => {
@@ -482,7 +482,7 @@ module.exports = {
       }).join('\n');
       await interaction.editReply({ embeds: [
         new EmbedBuilder()
-          .setColor('#9B59B6')
+          .setColor('#C9B1FF')
           .setTitle(`<a:brain:1511530555588612126> Memory Leaderboard — ${size.label}`)
           .setDescription(lines)
       ]});

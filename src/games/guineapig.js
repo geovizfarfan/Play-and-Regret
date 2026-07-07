@@ -98,7 +98,7 @@ async function runCuyGame(channel, players, bet, totalRounds) {
 
   await channel.send({ embeds: [
     new EmbedBuilder()
-      .setColor('#9B59B6')
+      .setColor('#C9B1FF')
       .setTitle('🐹 FIND THE CUY — Game Starting!')
       .setDescription(
         `**${players.length} players** entered the arena!\n\n` +
@@ -266,7 +266,7 @@ async function launchCuy(channel, bet, rounds, triggeredBy, hostId) {
   activeGames.set(channelId, game);
 
   const makeEmbed = () => new EmbedBuilder()
-    .setColor('#9B59B6')
+    .setColor('#C9B1FF')
     .setTitle('<a:guineapig:1511512778542813214> FIND THE CUY — Signups!')
     .setDescription(
       `**Find and click the 🐹 cuy hiding in the grid before everyone else!**\n\n` +
@@ -322,7 +322,7 @@ async function launchCuy(channel, bet, rounds, triggeredBy, hostId) {
     await economy.trackGameEntry(interaction.user.id, interaction.user.username, interaction.channel.id, 'Find the Cuy', bet).catch(()=>{});
     g.players.push({ id: interaction.user.id, username: interaction.user.username });
     await gameMsg.edit({ embeds: [makeEmbed()], components: [makeButtons()] });
-    await interaction.followUp({ content: `<:purpleverified:1479305124336767147> **${interaction.user.username}** joined! Player **${g.players.length}**` });
+    await interaction.followUp({ content: `<:purpleverified:1479305124336767147> **${interaction.user.username}** joined! Player **${g.players.length}**`, ephemeral: true });
   });
 
   collector.on('end', async (_, reason) => {

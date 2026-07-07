@@ -75,7 +75,7 @@ function streakMsg(userId) {
 // ─── Embed builders ───────────────────────────────────────────────────────────
 function makeSignupEmbed(players, bet, timeLabel, mode = 'multi') {
   return new EmbedBuilder()
-    .setColor('#1A1A2E')
+    .setColor('#C9B1FF')
     .setTitle('<a:SINS:1522338223613804724> BLACKJACK — Signups Open!')
     .setDescription(
       `**Beat the dealer. Don't bust. Simple.**\n\n` +
@@ -113,7 +113,7 @@ function makeGameEmbed(dealerHand, playerHands, hideSecond = true) {
   }
 
   return new EmbedBuilder()
-    .setColor('#1A1A2E')
+    .setColor('#C9B1FF')
     .setTitle('<a:cards:1511530261551124561> BLACKJACK')
     .addFields(fields);
 }
@@ -350,7 +350,7 @@ async function launchBlackjack(channel, bet, triggeredBy, hostId, mode = 'multi'
     await economy.trackGameEntry(hostId, message.author.username, channelId, 'Blackjack', bet).catch(()=>{});
     game.players.push({ id: hostId, username: triggeredBy });
     game.phase = 'running';
-    await channel.send({ embeds: [new EmbedBuilder().setColor('#1A1A2E').setTitle('<a:cards:1511530261551124561> BLACKJACK — Solo Game').setDescription(`**${triggeredBy}** vs the Dealer\n\n<a:moneybag:1479268556687540345> Bet: **${bet} sins**`)] });
+    await channel.send({ embeds: [new EmbedBuilder().setColor('#C9B1FF').setTitle('<a:cards:1511530261551124561> BLACKJACK — Solo Game').setDescription(`**${triggeredBy}** vs the Dealer\n\n<a:moneybag:1479268556687540345> Bet: **${bet} sins**`)] });
     await runBlackjack(channel, game.players, bet);
     activeGames.delete(channelId);
     return;
@@ -391,7 +391,7 @@ async function launchBlackjack(channel, bet, triggeredBy, hostId, mode = 'multi'
       await economy.trackGameEntry(interaction.user.id, interaction.user.username, channelId, 'Blackjack', bet).catch(()=>{});
     g.players.push({ id: interaction.user.id, username: interaction.user.username });
     await gameMsg.edit({ embeds: [makeSignupEmbed(g.players, bet, fmtSecs(g.signupSecs), g.mode)], components: [makeButtons(g.mode)] });
-    await interaction.followUp({ content: `<:purpleverified:1479305124336767147> **${interaction.user.username}** joined Blackjack! Player **${g.players.length}**` });
+    await interaction.followUp({ content: `<:purpleverified:1479305124336767147> **${interaction.user.username}** joined Blackjack! Player **${g.players.length}**`, ephemeral: true });
   });
 
   collector.on('end', async (_, reason) => {
@@ -433,6 +433,9 @@ module.exports = {
       const g = activeGames.get(interaction.channel.id);
       if (!g) return interaction.reply({ content: `<:wrong:1495666083594502174> No Blackjack running here.`, ephemeral: true });
       if (g.phase === 'running') return interaction.reply({ content: `<:wrong:1495666083594502174> Game is in progress.`, ephemeral: true });
+      const isHost  = g.hostId === interaction.user.id;
+      const isAdmin = interaction.member?.permissions?.has('Administrator') || interaction.member?.roles?.cache?.some(r => r.name === (process.env.ADMIN_ROLE || 'Admin'));
+      if (!isHost && !isAdmin) return interaction.reply({ content: `<:wrong:1495666083594502174> Only the host or admins can cancel.`, ephemeral: true });
       for (const p of g.players) await economy.addFunds(p.id, g.bet, 'Blackjack cancelled');
       if (g.message) g.message.edit({ components: [] }).catch(() => {});
       activeGames.delete(interaction.channel.id);
@@ -449,6 +452,9 @@ module.exports = {
     } else if (command === 'cancelblackjack' || command === 'cancelbj') {
       const g = activeGames.get(message.channel.id);
       if (!g) return message.reply(`<:wrong:1495666083594502174> No Blackjack running here.`);
+      const isHost  = g.hostId === message.author.id;
+      const isAdmin = message.member?.permissions?.has('Administrator') || message.member?.roles?.cache?.some(r => r.name === (process.env.ADMIN_ROLE || 'Admin'));
+      if (!isHost && !isAdmin) return message.reply(`<:wrong:1495666083594502174> Only the host or admins can cancel.`);
       for (const p of g.players) await economy.addFunds(p.id, g.bet, 'Blackjack cancelled');
       if (g.message) g.message.edit({ components: [] }).catch(() => {});
       activeGames.delete(message.channel.id);

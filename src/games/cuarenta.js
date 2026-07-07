@@ -158,7 +158,7 @@ async function awardTimeoutWin(channel, game, timedOutIdx) {
   const loser  = g.players[timedOutIdx];
   const winner = g.players.find(p => p.id !== loser.id);
   if (!winner) return;
-  await channel.send({ embeds: [new EmbedBuilder().setColor('#D4D8F0').setTitle('<a:RojasClock:1511506715453947904> Time Out!')
+  await channel.send({ embeds: [new EmbedBuilder().setColor('#C9B1FF').setTitle('<a:RojasClock:1511506715453947904> Time Out!')
     .setDescription(`**${loser.username}** took too long (3 minutes).\n**${winner.username}** wins by default!\n${E.BB_COIN} Prize: **${g.bet*g.numPlayers} sins**`)] });
   await endGame(channel, g, winner);
 }
@@ -176,6 +176,7 @@ async function startGame(channel, authorId, authorUsername, is2v2, bet, replyFn,
 
   const game = {
     channelId, mode: is2v2?'2v2':'1v1', numPlayers: is2v2?4:2, bet, vsBot,
+    hostId: authorId,
     players: [newPlayer(authorId, authorUsername, 0)],
     phase:'lobby', deck:[], hands:[], table:[],
     currentPlayerIdx:0, dealerIdx:0, dealCount:0,
@@ -187,7 +188,7 @@ async function startGame(channel, authorId, authorUsername, is2v2, bet, replyFn,
   // ── vs Bot: skip lobby ───────────────────────────────────────────────────────
   if (vsBot) {
     game.players.push(newPlayer(BOT_ID, BOT_NAME, 1));
-    await channel.send({ embeds: [new EmbedBuilder().setColor('#D4D8F0')
+    await channel.send({ embeds: [new EmbedBuilder().setColor('#C9B1FF')
       .setTitle(`${E.CUARENTA} Cuarenta (Ecuadorian) vs ${E.BOT} Bot`)
       .setThumbnail('https://deckofcardsapi.com/static/img/back.png')
       .setDescription(`**${authorUsername}** vs **${BOT_NAME}**\n\n${E.BB_COIN} Bet: **${bet} sins** · First to exactly **40 pts** wins!\n\nThe bot plays automatically. Good luck!`)] });
@@ -195,16 +196,19 @@ async function startGame(channel, authorId, authorUsername, is2v2, bet, replyFn,
   }
 
   // ── Multiplayer lobby ────────────────────────────────────────────────────────
-  const lobbyMsg = await channel.send({ embeds: [new EmbedBuilder().setColor('#D4D8F0')
+  const lobbyMsg = await channel.send({ embeds: [new EmbedBuilder().setColor('#C9B1FF')
     .setTitle(`${E.CUARENTA} Cuarenta ${is2v2?'2v2':'1v1'} — Join!`)
     .setThumbnail('https://deckofcardsapi.com/static/img/back.png')
     .setDescription(`**${authorUsername}** wants to play!\n${E.BB_COIN} Entry: **${bet} sins** · Need **${game.numPlayers-1}** more\n\nClick **Join** to enter!`)
+    .addFields({ name: '<a:purplecheck:1478983961450643538> Joined', value: `**1**/${game.numPlayers}` })
     .setFooter({text:'Lobby open 2 minutes'})],
     components: [new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId('cq_join').setLabel('Join').setStyle(ButtonStyle.Success),
       new ButtonBuilder().setCustomId('cq_rules_lobby').setEmoji({ id: '1511510712986632352', name: 'rules', animated: true }).setLabel('Rules').setStyle(ButtonStyle.Secondary),
     )]
   });
+
+  game.lobbyMsg = lobbyMsg;
 
   const lc = lobbyMsg.createMessageComponentCollector({ time: 120000 });
   lc.on('collect', async inter => {
@@ -220,7 +224,13 @@ async function startGame(channel, authorId, authorUsername, is2v2, bet, replyFn,
     await economy.trackGameEntry(inter.user.id, inter.user.username, g.channelId, 'Cuarenta', g.bet).catch(()=>{});
     g.players.push(newPlayer(inter.user.id, inter.user.username, g.players.length%2));
     await inter.reply({ content:`<:checkmark:1495666088417956002> Joined! (${g.players.length}/${g.numPlayers})`, ephemeral:true });
-    await channel.send(`<:checkmark:1495666088417956002> **${inter.user.username}** joined! (${g.players.length}/${g.numPlayers})`);
+    if (g.lobbyMsg?.embeds?.[0]) {
+      const updated = EmbedBuilder.from(g.lobbyMsg.embeds[0]).spliceFields(0, 1, {
+        name: '<a:purplecheck:1478983961450643538> Joined',
+        value: `**${g.players.length}**/${g.numPlayers}`,
+      });
+      await g.lobbyMsg.edit({ embeds: [updated] }).catch(() => {});
+    }
     if (g.players.length === g.numPlayers) { lc.stop('full'); beginGame(channelId, channel); }
   });
   lc.on('end', async (_, reason) => {
@@ -253,7 +263,7 @@ async function doDeal(channel, game, isFirst=false) {
   if (isFirst) game.table = [];
 
   const dealerName = game.players[game.dealerIdx].username;
-  await channel.send({ embeds: [new EmbedBuilder().setColor('#D4D8F0')
+  await channel.send({ embeds: [new EmbedBuilder().setColor('#C9B1FF')
     .setTitle(`${E.CUARENTA} ${isFirst?'Game Started!':'New Deal!'}`)
     .setThumbnail('https://deckofcardsapi.com/static/img/back.png')
     .setDescription(
@@ -303,7 +313,7 @@ async function postTurn(channel, game) {
   const topCard = game.table[game.table.length-1];
 
   const msg = await channel.send({ embeds: [new EmbedBuilder()
-    .setColor('#D4D8F0')
+    .setColor('#C9B1FF')
     .setTitle(`${E.CUARENTA} ${player.username}'s Turn`)
     .setThumbnail(topCard ? cardURL(topCard) : null)
     .setDescription(
@@ -373,7 +383,7 @@ async function handleRondaBtn(inter, g, channel) {
     // False claim penalty
     p.score = Math.max(0, p.score-4);
     await inter.reply({content:`<:wrong:1495666083594502174> No Ronda! **-4 pts** penalty.`, ephemeral:true});
-    await channel.send({ embeds: [new EmbedBuilder().setColor('#D4D8F0').setTitle('<:wrong:1495666083594502174> False Ronda!')
+    await channel.send({ embeds: [new EmbedBuilder().setColor('#C9B1FF').setTitle('<:wrong:1495666083594502174> False Ronda!')
       .setDescription(`**${p.username}** claimed Ronda falsely → **-4 pts**\n\n${scoreBar(g)}`)] });
     return;
   }
@@ -398,7 +408,7 @@ async function handleCuarentaBtn(inter, g, channel, col, onPlayed=()=>{}) {
     p.cuarentaClaimed = true;
     p.score = Math.max(0, p.score-4);
     await inter.reply({content:`<:wrong:1495666083594502174> No 4-of-a-kind! **-4 pts** penalty.`, ephemeral:true});
-    await channel.send({ embeds: [new EmbedBuilder().setColor('#D4D8F0').setTitle('<:wrong:1495666083594502174> False Cuarenta!')
+    await channel.send({ embeds: [new EmbedBuilder().setColor('#C9B1FF').setTitle('<:wrong:1495666083594502174> False Cuarenta!')
       .setDescription(`**${p.username}** claimed Cuarenta falsely → **-4 pts**\n\n${scoreBar(g)}`)] });
     return;
   }
@@ -563,7 +573,7 @@ async function resolvePendingBonuses(channel, game) {
     const owner   = game.players[b.ownerIdx];
     if (claimer.score >= 30 || owner.score >= 30) continue;
     claimer.score += 10;
-    await channel.send({ embeds: [new EmbedBuilder().setColor('#D4D8F0').setTitle('🔍 Ronda Bonus!')
+    await channel.send({ embeds: [new EmbedBuilder().setColor('#C9B1FF').setTitle('🔍 Ronda Bonus!')
       .setDescription(`**${claimer.username}** captured **${owner.username}**'s Ronda (\`${b.rank}\`) with a Caída!\n**+10 pts** for ${claimer.username}!\n\n${scoreBar(game)}`)] });
     if (claimer.score === WIN_SCORE) { await endGame(channel, game, claimer); return; }
     if (claimer.score > WIN_SCORE) claimer.score = WIN_SCORE - 1;
@@ -647,10 +657,10 @@ async function endGame(channel, game, winner) {
 async function cancelGame(channelId, channel, requesterId, replyFn) {
   const game = activeGames.get(channelId);
   if (!game) return replyFn(`${E.ERROR} No active Cuarenta game here.`);
-  const isPlayer = game.players.find(p=>p.id===requesterId);
-  const member   = channel.guild?.members.cache.get(requesterId);
-  const isAdmin  = member && (member.permissions.has('Administrator') || member.roles.cache.some(r=>r.name===(process.env.ADMIN_ROLE||'Admin')));
-  if (!isPlayer && !isAdmin) return replyFn(`${E.ERROR} Only players or admins can cancel.`);
+  const isHost  = game.hostId === requesterId;
+  const member  = channel.guild?.members.cache.get(requesterId);
+  const isAdmin = member && (member.permissions.has('Administrator') || member.roles.cache.some(r=>r.name===(process.env.ADMIN_ROLE||'Admin')));
+  if (!isHost && !isAdmin) return replyFn(`${E.ERROR} Only the host or admins can cancel.`);
   for (const p of game.players) if (!p.isBot) await economy.addFunds(p.id, game.bet, 'Cuarenta cancelled');
   if (game.turnMessage) game.turnMessage.edit({ components: turnButtons(true) }).catch(()=>{});
   game.phase = 'ended';
@@ -714,7 +724,7 @@ module.exports = {
         msg => interaction.editReply({ content: msg }), vsBot);
     }
     if (commandName === 'cuarentarules') {
-      await interaction.reply({ embeds:[new EmbedBuilder().setColor('#D4D8F0')
+      await interaction.reply({ embeds:[new EmbedBuilder().setColor('#C9B1FF')
         .setTitle(`${E.CUARENTA} Cuarenta (Ecuadorian) Rules`)
         .setThumbnail('https://deckofcardsapi.com/static/img/back.png')
         .setDescription(this.getRulesText())
@@ -760,7 +770,7 @@ module.exports = {
   },
 
   async showRules(message) {
-    return message.reply({ embeds:[new EmbedBuilder().setColor('#D4D8F0')
+    return message.reply({ embeds:[new EmbedBuilder().setColor('#C9B1FF')
       .setTitle(`${E.CUARENTA} Cuarenta (Ecuadorian) Rules`)
       .setThumbnail('https://deckofcardsapi.com/static/img/back.png')
       .setDescription(this.getRulesText())

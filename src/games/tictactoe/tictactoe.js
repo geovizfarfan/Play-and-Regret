@@ -244,9 +244,9 @@ module.exports = {
 
     if (!game) return reply(`${E.ERROR} No active Tic-Tac-Bruh game in this channel.`);
 
-    const isPlayer = game.players.X === userId || game.players.O === userId;
-    const isAdmin  = source.member?.permissions?.has('Administrator') || source.memberPermissions?.has('Administrator');
-    if (!isPlayer && !isAdmin) return reply(`${E.ERROR} Only players in the game can cancel it.`);
+    const isHost  = game.players.X === userId;
+    const isAdmin = source.member?.permissions?.has('Administrator') || source.memberPermissions?.has('Administrator');
+    if (!isHost && !isAdmin) return reply(`${E.ERROR} Only the host or admins can cancel.`);
 
     if (game.players.X !== BOT_ID) economy.addFunds(game.players.X, game.bet, 'TTT cancel refund');
     if (game.players.O !== BOT_ID) economy.addFunds(game.players.O, game.bet, 'TTT cancel refund');
@@ -474,7 +474,7 @@ module.exports = {
 
     const betText = `\n${E.BB_COIN} Bet: **${bet} sins** each — winner takes **${bet*2} sins**`;
     const challengeEmbed = new EmbedBuilder()
-      .setColor('#B3D4FF')
+      .setColor('#C9B1FF')
       .setTitle(`<a:tictac:1479198394638667897>  Tic-Tac-Bruh Challenge!  <a:tictac:1479198394638667897>`)
       .setDescription(`**${message.author.username}** ${E.TTT_X} vs **${opponent.username}** ${E.TTT_O}${betText}\n\n<@${opponent.id}>, do you accept?`)
       .setFooter({ text: 'Challenge expires in 60 seconds' });

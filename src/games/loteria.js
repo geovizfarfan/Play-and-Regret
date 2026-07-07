@@ -284,7 +284,7 @@ module.exports = {
           `
 ¡Buena suerte! <a:sparkle:1511506717584920696>`
         )
-        
+        .addFields({ name: '<a:purplecheck:1478983961450643538> Joined', value: '**0** players' })
       ],
       components: lobbyButtons(),
     });
@@ -366,7 +366,7 @@ module.exports = {
             content: `<:checkmark:1495666088417956002> Joined! **${g.players.size}** player${g.players.size !== 1 ? 's' : ''} so far.\n\n👁 Press **My Board** above to see your card!`,
             ephemeral: true,
           });
-          await inter.channel.send(`<:checkmark:1495666088417956002> **${inter.user.username}** joined Lotería! (${g.players.size} players)`);
+          await this._refreshLobbyCount(g);
           return;
         }
 
@@ -436,6 +436,16 @@ module.exports = {
         if (g) this.cancelGame(channelId, null, () => {});
       }
     });
+  },
+
+  // ─── Refresh the lobby embed's live join count ───────────────────────────────
+  async _refreshLobbyCount(game) {
+    if (!game.lobbyMsg?.embeds?.[0]) return;
+    const updated = EmbedBuilder.from(game.lobbyMsg.embeds[0]).spliceFields(0, 1, {
+      name: '<a:purplecheck:1478983961450643538> Joined',
+      value: `**${game.players.size}** player${game.players.size !== 1 ? 's' : ''}`,
+    });
+    await game.lobbyMsg.edit({ embeds: [updated] }).catch(() => {});
   },
 
   // ─── Start playing ────────────────────────────────────────────────────────
@@ -576,6 +586,13 @@ module.exports = {
   async cancelGame(channelId, requesterId, replyFn) {
     const game = activeGames.get(channelId);
     if (!game) return replyFn(`${E.ERROR} No active Lotería game here.`);
+
+    if (requesterId) {
+      const isHost  = game.host === requesterId;
+      const member  = game.lobbyMsg?.guild?.members.cache.get(requesterId);
+      const isAdmin = member && (member.permissions.has('Administrator') || member.roles.cache.some(r => r.name === (process.env.ADMIN_ROLE || 'Admin')));
+      if (!isHost && !isAdmin) return replyFn(`${E.ERROR} Only the host or admins can cancel.`);
+    }
 
     clearInterval(game.interval);
     clearTimeout(game.startTimer);

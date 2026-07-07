@@ -1716,10 +1716,6 @@ module.exports = {
           await signupMsg.edit({ embeds: [updatedEmbed], components: signupMsg.components }).catch(() => {});
         }
       } catch(e) {}
-
-      await arenaChannel.send(
-        `<:purp_caveira50:1495665632845369354> **${interaction.user.username}** joined the Regret Games. *${pick(INSULTS_LOW)}*`
-      );
     }
 
     return interaction.reply({ embeds: [
