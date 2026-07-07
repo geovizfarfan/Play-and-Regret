@@ -147,7 +147,7 @@ async function buildResultPayload(g, result, bet) {
       `<a:tictac:1479198394638667897>  **Tic-Tac-Bruh**  <a:tictac:1479198394638667897> — Game Over!`,
       isBot
         ? `<a:robot:1479201564672397463> **The Bot wins!** LOSER!`
-        : `<a:congrats:1478999022072238222> **Congratulations <@${winnerId}>!** **+${(bet*2).toLocaleString()} sins** <:sins:1522321533307981945> added!`,
+        : `<a:congrats:1478999022072238222> **Congratulations <@${winnerId}>!** **+${(bet*2).toLocaleString()} sins** <a:SINS:1522338223613804724> added!`,
       streakLine ? `\n${streakLine}\n` : ``,
       `<a:purplesparkle:1479210541691175054> **Hall of Regret** <a:purplesparkle:1479210541691175054>`,
       `${xEmoji} <@${g.players.X}>`,

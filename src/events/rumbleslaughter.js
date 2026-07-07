@@ -872,7 +872,7 @@ async function runGame(channel, game) {
           : pick(ERA_FIGHT)
               .replace('@attacker', `**${getDisplayName(winner)}**`)
               .replace('@target', `**${getDisplayName(loser)}**`);
-        events.push(`<:sword:1495666991187361943> ${fightLine}`);
+        events.push(fightLine);
       }
     }
 
@@ -1353,6 +1353,10 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
       .setCustomId(`rs_start:${channel.id}`)
       .setEmoji('<a:fire1:1495666086534844516>').setLabel('Start Game')
       .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(`rs_viewmembers:${channel.id}`)
+      .setEmoji('<a:purplecheck:1478983961450643538>').setLabel('View Members')
+      .setStyle(ButtonStyle.Secondary),
   );
 
   const msg = await channel.send({ embeds: [embed], components: [btn] });
@@ -1460,6 +1464,23 @@ module.exports = {
         return fireGame(interaction.channel);
       }
 
+      if (interaction.customId.startsWith('rs_viewmembers:')) {
+        const channelId = interaction.customId.split(':')[1];
+        const game      = activeGames.get(channelId);
+        if (!game) {
+          return interaction.reply({ content: '<:wrong:1495666083594502174> No open game in this channel right now.', ephemeral: true });
+        }
+        const list = game.players.length
+          ? game.players.map((p, i) => `**${i + 1}.** ${getDisplayName(p)}`).join('\n')
+          : 'Nobody yet.';
+        return interaction.reply({
+          embeds: [new EmbedBuilder().setColor('#6B2FA0')
+            .setTitle('<a:purplecheck:1478983961450643538> Signed up')
+            .setDescription(list)],
+          ephemeral: true,
+        });
+      }
+
       if (!interaction.customId.startsWith('rs_join:')) return;
 
       const channelId = interaction.customId.split(':')[1];
@@ -1498,7 +1519,7 @@ module.exports = {
         });
         await game.message.edit({ embeds: [updated] }).catch(() => {});
       }
-      await interaction.followUp({ content: `<:sword:1495666991187361943> **${interaction.user.username}** entered the arena. (${game.players.length} signed up)` });
+      await interaction.followUp({ content: `<a:SINS:1522338223613804724> **${interaction.user.username}** entered the arena. (${game.players.length} signed up)`, ephemeral: true });
     });
 
     // Handle animated emoji picker select menu
@@ -1933,7 +1954,9 @@ It will affect your duels in the next Rumble Slaughter match.`,
       });
       await game.message.edit({ embeds: [updated] }).catch(() => {});
     }
-    return message.reply(`<:sword:1495666991187361943> **${message.author.username}** entered the arena! (${game.players.length} signed up)`);
+    const joinMsg = await message.reply(`<a:SINS:1522338223613804724> **${message.author.username}** entered the arena! (${game.players.length} signed up)`);
+    setTimeout(() => joinMsg.delete().catch(() => {}), 5000);
+    return joinMsg;
   },
 
   // ── Manual fire ───────────────────────────────────────────────────────────────

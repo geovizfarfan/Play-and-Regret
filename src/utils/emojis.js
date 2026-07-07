@@ -32,7 +32,7 @@
 const CUSTOM = {
 
   // ── Economy / sins ──────────────────────────────────────────────────
-  BB_COIN:        '<:sins:1522321533307981945>',   // Shown next to "sins" and balances  🎰
+  BB_COIN:        '<a:SINS:1522338223613804724>',   // Shown next to "sins" and balances  🎰
   DAILY:          '',   // Daily reward command                       📅
   LEADERBOARD:    '',   // Leaderboard / richest list                 🏆
   TRANSFER:       '',   // Pay / send money                          💸
