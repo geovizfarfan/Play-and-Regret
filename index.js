@@ -203,7 +203,7 @@ const slashCommands = [
     .addRoleOption(o => o.setName('rolerestrict').setDescription('Restrict to this role only').setRequired(false))
     .addRoleOption(o => o.setName('rolea').setDescription('Team A role (Role vs Role mode)').setRequired(false))
     .addRoleOption(o => o.setName('roleb').setDescription('Team B role (Role vs Role mode)').setRequired(false)),
-  new SlashCommandBuilder().setName('rsprofile').setDescription('View your Rumble Slaughter profile')
+  new SlashCommandBuilder().setName('rsprofile').setDescription('View your Rumble Slaughter profile — level, power, kills, gear')
     .addUserOption(o => o.setName('user').setDescription('User to view')),
   new SlashCommandBuilder().setName('rsleaderboard').setDescription('Rumble Slaughter XP leaderboard'),
   new SlashCommandBuilder().setName('openbackpack').setDescription('Open one of your backpacks')
@@ -274,8 +274,6 @@ const slashCommands = [
   new SlashCommandBuilder().setName('shop').setDescription('Open the game shop'),
   new SlashCommandBuilder().setName('setera').setDescription('Pick a Rumble Slaughter era from a dropdown menu'),
   new SlashCommandBuilder().setName('rsmatchstats').setDescription('See the last Rumble Slaughter match recap'),
-  new SlashCommandBuilder().setName('rsstats').setDescription('View a player\'s full RS death history')
-    .addUserOption(o => o.setName('user').setDescription('Player to view (leave blank for yourself)')),
   new SlashCommandBuilder().setName('rshalloffame').setDescription('Rumble Slaughter Hall of Fame — most wins, wall of shame'),
   new SlashCommandBuilder().setName('givebackpack').setDescription('Admin: give backpacks')
     .addUserOption(o => o.setName('user').setDescription('Target').setRequired(true))
@@ -526,7 +524,7 @@ client.on('interactionCreate', async (interaction) => {
       return await blackjackModule.handleSlash(interaction, commandName);
 
     // Lotería
-    if (['loteria','loteriarules','cancelloteria'].includes(commandName))
+    if (['loteria','loteriarules'].includes(commandName))
       return await loteriaModule.handleSlash(interaction, commandName);
 
     // Cuarenta
@@ -543,7 +541,7 @@ client.on('interactionCreate', async (interaction) => {
 
     // Rumble Slaughter
     if (['rumbleslaughter','rsprofile','rsleaderboard','openbackpack','rsinventory',
-         'rsjoin','eras','setera','addbounty','clearbounties','bounties','rsmatchstats','rsstats','rshalloffame',
+         'rsjoin','eras','setera','addbounty','clearbounties','bounties','rsmatchstats','rshalloffame',
          'setemoji','addemoji','pickemoji','rig','unrig','staffrole','riggedmode','rigrandom','givebackpack'].includes(commandName))
       return await rsModule.handleSlash(interaction, commandName);
 
@@ -595,7 +593,7 @@ client.on('messageCreate', async (message) => {
     if (['blackjack','bj'].includes(command))
       return await blackjackModule.handleCommand(message, args, command);
 
-    if (['loteria','loteria-manual','join','loteria-rules','loteriarules','cancelloteria','loteria-go','loteriago','loteriamanugo','loteria-draw','loteriadraw'].includes(command))
+    if (['loteria','loteria-manual','join','loteria-rules','loteriarules','loteria-go','loteriago','loteriamanugo','loteria-draw','loteriadraw'].includes(command))
       return await loteriaModule.handleCommand(message, args, command);
 
     if (['cuarenta','cuarenta-rules','cuarentarules','table','hand'].includes(command))
@@ -606,11 +604,11 @@ client.on('messageCreate', async (message) => {
     if (['memory','memoryleaderboard'].includes(command))
       return await memoryModule.handleCommand(message, args, command);
 
-    if (['rumbleslaughter','rs','rsjoin','rsenter','rsprofile','rsp','rsleaderboard','rslb',
+    if (['rumbleslaughter','rs','rsjoin','rsenter','rsprofile','rsp','rsleaderboard','rslb','rsstats',
          'openbackpack','rsbag','rsinventory','rsinv','rschedule',
-         'eras','rseras','addbounty','clearbounties','bounties','rsbounties','rsmatchstats','rsrecap','rsstats','rshalloffame','rshof',
+         'eras','rseras','addbounty','clearbounties','bounties','rsbounties','rsmatchstats','rsrecap','rshalloffame','rshof',
          'rig','unrig','rigrole','rigrandom','riggedmode','staffrole','givebackpack',
-         'setemoji','addemoji','pickemoji','animemoji','startgame','cancelevent','setlogchannel'].includes(command))
+         'setemoji','addemoji','pickemoji','animemoji','startgame','setlogchannel'].includes(command))
       return await rsModule.handleCommand(message, args, command);
 
     if (command === 'cancel') return await handleUniversalCancelMsg(message);
@@ -697,7 +695,7 @@ function buildHelpEmbeds() {
       { name: '🗡️ Rumble Slaughter', value: [
         '`/rumbleslaughter bet [timestamp]` — Start the arena',
         '`!rsjoin` or click Join — Enter',
-        '`/rsprofile` — Your RS profile',
+        '`/rsprofile` — Level, power, kills, gear, all in one place',
         '`/rsleaderboard` — XP leaderboard',
         '`/openbackpack` — Open a backpack',
       ].join('\n') },
@@ -812,9 +810,14 @@ async function tryCancelAll(channel, userId, username, replyFn, guildId = null) 
   try {
     const tttGames = tttModule.activeGames;
     if (tttGames && tttGames.has(channelId)) {
-      const fakeMsg = { channel, author: { id: userId }, member: { permissions: { has: () => true } }, commandName: null };
+      const realMember = channel.guild ? await channel.guild.members.fetch(userId).catch(() => null) : null;
+      let tttReply = '';
+      const fakeMsg = { channel, author: { id: userId }, member: realMember, commandName: null, reply: (m) => { tttReply = typeof m === 'string' ? m : (m?.content || ''); } };
       await tttModule.cancelGame(fakeMsg);
-      cancelMsg = '<:checkmark:1495666088417956002> Tic-Tac-Bruh cancelled and refunded.';
+      if (tttReply.includes('<:wrong:')) {
+        return replyFn(tttReply);
+      }
+      cancelMsg = tttReply || '<:checkmark:1495666088417956002> Tic-Tac-Bruh cancelled and refunded.';
       cancelled = true;
     }
   } catch(e) {}
@@ -822,12 +825,16 @@ async function tryCancelAll(channel, userId, username, replyFn, guildId = null) 
   // Try Blackjack — only if game exists in map
   try {
     if (!cancelled && blackjackModule.activeGames && blackjackModule.activeGames.has(channelId)) {
-      const msgs = [];
+      const realMember = channel.guild ? await channel.guild.members.fetch(userId).catch(() => null) : null;
+      let bjReply = '';
       await blackjackModule.handleCommand(
-        { channel, author: { id: userId }, member: { permissions: { has: () => true } }, reply: (m) => msgs.push(m) },
+        { channel, author: { id: userId }, member: realMember, reply: (m) => { bjReply = typeof m === 'string' ? m : (m?.content || ''); } },
         [], 'cancelblackjack'
       );
-      cancelMsg = '<:checkmark:1495666088417956002> Blackjack cancelled and refunded.';
+      if (bjReply.includes('<:wrong:')) {
+        return replyFn(bjReply);
+      }
+      cancelMsg = bjReply || '<:checkmark:1495666088417956002> Blackjack cancelled and refunded.';
       cancelled = true;
     }
   } catch(e) {}
@@ -837,6 +844,12 @@ async function tryCancelAll(channel, userId, username, replyFn, guildId = null) 
     const { activeGames: cuyGames } = require('./src/games/guineapig');
     if (cuyGames?.has(channelId)) {
       const g = cuyGames.get(channelId);
+      const member = channel.guild ? await channel.guild.members.fetch(userId).catch(() => null) : null;
+      const isHost  = g.hostId === userId;
+      const isAdmin = member && (member.permissions.has('Administrator') || member.roles.cache.some(r => r.name === (process.env.EVENT_HOST_ROLE || 'Event Host')));
+      if (!isHost && !isAdmin) {
+        return replyFn('<:wrong:1495666083594502174> Only the host or admins can cancel.');
+      }
       cuyGames.delete(channelId);
       if (g?.timer) clearTimeout(g.timer);
       for (const p of (g?.players || []))
@@ -851,8 +864,12 @@ async function tryCancelAll(channel, userId, username, replyFn, guildId = null) 
     if (!cancelled) {
       const { activeGames: loteriaGames } = require('./src/games/loteria');
       if (loteriaGames && loteriaGames.has(channelId)) {
-        await loteriaModule.cancelGame(channelId, userId, () => {});
-        cancelMsg = '<:checkmark:1495666088417956002> Lotería cancelled and refunded.';
+        let lotReply = '';
+        await loteriaModule.cancelGame(channelId, userId, (m) => { lotReply = typeof m === 'string' ? m : (m?.content || ''); });
+        if (lotReply.includes('<:wrong:')) {
+          return replyFn(lotReply);
+        }
+        cancelMsg = lotReply || '<:checkmark:1495666088417956002> Lotería cancelled and refunded.';
         cancelled = true;
       }
     }
@@ -863,11 +880,15 @@ async function tryCancelAll(channel, userId, username, replyFn, guildId = null) 
     if (!cancelled) {
       const { activeGames: cuarentaGames } = require('./src/games/cuarenta');
       if (cuarentaGames && cuarentaGames.has(channelId)) {
+        let cqReply = '';
         await cuarentaModule.handleCommand(
-          { channel, author: { id: userId }, member: { permissions: { has: () => true }, roles: { cache: { some: () => true } } }, reply: () => {}, mentions: { users: { first: () => null } } },
+          { channel, author: { id: userId }, reply: (m) => { cqReply = typeof m === 'string' ? m : (m?.content || ''); }, mentions: { users: { first: () => null } } },
           [], 'cancelcuarenta'
         );
-        cancelMsg = '<:checkmark:1495666088417956002> Cuarenta cancelled and refunded.';
+        if (cqReply.includes('<:wrong:')) {
+          return replyFn(cqReply);
+        }
+        cancelMsg = cqReply || '<:checkmark:1495666088417956002> Cuarenta cancelled and refunded.';
         cancelled = true;
       }
     }
@@ -884,6 +905,11 @@ async function tryCancelAll(channel, userId, username, replyFn, guildId = null) 
           [resolvedGuildId]
         ).catch(() => null);
         if (rgActive) {
+          const member = channel.guild ? await channel.guild.members.fetch(userId).catch(() => null) : null;
+          const isAdmin = member && (member.permissions.has('Administrator') || member.roles.cache.some(r => r.name === (process.env.ADMIN_ROLE || 'Admin')));
+          if (!isAdmin) {
+            return replyFn('<:wrong:1495666083594502174> Only admins can cancel Regret Games.');
+          }
           // Clear all running timers
           const rgMod = require('./src/games/regretgames');
           const activeRGGames = rgMod.activeRGGames;
@@ -914,11 +940,16 @@ async function tryCancelAll(channel, userId, username, replyFn, guildId = null) 
         [channelId]
       ).catch(() => null);
       if (rsActive) {
+        const realMember = channel.guild ? await channel.guild.members.fetch(userId).catch(() => null) : null;
+        let rsReply = '';
         await rsModule.handleCommand(
-          { channel, author: { id: userId, username }, member: { permissions: { has: () => true }, roles: { cache: { some: () => true } } }, reply: () => {}, mentions: { users: { first: () => null } } },
+          { channel, author: { id: userId, username }, member: realMember, reply: (m) => { rsReply = typeof m === 'string' ? m : (m?.content || ''); }, mentions: { users: { first: () => null } } },
           [], 'cancelevent'
         );
-        cancelMsg = '<:checkmark:1495666088417956002> Rumble Slaughter cancelled and players refunded.';
+        if (rsReply.includes('<:wrong:')) {
+          return replyFn(rsReply);
+        }
+        cancelMsg = rsReply || '<:checkmark:1495666088417956002> Rumble Slaughter cancelled and players refunded.';
         cancelled = true;
       }
     }

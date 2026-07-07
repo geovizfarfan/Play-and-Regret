@@ -7,7 +7,7 @@
  *
  * COMMANDS (prefix ! or slash /)
  *   !rumbleslaughter <bet> [<t:timestamp:F>]  — start signup / schedule
- *   !rsprofile [@user]                        — view profile (public embed)
+ *   !rsprofile [@user]                        — level, power, kills, gear (public embed)
  *   !rsleaderboard                            — top players by XP
  *   !openbackpack                             — open your oldest backpack (ephemeral)
  *   !rsinventory                              — view your inventory (ephemeral)
@@ -1674,7 +1674,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
 
       return this.handleCommand(fakeMsg, [String(bet), ...extraArgs], 'rumbleslaughter');
     }
-    if (commandName === 'rsprofile') {
+    if (commandName === 'rsprofile' || commandName === 'rsstats') {
       const target = opts.getUser('user') || interaction.user;
       return this.showProfile(interaction.channel, target, interaction);
     }
@@ -1753,7 +1753,6 @@ It will affect your duels in the next Rumble Slaughter match.`,
     }
     if (commandName === 'setera')         return this.setEraDropdown(interaction);
     if (commandName === 'rsmatchstats')    return this.handleCommand(fakeMsg, [], 'rsmatchstats');
-    if (commandName === 'rsstats')         return this.handleCommand(fakeMsg, [opts.getUser('user')?.id ? `<@${opts.getUser('user').id}>` : ''], 'rsstats');
     if (commandName === 'rshalloffame')    return this.handleCommand(fakeMsg, [], 'rshalloffame');
     if (commandName === 'startgame')       return this.handleCommand(fakeMsg, [], 'startgame');
     if (commandName === 'cancelevent')     return this.handleCommand(fakeMsg, [], 'cancelevent');
@@ -1784,7 +1783,8 @@ It will affect your duels in the next Rumble Slaughter match.`,
     switch (command) {
       case 'rumbleslaughter': case 'rs':  return this.startGame(message, args);
       case 'rsjoin': case 'rsenter':      return this.joinGame(message);
-      case 'rsprofile': case 'rsp':       return this.showProfile(message.channel, args[0] ? message.mentions?.users?.first() || null : message.author, message);
+      case 'rsprofile': case 'rsp': case 'rsstats':
+        return this.showProfile(message.channel, args[0] ? message.mentions?.users?.first() || null : message.author, message);
       case 'rsleaderboard': case 'rslb':  return this.showLeaderboard(message);
       case 'openbackpack': case 'rsbag':  return this.openBackpackMsg(message, args[0]);
       case 'rsinventory': case 'rsinv':   return this.showInventoryMsg(message);
@@ -1797,7 +1797,6 @@ It will affect your duels in the next Rumble Slaughter match.`,
       case 'bounties': case 'rsbounties':  return this.showBounties(message);
       case 'eras': case 'rseras':          return this.listErasCmd(message);
       case 'rsmatchstats': case 'rsrecap': return this.matchStats(message);
-      case 'rsstats':                      return this.playerStats(message, args);
       case 'rshalloffame': case 'rshof':   return this.hallOfFame(message);
       case 'rig':                         return this.rigPlayer(message, args);
       case 'unrig':                       return this.unrigPlayer(message, args);
@@ -1987,30 +1986,42 @@ It will affect your duels in the next Rumble Slaughter match.`,
     return message.reply(`<:checkmark:1495666088417956002> Rumble Slaughter cancelled. **${game.players.length}** player(s) refunded.`);
   },
 
-  // ── Profile ───────────────────────────────────────────────────────────────────
+  // ── Profile (RS-only — level, power, kills, gear, all in one place) ─────────
   async showProfile(channel, user, messageOrInteraction) {
     if (!user) user = messageOrInteraction.author || messageOrInteraction.user;
     const player = await ensureRSUser(user.id, user.username);
-    const inv    = await getInventory(user.id);
+    const inv      = await getInventory(user.id);
     const equipped = inv.find(i => i.item_id === player.equipped_weapon_id);
-
     const totalPower = Number(player.power) + getWeaponBonus(player.equipped_weapon_id) + (RIG_FIGHT_BONUS[player.rig_level] || 0);
+
+    const matches = await db.all(
+      'SELECT kills FROM rs_match_players WHERE user_id = ? ORDER BY match_id DESC LIMIT 20',
+      [user.id]
+    ).catch(() => []);
+    const totalKills = matches.reduce((s, m) => s + Number(m.kills || 0), 0);
+    const firstDeadCount = await db.all(
+      `SELECT mp.match_id FROM rs_match_players mp
+       JOIN rs_matches m ON mp.match_id = m.id
+       WHERE mp.user_id = ? AND mp.finish_pos = m.player_count`,
+      [user.id]
+    ).catch(() => []);
 
     const embed = new EmbedBuilder()
       .setColor('#6B2FA0')
-      .setTitle(`${getDisplayName(player)} — Rumble Slaughter Profile`)
+      .setTitle(`${getDisplayName(player)} — Rumble Slaughter`)
       .setThumbnail(user.displayAvatarURL?.() || null)
       .addFields(
-        { name: '<:sword:1495666991187361943> Power',       value: `**${totalPower}** (base ${player.power} + weapon ${getWeaponBonus(player.equipped_weapon_id)} + rig ${RIG_FIGHT_BONUS[player.rig_level] || 0})`, inline: false },
         { name: '📈 Level / XP',  value: `Level **${player.level}** — **${player.xp}/${xpNeededForLevel(Number(player.level))} XP**`, inline: true },
-        { name: '<a:1stplace:1487504691880263791> Wins',        value: `**${player.wins}**`,         inline: true },
-        { name: '<:purp_caveira50:1495665632845369354> Losses',      value: `**${player.losses}**`,       inline: true },
-        { name: '🎒 Backpacks',   value: `Basic **${player.backpacks_basic}** | Royal **${player.backpacks_royal}** | Cursed **${player.backpacks_cursed}**`, inline: false },
-        { name: '<:sword:1495666991187361943> Equipped',    value: equipped ? `${equipped.item_name} (+${equipped.power_bonus} power)` : 'Nothing. embarrassing.', inline: true },
+        { name: '<:sword:1495666991187361943> Power',       value: `**${totalPower}**`, inline: true },
         { name: '<a:MVP24:1495665626688131183> Rig Level',   value: player.rig_level || 'none', inline: true },
+        { name: '<a:1stplace:1487504691880263791> Record',        value: `**${player.wins}W ${player.losses}L** (${player.games_played} played)`, inline: true },
+        { name: '<:sword:1495666991187361943> Kills (last 20)',   value: `**${totalKills}**`, inline: true },
+        { name: '😬 First to Die',      value: `${firstDeadCount.length}x`, inline: true },
+        { name: '🎒 Backpacks',   value: `Basic **${player.backpacks_basic}** | Royal **${player.backpacks_royal}** | Cursed **${player.backpacks_cursed}**`, inline: false },
+        { name: '<:sword:1495666991187361943> Equipped',    value: equipped ? `${equipped.item_name} (+${equipped.power_bonus} power)` : 'Nothing.', inline: true },
         { name: '🎨 Emoji',       value: `${player.emoji_tag || '—'} ${player.extra_emoji || ''}`.trim() || '—', inline: true },
       )
-      .setFooter({ text: `Total XP earned: ${player.total_xp} • Games played: ${player.games_played}` });
+      .setFooter({ text: `Total XP earned: ${player.total_xp} • use /rsleaderboard for rankings` });
 
     const reply = messageOrInteraction.reply?.bind(messageOrInteraction) || (data => channel.send(data));
     return reply({ embeds: [embed] });
@@ -2396,51 +2407,6 @@ It will affect your duels in the next Rumble Slaughter match.`,
     return message.reply({ embeds });
   },
 
-  // ── Player Stats ──────────────────────────────────────────────────────────────
-  async playerStats(message, args) {
-    const target = message.mentions?.users?.first() || message.author;
-    const player = await db.get('SELECT * FROM rs_players WHERE user_id = ?', [target.id]);
-    if (!player) return message.reply(`<:wrong:1495666083594502174> **${target.username}** hasn't played Rumble Slaughter yet.`);
-
-    const matches = await db.all(
-      'SELECT mp.*, m.channel_id, m.played_at FROM rs_match_players mp JOIN rs_matches m ON mp.match_id = m.id WHERE mp.user_id = ? ORDER BY m.played_at DESC LIMIT 20',
-      [target.id]
-    );
-
-    const totalMatches   = matches.length;
-    const wins           = matches.filter(m => m.finish_pos === 1).length;
-    const firstDeaths    = matches.filter(m => m.finish_pos === Number(m.player_count) || m.death_type !== 'winner').length;
-    const totalKills     = matches.reduce((s, m) => s + Number(m.kills), 0);
-    const totalRegret    = matches.reduce((s, m) => s + Number(m.regret_added), 0);
-    const chaosDiaths    = matches.filter(m => m.death_type === 'chaos').length;
-
-    // Times died first
-    const firstDeadCount = await db.all(
-      `SELECT mp.match_id FROM rs_match_players mp
-       JOIN rs_matches m ON mp.match_id = m.id
-       WHERE mp.user_id = ? AND mp.finish_pos = m.player_count`,
-      [target.id]
-    );
-
-    return message.reply({ embeds: [
-      new EmbedBuilder().setColor('#6B2FA0')
-        .setTitle(`<:sword:1495666991187361943> ${target.username} — Rumble Slaughter Stats`)
-        .setThumbnail(target.displayAvatarURL?.() || null)
-        .addFields(
-          { name: '<a:1stplace:1487504691880263791> Wins',             value: `${player.wins}`,                      inline: true },
-          { name: '<:purp_caveira50:1495665632845369354> Losses',            value: `${player.losses}`,                    inline: true },
-          { name: '<:conroller:1511532204415778897> Games Played',      value: `${player.games_played}`,              inline: true },
-          { name: '<:sword:1495666991187361943> Total Kills',       value: `${totalKills}`,                       inline: true },
-          { name: '😬 First to Die',      value: `${firstDeadCount.length} time${firstDeadCount.length !== 1 ? 's' : ''}`, inline: true },
-          { name: '🌀 Chaos Deaths',      value: `${chaosDiaths}`,                      inline: true },
-          { name: '<:purp_caveira50:1495665632845369354> Regret From RS',    value: `${totalRegret.toLocaleString()}`,      inline: true },
-          { name: '<a:fire1:1495666086534844516> Power Level',       value: `${player.power}`,                     inline: true },
-          { name: '📈 Level',             value: `${player.level}`,                     inline: true },
-        )
-        .setFooter({ text: 'use /rsleaderboard for the full rankings' })
-    ]});
-  },
-
   // ── Hall of Fame ──────────────────────────────────────────────────────────────
   async hallOfFame(message) {
     // Most wins overall
@@ -2491,7 +2457,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
           { name: `<a:MVP24:1495665626688131183> Most Wins (This Channel)`,   value: topChannelText, inline: false },
           { name: '<:purp_caveira50:1495665632845369354> Wall of Shame (First to Die)', value: shameText,    inline: false },
         )
-        .setFooter({ text: '!rsstats @user for personal history • !rsmatchstats for last match' })
+        .setFooter({ text: '/rsprofile for your personal stats • !rsmatchstats for last match' })
     ]});
   },
 
