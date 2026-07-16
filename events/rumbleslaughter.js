@@ -29,6 +29,7 @@
  */
 
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const prestige = require('../utils/prestige-bridge');
 const { db, economy } = require('../utils/database');
 const jackpot = require('../utils/jackpot');
 const E = require('../utils/emojis');
@@ -588,6 +589,7 @@ async function runGame(channel, game) {
               .replace('@attacker', `**${getDisplayName(winner)}**`)
               .replace('@target', `**${getDisplayName(loser)}**`);
         events.push(`⚔️ ${fightLine}`);
+        prestige.logKill(channel.guild?.id, channel.id, 'rumbleslaughter', getDisplayName(winner), winner.user_id, getDisplayName(loser), loser.user_id).catch(() => {});
       }
     }
 
@@ -637,6 +639,7 @@ async function runGame(channel, game) {
     }
 
     const winLine = pick(WIN_LINES).replace('@winner', `**${getDisplayName(winner)}**`);
+    prestige.logWinner(channel.guild?.id, channel.id, 'rumbleslaughter', getDisplayName(winner), winner.user_id).catch(() => {});
     await channel.send({ embeds: [
       new EmbedBuilder().setColor('#FFD700')
         .setTitle('👑 RUMBLE SLAUGHTER — CHAMPION')

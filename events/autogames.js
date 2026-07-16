@@ -28,6 +28,7 @@
  */
 
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const prestige = require('../utils/prestige-bridge');
 const { economy, stats, db } = require('../utils/database');
 const jackpot = require('../utils/jackpot');
 const E = require('../utils/emojis');
@@ -270,6 +271,11 @@ async function finishGame(channel, ev, result) {
     }
   }
 
+  // Log winners to Prestige Tracker
+  for (const w of winners) {
+    const gameType = type === 'hungergames' ? 'regretgames' : type === 'rumble' ? 'rumbleslaughter_ar' : type;
+    prestige.logWinner(channel.guild?.id, channel.id, gameType, w.username, w.id).catch(() => {});
+  }
   const label = type === 'hungergames' ? '🏹 Victor' : '⚔️ Champion';
   await channel.send({ embeds: [
     new EmbedBuilder()
