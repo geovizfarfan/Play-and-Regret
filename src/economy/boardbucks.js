@@ -416,7 +416,15 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
       return message.reply(`${E.CLOCK} You already claimed your daily! Come back in **${result.hours}h ${result.minutes}m**.`);
     }
     const msgFn = DAILY_MESSAGES[Math.floor(Math.random() * DAILY_MESSAGES.length)];
-    return message.channel.send(`<a:calendar:1479266779837632562> <@${message.author.id}> **Daily sins Claimed!**\n<a:moneybag:1479268556687540345> ${msgFn(result.amount.toLocaleString())}`);
+    const ITEM_NAMES = {
+      sin_vacuum: '<a:SINS:1522338223613804724> Sin Vacuum', shield: '🛡️ Shield', bomb: '💣 Bomb',
+      knife: '🔪 Knife', roast: '🔥 Roast', super_vacuum: '🌪️ Super Vacuum', detonator: '⏰ Detonator',
+    };
+    let weeklyLine = '';
+    if (result.weeklyItem) {
+      weeklyLine = `\n\n<a:purplesparkle:1479210541691175054> **7-day streak!** You got a **${ITEM_NAMES[result.weeklyItem] || result.weeklyItem}**! Check \`/items\`.`;
+    }
+    return message.channel.send(`<a:calendar:1479266779837632562> <@${message.author.id}> **Daily sins Claimed!**\n<a:moneybag:1479268556687540345> ${msgFn(result.amount.toLocaleString())}${weeklyLine}`);
   },
 
   // ── Tax Calculator ───────────────────────────────────────────────────────────
@@ -502,7 +510,7 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
       new EmbedBuilder().setColor('#D8B4FE')
         .setTitle('<:sword:1495666991187361943> Server Events')
         .addFields(
-          { name: 'Rumble Slaughter', value: 'Battle royale where players fight in rounds until one champion remains. Earn XP and level up your emoji. Bounties, avenge kills, and chaos events make each game different.', inline: false },
+          { name: 'Rumble Slaughter', value: 'Battle royale where players fight in rounds until one champion remains. Earn XP and level up your emoji. Avenge kills and chaos events make each game different.', inline: false },
           { name: 'Regret Games', value: '7-day survival story. Enter with a fee, survive events, vote out others. The story unfolds automatically — players kill each other, alliances form and break. Winner takes the pot. Dead players can still vote.', inline: false },
           { name: 'Regret Games Shop (`/rg buy`)', value: '**Crown Shield** (500) — blocks one event kill\n**Queens Insurance** (1200) — survive one elimination\n**Last Laugh** (800) — deal 200 Regret to a survivor when you die\n**Fake Apology** (250) — instant -100 Regret\n**Snake Pass** (400) — betray without Regret penalty\n**Rotten Favor** (300) — 50% Regret reduction on next event hit\n**Hunger Crumb** (150) — survive the hunger event\n**Public Humiliation Pass** (600) — pick a target and roast them publicly', inline: false },
         ),

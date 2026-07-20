@@ -21,6 +21,8 @@ const jackpotUtil     = require('./src/utils/jackpot');
 const economyModule   = require('./src/economy/boardbucks');
 const dailyModule     = require('./src/economy/daily');
 const bettingModule   = require('./src/economy/betting');
+const itemsModule     = require('./src/economy/items');
+const gambleModule    = require('./src/economy/gamble');
 const dropsModule     = require('./src/economy/drops');
 const rgModule        = require('./src/games/regretgames');
 const jackpotModule   = require('./src/economy/jackpot');
@@ -235,19 +237,6 @@ const slashCommands = [
     .addStringOption(o => o.setName('state').setDescription('on or off').setRequired(true).addChoices(
       {name:'On',value:'on'},{name:'Off',value:'off'},
     )),
-  new SlashCommandBuilder().setName('addbounty').setDescription('Bounty manager: Add a bounty to the current match')
-    .addStringOption(o => o.setName('type').setDescription('Bounty type').setRequired(true).addChoices(
-      {name:'Kill — prize for killing a player',value:'kill'},
-      {name:'Avenge — prize for avenging a player',value:'avenge'},
-      {name:'Death — prize for causing the Nth death',value:'death'},
-      {name:'Winner — prize for winning the match',value:'winner'},
-    ))
-    .addStringOption(o => o.setName('prize').setDescription('Prize (e.g. 10k sins, Custom Role)').setRequired(true))
-    .addStringOption(o => o.setName('payee').setDescription('Who is paying this bounty — required for all types').setRequired(true))
-    .addUserOption(o => o.setName('target').setDescription('Target player — required for kill/avenge').setRequired(false))
-    .addStringOption(o => o.setName('deathnumber').setDescription('Which death number — required for death type (e.g. 5)').setRequired(false)),
-  new SlashCommandBuilder().setName('clearbounties').setDescription('Staff: Clear all unclaimed bounties in this channel'),
-  new SlashCommandBuilder().setName('bounties').setDescription('Show active bounties for this match'),
   // ── Regret Games ───────────────────────────────────────────────────────────
   new SlashCommandBuilder().setName('rg').setDescription('The Regret Games commands')
     // Host commands
@@ -286,11 +275,21 @@ const slashCommands = [
   new SlashCommandBuilder().setName('cleanse').setDescription('Attempt to reduce your regret (12h cooldown — may backfire 💀)'),
   new SlashCommandBuilder().setName('confess').setDescription('Gamble your regret for chaotic outcomes (6h cooldown 😈)'),
   new SlashCommandBuilder().setName('cancel').setDescription('Cancel any active game in this channel and refund players'),
-  new SlashCommandBuilder().setName('setbountyrole').setDescription('Admin: Set the bounty manager role')
-    .addRoleOption(o => o.setName('role').setDescription('Role to assign').setRequired(true)),
-  new SlashCommandBuilder().setName('modifybounty').setDescription('Bounty manager: Modify a bounty prize')
-    .addIntegerOption(o => o.setName('id').setDescription('Bounty ID (from /bounties)').setRequired(true))
-    .addStringOption(o => o.setName('prize').setDescription('New prize text').setRequired(true)),
+  new SlashCommandBuilder().setName('leave').setDescription('Leave the game you\'re currently in and get refunded'),
+  new SlashCommandBuilder().setName('gamble').setDescription('Bet sins on a risk tier — safe, risky, or reckless')
+    .addIntegerOption(o => o.setName('amount').setDescription('How much to bet').setRequired(true))
+    .addStringOption(o => o.setName('tier').setDescription('Risk tier').setRequired(true).addChoices(
+      {name:'Safe Bet (65% win, 1.45x)',value:'safe'},
+      {name:'Risky Bet (40% win, 2.3x)',value:'risky'},
+      {name:'Reckless Bet (20% win, 4.4x)',value:'reckless'},
+    )),
+  new SlashCommandBuilder().setName('items').setDescription('View your weekly streak items'),
+  new SlashCommandBuilder().setName('use').setDescription('Use one of your weekly streak items')
+    .addStringOption(o => o.setName('item').setDescription('Which item').setRequired(true).addChoices(
+      {name:'Sin Vacuum',value:'sinvacuum'},{name:'Shield',value:'shield'},{name:'Bomb',value:'bomb'},
+      {name:'Knife',value:'knife'},{name:'Roast',value:'roast'},{name:'Super Vacuum',value:'supervacuum'},{name:'Detonator',value:'detonator'},
+    ))
+    .addUserOption(o => o.setName('target').setDescription('Who to use it on (not needed for Shield/Super Vacuum)')),
   new SlashCommandBuilder().setName('help').setDescription('Show all commands'),
 ].map(cmd => cmd.toJSON());
 
@@ -502,7 +501,7 @@ client.on('interactionCreate', async (interaction) => {
       return await economyModule.handleSlash(interaction, commandName);
 
     // Betting
-    if (['createbet','bet','bets','betinfo','mybets','resolvebet','polymarket'].includes(commandName))
+    if (['createbet','bet','bets','betinfo','mybets','resolvebet','cancelbet','polymarket'].includes(commandName))
       return await bettingModule.handleSlash(interaction, commandName);
 
     // Drops
@@ -541,15 +540,38 @@ client.on('interactionCreate', async (interaction) => {
 
     // Rumble Slaughter
     if (['rumbleslaughter','rsprofile','rsleaderboard','openbackpack','rsinventory',
-         'rsjoin','eras','setera','addbounty','clearbounties','bounties','rsmatchstats','rshalloffame',
+         'rsjoin','eras','setera','rsmatchstats','rshalloffame',
          'setemoji','addemoji','pickemoji','rig','unrig','staffrole','riggedmode','rigrandom','givebackpack'].includes(commandName))
       return await rsModule.handleSlash(interaction, commandName);
 
     // Help
     if (commandName === 'cancel') return await handleUniversalCancel(interaction);
     if (commandName === 'leave')  return await handleUniversalLeave(interaction);
-    if (['setbountyrole','modifybounty'].includes(commandName))
-      return await rsModule.handleSlash(interaction, commandName);
+
+    if (commandName === 'gamble') {
+      const amount = interaction.options.getInteger('amount');
+      const tier   = interaction.options.getString('tier');
+      await interaction.deferReply();
+      const fakeMsg = { author: interaction.user, reply: (d) => interaction.editReply(d) };
+      return await gambleModule.gamble(fakeMsg, [String(amount), tier]);
+    }
+    if (commandName === 'items') {
+      await interaction.deferReply({ ephemeral: true });
+      const fakeSource = { reply: (d) => interaction.editReply(d) };
+      return await itemsModule.showItems(fakeSource, interaction.user.id, interaction.user.username);
+    }
+    if (commandName === 'use') {
+      const itemArg = interaction.options.getString('item');
+      const target  = interaction.options.getUser('target');
+      await interaction.deferReply();
+      const fakeMsg = {
+        author: interaction.user, guild: interaction.guild, channel: interaction.channel,
+        mentions: { users: { first: () => target || null } },
+        reply: (d) => interaction.editReply(d),
+      };
+      return await itemsModule.useItem(fakeMsg, [itemArg]);
+    }
+
     if (commandName === 'help') return await sendHelpSlash(interaction);
 
   } catch (err) {
@@ -562,6 +584,14 @@ client.on('interactionCreate', async (interaction) => {
 
 // ── Prefix handler ─────────────────────────────────────────────────────────────
 const PREFIX = process.env.PREFIX || '!';
+// ── Detonator effect — deletes a detonated user's messages for their active window ──
+client.on('messageCreate', async (message) => {
+  if (message.author.bot) return;
+  if (itemsModule.isDetonated(message.author.id, message.channel.id)) {
+    await message.delete().catch(() => {});
+  }
+});
+
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith(PREFIX)) return;
@@ -573,6 +603,13 @@ client.on('messageCreate', async (message) => {
       return await dailyModule.handleCommand(message, args, command);
     if (['balance','bal','sins','give','take','transfer','beg','leaderboard','lb','stats','profile','grantsins','richest','taxcalc','history','guide','faq','help'].includes(command))
       return await economyModule.handleCommand(message, args, command);
+
+    if (command === 'gamble')
+      return await gambleModule.gamble(message, args);
+    if (command === 'items')
+      return await itemsModule.showItems(message, message.author.id, message.author.username);
+    if (command === 'use')
+      return await itemsModule.useItem(message, args);
 
     if (['createbet','bet','bets','resolvebet','betinfo','cancelbet','mybets','polymarket'].includes(command))
       return await bettingModule.handleCommand(message, args, command);
@@ -606,9 +643,9 @@ client.on('messageCreate', async (message) => {
 
     if (['rumbleslaughter','rs','rsjoin','rsenter','rsprofile','rsp','rsleaderboard','rslb','rsstats',
          'openbackpack','rsbag','rsinventory','rsinv','rschedule',
-         'eras','rseras','addbounty','clearbounties','bounties','rsbounties','rsmatchstats','rsrecap','rshalloffame','rshof',
+         'eras','rseras','rsmatchstats','rsrecap','rshalloffame','rshof',
          'rig','unrig','rigrole','rigrandom','riggedmode','staffrole','givebackpack',
-         'setemoji','addemoji','pickemoji','animemoji','startgame','setlogchannel'].includes(command))
+         'setemoji','addemoji','pickemoji','animemoji','startgame'].includes(command))
       return await rsModule.handleCommand(message, args, command);
 
     if (command === 'cancel') return await handleUniversalCancelMsg(message);
@@ -647,11 +684,14 @@ function buildHelpEmbeds() {
     .addFields(
       { name: `${E.BB_COIN} Economy`, value: [
         '`/balance` `!bal` — Check your sins balance',
-        '`/daily` `!daily` — Claim daily sins',
+        '`/daily` `!daily` — Claim daily sins (every 7th day drops a bonus item)',
         '`/beg` `!beg` — Beg for sins (1hr cooldown)',
         '`/transfer @user amount` — Send sins',
         '`/leaderboard` `!lb` — Top 10 richest',
         '`/profile` `!profile` — Your stats',
+        '`/gamble amount tier` — Bet sins on safe/risky/reckless odds',
+        '`/items` `!items` — View your weekly streak items',
+        '`/use item @target` — Use a weekly item',
       ].join('\n') },
       { name: `${E.BET_DICE} Bet & Regret`, value: [
         '`/createbet title` — Create a yes/no bet',

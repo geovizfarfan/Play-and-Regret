@@ -436,17 +436,6 @@ async function getSettings() {
   return row || { rigrandom: false, riggedmode: 'hidden', staff_role_id: null };
 }
 
-async function getLogChannel(client, fallbackChannel) {
-  try {
-    const settings = await db.get('SELECT log_channel_id FROM rs_settings WHERE id = 1');
-    if (settings?.log_channel_id) {
-      const ch = await client.channels.fetch(settings.log_channel_id).catch(() => null);
-      if (ch) return ch;
-    }
-  } catch(e) {}
-  return fallbackChannel;
-}
-
 async function getSetting(key) {
   const row = await db.get('SELECT value FROM rs_settings WHERE id = 1');
   return row ? row[key] : null;
@@ -673,17 +662,6 @@ function canCancel(member, hostId) {
   return isHost(member);
 }
 
-// Bounty managers: admins, event hosts, or the designated bounty role
-async function isBountyManager(member) {
-  if (!member) return false;
-  if (isHost(member)) return true;
-  const settings = await db.get('SELECT bounty_role_id FROM rs_settings WHERE id = 1').catch(() => null);
-  if (settings?.bounty_role_id) {
-    return member.roles.cache.some(r => r.id === settings.bounty_role_id);
-  }
-  return false;
-}
-
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -694,8 +672,6 @@ async function runGame(channel, game) {
   let round = 1;
   const settings  = await getSettings();
   const staffRole = settings.staff_role_id;
-  // Get log channel — falls back to arena channel if not set
-  const logChannel = await getLogChannel(channel.client, channel);
 
   // Era color palette — drives every embed color for the rest of the match
   const eraData      = getEra(game.era || 'default');
@@ -807,7 +783,6 @@ async function runGame(channel, game) {
     await sleep(ROUND_DELAY_MS);
 
     const events    = [];
-    const logEvents  = [];
     const toElim    = new Set();
     const immuneIds = new Set();
 
@@ -826,7 +801,7 @@ async function runGame(channel, game) {
       for (let i = 0; i < Math.min(elimCount, shuffled.length); i++) {
         toElim.add(shuffled[i].user_id);
         deathOrder.push({ userId: shuffled[i].user_id, username: shuffled[i].username, type: 'chaos' });
-        logEvents.push(`<:purp_caveira50:1495665632845369354> ${chaos.text.replace('@user', `**${getDisplayName(shuffled[i])}**`)}`);
+        events.push(`<:purp_caveira50:1495665632845369354> ${chaos.text.replace('@user', `**${getDisplayName(shuffled[i])}**`)}`);
       }
     }
 
@@ -855,16 +830,6 @@ async function runGame(channel, game) {
           events.push(`🎒 ${bLine} → got **${item.name}** ${RARITY_EMOJI[item.rarity || item.type] || ''}`);
         }
 
-        // Avenger check — did the winner avenge someone?
-        const avengedKill = killLog.find(k => k.victimId === winner.user_id && k.killerId === loser.user_id);
-        // Actually check: did loser previously kill someone, and winner now kills loser?
-        const priorVictim = killLog.find(k => k.killerId === loser.user_id);
-        if (priorVictim) {
-          await logChannel.send(
-            `<a:fire1:1495666086534844516> **${getDisplayName(winner)}** avenged **${priorVictim.victimName}** by eliminating **${getDisplayName(loser)}**! <:purp_caveira50:1495665632845369354>`
-          ).catch(() => {});
-        }
-
         // Fight line
         const isHumiliation = Math.random() < 0.15;
         const fightLine = isHumiliation
@@ -879,7 +844,8 @@ async function runGame(channel, game) {
     // Ensure every eliminated player got a message
     for (const p of players) {
       if (toElim.has(p.user_id) && !events.some(e => e.includes(getDisplayName(p)))) {
-        logEvents.push(`<:purp_caveira50:1495665632845369354> **${getDisplayName(p)}** was eliminated.`);
+        const elimLine = pick(ERA_ELIM).replace('@user', `**${getDisplayName(p)}**`);
+        events.push(elimLine);
       }
     }
     // ── REVIVE SYSTEM ──────────────────────────────────────────────────────────
@@ -888,6 +854,17 @@ async function runGame(channel, game) {
 
     for (const p of eliminated) {
       const deathInfo = deathOrder.find(d => d.userId === p.user_id);
+
+      // Shield (weekly streak item) — full save, no power penalty, takes priority over revives
+      const shield = await economy.getEffect(p.user_id, 'shield').catch(() => null);
+      if (shield) {
+        await economy.clearEffect(p.user_id, 'shield').catch(() => {});
+        toElim.delete(p.user_id);
+        deathOrder.splice(deathOrder.findIndex(d => d.userId === p.user_id), 1);
+        await channel.send(`🛡️ **${getDisplayName(p)}**'s shield absorbed the elimination. Untouched.`).catch(() => {});
+        continue;
+      }
+
       const canRevive = !revivedPlayers.has(p.user_id) &&
                         (deathInfo?.type === 'normal' || deathInfo?.type === 'self');
 
@@ -936,14 +913,6 @@ async function runGame(channel, game) {
       .addFields({ name: `<a:purplefire:1479219348353716415> Still Alive (${alive.length})`, value: alive.map(p => revivedPlayers.has(p.user_id) ? getDisplayName(p) + ' *(revived)*' : getDisplayName(p)).join(', ') || 'Nobody.' });
 
     await channel.send({ embeds: [arenaEmbed] });
-
-    if (logEvents.length > 0) {
-      const logEmbed = new EmbedBuilder()
-        .setColor(ERA_HIGHLIGHT)
-        .setTitle(`📋 Round ${round} — Eliminations`)
-        .setDescription(logEvents.join('\n'));
-      await logChannel.send({ embeds: [logEmbed] });
-    }
     round++;
 
     if (alive.length === 0) break;
@@ -1136,11 +1105,12 @@ async function runGame(channel, game) {
     ];
 
     const winLine = pick(ERA_WIN).replace('@winner', `**${getDisplayName(winner)}**`);
-    await channel.send(`# <a:MVP24:1495665626688131183> ${getDisplayName(winner).toUpperCase()} IS THE CHAMPION <a:MVP24:1495665626688131183>`).catch(()=>{});
+    await channel.send(`# <a:MVP24:1495665626688131183> ${getDisplayName(winner).toUpperCase()} IS THE CHAMPION <a:MVP24:1495665626688131183>\n<@${winner.user_id}>`).catch(()=>{});
     await channel.send({ embeds: [
       new EmbedBuilder().setColor(ERA_HIGHLIGHT)
         .setTitle('<a:MVP24:1495665626688131183> RUMBLE SLAUGHTER — CHAMPION')
         .setDescription(
+          `<@${winner.user_id}>\n\n` +
           `${winLine}\n\n` +
           `<a:SINS:1522338223613804724> **+${share.toLocaleString()} sins** <a:hmmdevil:1495665623219306647>\n` +
           `<:purp_caveira50:1495665632845369354> **+${REGRET_WINNER} regret** (winning here isn't clean)\n` +
@@ -1168,138 +1138,6 @@ async function runGame(channel, game) {
 
   } // close RvR else / normal win block
 
-  // ── Process bounties ─────────────────────────────────────────────────────────────
-  const bounties = await db.all(
-    "SELECT * FROM rs_bounties WHERE channel_id = ? AND claimed_at IS NULL",
-    [channel.id]
-  ).catch(() => []);
-
-  if (bounties.length) {
-    const claimedBounties = [];
-
-    // Void kill/avenge bounties where target never joined OR survived
-    const playerIds  = new Set(players.map(p => p.user_id));
-    const survivorIds = new Set(alive.map(p => p.user_id));
-    for (const bounty of bounties) {
-      if ((bounty.type === 'kill' || bounty.type === 'avenge') && bounty.target_id) {
-        const neverJoined = !playerIds.has(bounty.target_id);
-        const survived    = survivorIds.has(bounty.target_id);
-        if (neverJoined || survived) {
-          const reason = neverJoined ? 'never joined the match' : 'survived the match';
-          const voidReason = neverJoined ? 'never joined' : 'survived the match';
-          await db.run(
-            "UPDATE rs_bounties SET claimed_by = 'void', claimed_name = 'void', claimed_at = NOW(), match_id = ?, void_reason = ? WHERE id = ?",
-            [matchId, voidReason, bounty.id]
-          ).catch(() => {});
-          channel.send(
-            `VOID — @${bounty.target_name} ${voidReason}.`
-          ).then(m => setTimeout(() => m.delete().catch(() => {}), 5000)).catch(() => {});
-        }
-      }
-    }
-
-    for (const bounty of bounties) {
-      let claimerId = null, claimerName = null;
-
-      if (bounty.type === 'kill') {
-        // Who killed the target?
-        const killEntry = killLog.find(k => k.victimId === bounty.target_id);
-        if (killEntry) { claimerId = killEntry.killerId; claimerName = killEntry.killerName; }
-
-      } else if (bounty.type === 'avenge') {
-        // Check how the target died first
-        const targetDeath = deathOrder.find(d => d.userId === bounty.target_id);
-        if (targetDeath && (targetDeath.type === 'self' || targetDeath.type === 'chaos')) {
-          // Void — target died by self/chaos, nobody to avenge
-          const scReason = targetDeath.type === 'self' ? 'eliminated themselves' : 'eliminated by chaos';
-          await db.run(
-            "UPDATE rs_bounties SET claimed_by = 'void', claimed_name = 'void', claimed_at = NOW(), match_id = ?, void_reason = ? WHERE id = ?",
-            [matchId, scReason, bounty.id]
-          ).catch(() => {});
-          // Announce void in channel
-          const voidMsg = targetDeath.type === 'self'
-            ? `VOID — @${bounty.target_name} eliminated themselves. no avenger needed.`
-            : `VOID — @${bounty.target_name} was eliminated by chaos. no avenger needed.`;
-          channel.send(voidMsg).then(m => setTimeout(() => m.delete().catch(() => {}), 5000)).catch(() => {});
-          continue;
-        }
-        // Normal avenge — who killed the person who killed the target?
-        const targetWasKilledBy = killLog.find(k => k.victimId === bounty.target_id);
-        if (targetWasKilledBy) {
-          const avenger = killLog.find(k => k.victimId === targetWasKilledBy.killerId);
-          if (avenger) { claimerId = avenger.killerId; claimerName = avenger.killerName; }
-        }
-
-      } else if (bounty.type === 'death') {
-        // Who IS the Nth person to die?
-        const deathIdx = Number(bounty.death_number) - 1;
-        if (deathIdx >= 0 && deathIdx < deathOrder.length) {
-          claimerId   = deathOrder[deathIdx].userId;
-          claimerName = deathOrder[deathIdx].username;
-        }
-
-      } else if (bounty.type === 'winner') {
-        // Match winner
-        if (alive.length > 0) { claimerId = alive[0].user_id; claimerName = alive[0].username; }
-      }
-
-      if (claimerId) {
-        await db.run(
-          'UPDATE rs_bounties SET claimed_by = ?, claimed_name = ?, claimed_at = NOW(), match_id = ? WHERE id = ?',
-          [claimerId, claimerName, matchId, bounty.id]
-        ).catch(() => {});
-        claimedBounties.push({ bounty, claimerId, claimerName });
-
-        // Avenger announcement in real time already handled below
-      }
-    }
-
-    if (claimedBounties.length || true) {
-      const typeLabels = { kill: '<a:target:1495665634279821485> Kill', avenge: '<a:fire1:1495666086534844516> Avenge', death: '<:purp_caveira50:1495665632845369354> Death', winner: '<a:MVP24:1495665626688131183> Winner' };
-
-      // Separate claimed vs voided
-      const claimedOnly   = claimedBounties.filter(({ bounty }) => bounty.claimed_name !== 'void');
-      const voidedBounties = await db.all(
-        "SELECT * FROM rs_bounties WHERE channel_id = ? AND claimed_name = 'void' AND match_id = ?",
-        [channel.id, matchId]
-      ).catch(() => []);
-
-      if (!claimedOnly.length && !voidedBounties.length) return;
-
-      const claimedLines = claimedOnly.map(({ bounty, claimerName }) => {
-        const n   = bounty.death_number;
-        const ord = n ? (n===1?'st':n===2?'nd':n===3?'rd':'th') : null;
-        if (bounty.type === 'kill') {
-          return `${typeLabels.kill} **@${claimerName}** killed → **@${bounty.target_name}** → prize: **${bounty.prize}**${bounty.payee ? ` (from: ${bounty.payee})` : ''}`;
-        } else if (bounty.type === 'avenge') {
-          return `${typeLabels.avenge} **@${claimerName}** avenged → **@${bounty.target_name}** → prize: **${bounty.prize}**${bounty.payee ? ` (from: ${bounty.payee})` : ''}`;
-        } else if (bounty.type === 'death') {
-          return `${typeLabels.death} **@${claimerName}** was the **${n}${ord} death** → prize: **${bounty.prize}**${bounty.payee ? ` (from: ${bounty.payee})` : ''}`;
-        } else {
-          return `${typeLabels.winner} **@${claimerName}** won the match → prize: **${bounty.prize}**${bounty.payee ? ` (from: ${bounty.payee})` : ''}`;
-        }
-      });
-
-      const voidLines = voidedBounties.map(b =>
-        'VOID — @' + b.target_name + ' (' + (b.void_reason || 'cancelled') + ') → prize: **' + b.prize + '**' + (b.payee ? ' (from: ' + b.payee + ')' : '')
-      );
-
-      const embed = new EmbedBuilder().setColor(ERA_GOLD).setTitle('<a:target:1495665634279821485> Bounty Results');
-      if (claimedLines.length) embed.addFields({ name: '<:checkmark:1495666088417956002> Winners', value: claimedLines.join('\n'), inline: false });
-      if (voidLines.length)   embed.addFields({ name: '<:wrong:1495666083594502174> Voided',  value: voidLines.join('\n'),   inline: false });
-      embed.setDescription('*Huge thanks to everyone who added bounties! <a:confetti:1495667283870089307>*\n*Bounty rewards are paid out by the players who donated them.*')
-           .setFooter({ text: 'bounties are paid manually by the listed payee' });
-
-      await logChannel.send({ embeds: [embed] });
-    }
-  }
-
-  // Wipe any remaining unclaimed bounties after match
-  await db.run(
-    "UPDATE rs_bounties SET claimed_by = 'expired', claimed_name = 'expired', claimed_at = NOW() WHERE channel_id = ? AND claimed_at IS NULL",
-    [channel.id]
-  ).catch(() => {});
-
   // XP/backpack milestones — sent standalone now that the Post-Game Regret Report is gone
   if (postGameMilestones.length) {
     await channel.send({ embeds: [
@@ -1321,9 +1159,6 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
   const roleAId       = matchConfig.roleA || null;
   const roleBId       = matchConfig.roleB || null;
 
-  // Hard wipe ALL bounties for this channel — fresh slate every match
-  await db.run('DELETE FROM rs_bounties WHERE channel_id = ?', [channel.id]).catch(() => {});
-
   const tsUnix = fireAt ? Math.floor(fireAt.getTime() / 1000) : null;
   const lobbyColor = (era.colors && era.colors.primary) || era.color || '#CC0000';
   const embed  = new EmbedBuilder()
@@ -1342,7 +1177,7 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
       `*Most of you will lose. Loudly.*`
     )
     .addFields({ name: '<:member:1495666085121491024> Signed Up', value: '**0** players' })
-    .setFooter({ text: `Min ${MIN_PLAYERS} players • !rsjoin to enter • /addbounty to add bounties` });
+    .setFooter({ text: `Min ${MIN_PLAYERS} players • !rsjoin to enter` });
 
   const btn = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
@@ -1682,75 +1517,6 @@ It will affect your duels in the next Rumble Slaughter match.`,
     if (commandName === 'openbackpack')    return this.openBackpackCmd(interaction);
     if (commandName === 'rsinventory')     return this.showInventory(interaction);
     if (commandName === 'rsjoin')          return this.handleCommand(fakeMsg, [], 'rsjoin');
-    if (commandName === 'addbounty') {
-      if (!await isBountyManager(interaction.member)) return interaction.editReply('<:wrong:1495666083594502174> You need the bounty manager role, Event Host, or Admin to add bounties.');
-      const bType     = opts.getString('type');
-      const bPrize    = opts.getString('prize');
-      const bPayee    = opts.getString('payee');
-      const bTarget   = opts.getUser('target');
-      const bDeathNum = parseInt(opts.getString('deathnumber') || '0') || null;
-
-      // Validate required fields per type
-      if ((bType === 'kill' || bType === 'avenge') && !bTarget)
-        return interaction.editReply('<:wrong:1495666083594502174> Kill and Avenge bounties require a **target** player.');
-      if ((bType === 'kill' || bType === 'avenge') && !bPayee)
-        return interaction.editReply('<:wrong:1495666083594502174> Kill and Avenge bounties require a **payee**.');
-      if (bType === 'death' && !bDeathNum)
-        return interaction.editReply('<:wrong:1495666083594502174> Death bounties require a **death number** (e.g. 5).');
-      if (bType === 'death' && !bPayee)
-        return interaction.editReply('<:wrong:1495666083594502174> Death bounties require a **payee**.');
-      if (bType === 'winner' && !bPayee)
-        return interaction.editReply('<:wrong:1495666083594502174> Winner bounties require a **payee**.');
-
-      let targetId = null, targetName = null;
-      if (bTarget) { targetId = bTarget.id; targetName = bTarget.username; }
-
-      await db.run(
-        'INSERT INTO rs_bounties (channel_id, type, target_id, target_name, death_number, prize, payee) VALUES (?,?,?,?,?,?,?)',
-        [interaction.channel.id, bType, targetId, targetName, bDeathNum, bPrize, bPayee]
-      );
-
-      const typeLabels = { kill: '<a:target:1495665634279821485> Kill', avenge: '<a:fire1:1495666086534844516> Avenge', death: '<:purp_caveira50:1495665632845369354> Death', winner: '<a:MVP24:1495665626688131183> Winner' };
-      const n = bDeathNum;
-      const ord = n ? (n===1?'st':n===2?'nd':n===3?'rd':'th') : null;
-      const targetStr = targetName ? `@${targetName}` : n ? `${n}${ord} death` : 'match winner';
-
-      return interaction.editReply({ embeds: [
-        new EmbedBuilder().setColor('#C9B1FF')
-          .setTitle('<a:target:1495665634279821485> Bounty Added!')
-          .setDescription(
-            bType === 'kill'   ? `<a:target:1495665634279821485> Kill **@${targetName}** → prize: **${bPrize}** (from: ${bPayee})` :
-            bType === 'avenge' ? `<a:fire1:1495666086534844516> Avenge **@${targetName}** → prize: **${bPrize}** (from: ${bPayee})` :
-            bType === 'death'  ? `<:purp_caveira50:1495665632845369354> Cause the **${n}${ord} death** → prize: **${bPrize}** (from: ${bPayee})` :
-                                 `<a:MVP24:1495665626688131183> Win the match → prize: **${bPrize}** (from: ${bPayee})`
-          )
-          .setFooter({ text: 'use /bounties to see all active bounties • resets on new match' })
-      ]});
-    }
-    if (commandName === 'clearbounties') {
-      if (!await isBountyManager(interaction.member)) return interaction.editReply('<:wrong:1495666083594502174> You need the bounty manager role to clear bounties.');
-      await db.run("DELETE FROM rs_bounties WHERE channel_id = ? AND claimed_at IS NULL", [interaction.channel.id]);
-      return interaction.editReply('<:checkmark:1495666088417956002> All unclaimed bounties cleared for this channel.');
-    }
-    if (commandName === 'bounties') {
-      const fakeMsg2 = { channel: interaction.channel, reply: async (data) => interaction.editReply(data) };
-      return this.showBounties(fakeMsg2);
-    }
-    if (commandName === 'setbountyrole') {
-      if (!isHost(interaction.member)) return interaction.editReply('<:wrong:1495666083594502174> Admin only.');
-      const role = opts.getRole('role');
-      await db.run('UPDATE rs_settings SET bounty_role_id = ? WHERE id = 1', [role.id]);
-      return interaction.editReply(`<:checkmark:1495666088417956002> Bounty manager role set to **${role.name}**. Members with this role can add, remove, and modify bounty prizes.`);
-    }
-    if (commandName === 'modifybounty') {
-      if (!await isBountyManager(interaction.member)) return interaction.editReply('<:wrong:1495666083594502174> You need the bounty manager role.');
-      const bountyId = opts.getInteger('id');
-      const newPrize = opts.getString('prize');
-      const bounty = await db.get('SELECT * FROM rs_bounties WHERE id = ? AND channel_id = ? AND claimed_at IS NULL', [bountyId, interaction.channel.id]);
-      if (!bounty) return interaction.editReply('<:wrong:1495666083594502174> Bounty not found or already claimed.');
-      await db.run('UPDATE rs_bounties SET prize = ? WHERE id = ?', [newPrize, bountyId]);
-      return interaction.editReply(`<:checkmark:1495666088417956002> Bounty #${bountyId} prize updated to **${newPrize}**.`);
-    }
     if (commandName === 'setera')         return this.setEraDropdown(interaction);
     if (commandName === 'rsmatchstats')    return this.handleCommand(fakeMsg, [], 'rsmatchstats');
     if (commandName === 'rshalloffame')    return this.handleCommand(fakeMsg, [], 'rshalloffame');
@@ -1792,9 +1558,6 @@ It will affect your duels in the next Rumble Slaughter match.`,
       case 'rumble':                     return this.manualFire(message);
       case 'cancelevent':                 return this.cancelGame(message);
       case 'rschedule':                   return this.showSchedule(message);
-      case 'addbounty':                    return this.addBounty(message, args);
-      case 'clearbounties':                return this.clearBounties(message);
-      case 'bounties': case 'rsbounties':  return this.showBounties(message);
       case 'eras': case 'rseras':          return this.listErasCmd(message);
       case 'rsmatchstats': case 'rsrecap': return this.matchStats(message);
       case 'rshalloffame': case 'rshof':   return this.hallOfFame(message);
@@ -1806,19 +1569,9 @@ It will affect your duels in the next Rumble Slaughter match.`,
       case 'staffrole':                   return this.setStaffRole(message, args);
       case 'givebackpack':                return this.giveBackpack(message, args);
       case 'setemoji':                    return this.setEmojiMsg(message, args[0]);
-      case 'setlogchannel':               return this.setLogChannel(message, args);
       case 'addemoji':                    return this.addEmojiMsg(message, args[0]);
       case 'pickemoji': case 'animemoji':  return this.pickAnimatedEmoji(message);
     }
-  },
-
-  // ── Set Log Channel ──────────────────────────────────────────────────────────
-  async setLogChannel(message, args) {
-    if (!isHost(message.member)) return message.reply('<:wrong:1495666083594502174> Staff only.');
-    const ch = message.mentions.channels.first();
-    if (!ch) return message.reply('<:wrong:1495666083594502174> Mention a channel. Example: `!setlogchannel #rs-log`');
-    await db.run('UPDATE rs_settings SET log_channel_id = $1 WHERE id = 1', [ch.id]);
-    return message.reply(`<:checkmark:1495666088417956002> Log channel set to <#${ch.id}>. Kill/elim/avenge messages will go there.`);
   },
 
   // ── Start game ────────────────────────────────────────────────────────────────
@@ -2370,12 +2123,6 @@ It will affect your duels in the next Rumble Slaughter match.`,
       return `${i+1}. **${k.killer_name}** → **${k.victim_name}**${chaosTag}${avengeTag}`;
     });
 
-    // Bounty results
-    const claimedBounties = await db.all(
-      'SELECT * FROM rs_bounties WHERE match_id = ? AND claimed_at IS NOT NULL AND claimed_name != ?',
-      [match.id, 'reset']
-    ).catch(() => []);
-
     const embeds = [
       new EmbedBuilder().setColor('#2ECC40')
         .setTitle('<a:purplecheck:1478983961450643538> Match Recap — Rumble Slaughter')
@@ -2391,17 +2138,6 @@ It will affect your duels in the next Rumble Slaughter match.`,
 
     if (killLines.length) {
       embeds[0].addFields({ name: '<:sword:1495666991187361943> Kill Chain', value: killLines.join('\n').slice(0, 1024), inline: false });
-    }
-
-    if (claimedBounties.length) {
-      const typeLabels = { kill: '<a:target:1495665634279821485>', avenge: '<a:fire1:1495666086534844516>', death: '<:purp_caveira50:1495665632845369354>', winner: '<a:MVP24:1495665626688131183>' };
-      const bLines = claimedBounties.map(b => {
-        const n = b.death_number;
-        const ord = n ? (n===1?'st':n===2?'nd':n===3?'rd':'th') : null;
-        const target = b.target_name ? `@${b.target_name}` : n ? `${n}${ord} Death` : 'Winner';
-        return `${typeLabels[b.type] || '<a:target:1495665634279821485>'} **@${b.claimed_name}** — ${target} → **${b.prize}**${b.payee ? ` *(${b.payee})*` : ''}`;
-      });
-      embeds[0].addFields({ name: '<a:target:1495665634279821485> Bounties Claimed', value: bLines.join('\n'), inline: false });
     }
 
     return message.reply({ embeds });
@@ -2459,117 +2195,6 @@ It will affect your duels in the next Rumble Slaughter match.`,
         )
         .setFooter({ text: '/rsprofile for your personal stats • !rsmatchstats for last match' })
     ]});
-  },
-
-  // ── Bounty System ────────────────────────────────────────────────────────────────
-  async addBounty(message, args) {
-    if (!isHost(message.member)) return message.reply('<:wrong:1495666083594502174> Admin/staff only.');
-
-    const type = args[0]?.toLowerCase();
-    if (!['kill','avenge','death','winner'].includes(type)) {
-      return message.reply(
-        `<:wrong:1495666083594502174> Usage:\n` +
-        `\`!addbounty kill @user <prize> [payee]\`\n` +
-        `\`!addbounty avenge @user <prize> [payee]\`\n` +
-        `\`!addbounty death <number> <prize> [payee]\`\n` +
-        `\`!addbounty winner <prize> [payee]\``
-      );
-    }
-
-    let targetId = null, targetName = null, deathNum = null, prize, payee;
-
-    if (type === 'kill' || type === 'avenge') {
-      const target = message.mentions?.users?.first();
-      if (!target) return message.reply('<:wrong:1495666083594502174> Tag a target player.');
-      targetId   = target.id;
-      targetName = target.username;
-      prize  = args.slice(2).join(' ').split('|')[0].trim();
-      payee  = args.slice(2).join(' ').split('|')[1]?.trim() || null;
-    } else if (type === 'death') {
-      deathNum = parseInt(args[1]);
-      if (!deathNum || deathNum < 1) return message.reply('<:wrong:1495666083594502174> Usage: `!addbounty death <number> <prize> [payee]`');
-      prize  = args.slice(2).join(' ').split('|')[0].trim();
-      payee  = args.slice(2).join(' ').split('|')[1]?.trim() || null;
-    } else {
-      prize  = args.slice(1).join(' ').split('|')[0].trim();
-      payee  = args.slice(1).join(' ').split('|')[1]?.trim() || null;
-    }
-
-    if (!prize) return message.reply('<:wrong:1495666083594502174> You need to specify a prize!');
-
-    await db.run(
-      'INSERT INTO rs_bounties (channel_id, type, target_id, target_name, death_number, prize, payee) VALUES (?,?,?,?,?,?,?)',
-      [message.channel.id, type, targetId, targetName, deathNum, prize, payee]
-    );
-
-    const typeLabels = { kill: '<a:target:1495665634279821485> Kill', avenge: '<a:fire1:1495666086534844516> Avenge', death: '<:purp_caveira50:1495665632845369354> Death', winner: '<a:MVP24:1495665626688131183> Winner' };
-    const targetStr  = targetName ? `**@${targetName}**` : deathNum ? `**${deathNum}${deathNum===1?'st':deathNum===2?'nd':deathNum===3?'rd':'th'} death**` : 'match winner';
-
-    return message.reply({ embeds: [
-      new EmbedBuilder().setColor('#C9B1FF')
-        .setTitle('<a:target:1495665634279821485> Bounty Added!')
-        .addFields(
-          { name: 'Type',    value: typeLabels[type],        inline: true },
-          { name: 'Target',  value: targetStr,               inline: true },
-          { name: 'Prize',   value: prize,                   inline: true },
-          { name: 'Payee',   value: payee || 'not specified', inline: true },
-        )
-        .setFooter({ text: 'use !bounties to see all active bounties • resets on new match' })
-    ]});
-  },
-
-  async clearBounties(message) {
-    if (!isHost(message.member)) return message.reply('<:wrong:1495666083594502174> Admin/staff only.');
-    await db.run('DELETE FROM rs_bounties WHERE channel_id = ? AND claimed_at IS NULL', [message.channel.id]);
-    return message.reply('<:checkmark:1495666088417956002> All unclaimed bounties cleared for this channel.');
-  },
-
-  async showBounties(message) {
-    const bounties = await db.all(
-      "SELECT * FROM rs_bounties WHERE channel_id = ? AND claimed_at IS NULL ORDER BY created_at ASC",
-      [message.channel.id]
-    );
-
-    if (!bounties.length) {
-      return message.reply('<:wrong:1495666083594502174> No active bounties in this channel. Staff can add them with `!addbounty`.');
-    }
-
-    const sections = {
-      kill:   bounties.filter(b => b.type === 'kill'),
-      avenge: bounties.filter(b => b.type === 'avenge'),
-      death:  bounties.filter(b => b.type === 'death'),
-      winner: bounties.filter(b => b.type === 'winner'),
-    };
-
-    const embed = new EmbedBuilder()
-      .setColor('#FFD700')
-      .setTitle('<a:target:1495665634279821485> Active Bounties — This Match');
-
-    if (sections.kill.length) {
-      embed.addFields({ name: '<a:target:1495665634279821485> Kill Bounties', value: sections.kill.map(b =>
-        `• [#${b.id}] Kill **@${b.target_name}** → prize: **${b.prize}** (from: ${b.payee || 'n/a'})`
-      ).join('\n'), inline: false });
-    }
-    if (sections.avenge.length) {
-      embed.addFields({ name: '<a:fire1:1495666086534844516> Avenge Bounties', value: sections.avenge.map(b =>
-        `• [#${b.id}] Avenge **@${b.target_name}** → prize: **${b.prize}** (from: ${b.payee || 'n/a'})`
-      ).join('\n'), inline: false });
-    }
-    if (sections.death.length) {
-      embed.addFields({ name: '<:purp_caveira50:1495665632845369354> Death Bounties', value: sections.death.map(b => {
-        const n = Number(b.death_number);
-        const ord = n===1?'st':n===2?'nd':n===3?'rd':'th';
-        return `• [#${b.id}] **${n}${ord} Death** → prize: **${b.prize}** (from: ${b.payee || 'n/a'})`;
-      }).join('\n'), inline: false });
-    }
-    if (sections.winner.length) {
-      embed.addFields({ name: '<a:MVP24:1495665626688131183> Winner Bounties', value: sections.winner.map(b =>
-        `• [#${b.id}] Match winner → prize: **${b.prize}** (from: ${b.payee || 'n/a'})`
-      ).join('\n'), inline: false });
-    }
-
-    embed.setFooter({ text: 'bounties are claimed automatically when conditions are met' });
-    return message.reply({ embeds: [embed] });
   },
 
   // ── Set Era Dropdown ──────────────────────────────────────────────────────────
