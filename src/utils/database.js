@@ -146,7 +146,21 @@ const economy = {
        WHERE user_id = ?`,
       [amount, amount, streak, regretGain, userId]
     );
-    return { success: true, amount, streak, regretGain };
+
+    // Weekly gift — every 7th consecutive day
+    let weeklyItem = null;
+    if (streak > 0 && streak % 7 === 0) {
+      const WEEKLY_POOL = ['sin_vacuum', 'shield', 'bomb', 'knife', 'roast', 'super_vacuum', 'detonator'];
+      const WEEKLY_WEIGHTS = [25, 25, 20, 20, 20, 8, 7]; // rares (super_vacuum/detonator) are less common
+      const total = WEEKLY_WEIGHTS.reduce((a, b) => a + b, 0);
+      let roll = Math.random() * total;
+      for (let i = 0; i < WEEKLY_POOL.length; i++) {
+        roll -= WEEKLY_WEIGHTS[i];
+        if (roll <= 0) { weeklyItem = WEEKLY_POOL[i]; break; }
+      }
+      await this.grantWeeklyItem(userId, weeklyItem, 1);
+    }
+    return { success: true, amount, streak, regretGain, weeklyItem };
   },
 
   async getLeaderboard(limit = 10) {
@@ -168,6 +182,50 @@ const economy = {
 
   async setRegret(userId, amount) {
     await db.run('UPDATE users SET regret = GREATEST(0, ?) WHERE user_id = ?', [Math.max(0, amount), userId]);
+  },
+
+  // ── Weekly streak items ───────────────────────────────────────────────────
+  async grantWeeklyItem(userId, itemId, qty = 1) {
+    await db.run(
+      `INSERT INTO weekly_items (user_id, item_id, qty) VALUES (?, ?, ?)
+       ON CONFLICT (user_id, item_id) DO UPDATE SET qty = weekly_items.qty + ?`,
+      [userId, itemId, qty, qty]
+    );
+  },
+  async getWeeklyItems(userId) {
+    return db.all('SELECT * FROM weekly_items WHERE user_id = ? AND qty > 0 ORDER BY item_id', [userId]);
+  },
+  async getWeeklyItemQty(userId, itemId) {
+    const row = await db.get('SELECT qty FROM weekly_items WHERE user_id = ? AND item_id = ?', [userId, itemId]);
+    return row?.qty || 0;
+  },
+  async useWeeklyItem(userId, itemId) {
+    const row = await db.get('SELECT qty FROM weekly_items WHERE user_id = ? AND item_id = ?', [userId, itemId]);
+    if (!row || row.qty < 1) return false;
+    await db.run('UPDATE weekly_items SET qty = qty - 1 WHERE user_id = ? AND item_id = ?', [userId, itemId]);
+    return true;
+  },
+
+  // ── Active effects (shield, detonator) ────────────────────────────────────
+  async setEffect(userId, effectType, guildId, channelId, durationMs) {
+    const expiresAt = durationMs ? new Date(Date.now() + durationMs) : null;
+    await db.run(
+      `INSERT INTO active_effects (user_id, effect_type, guild_id, channel_id, expires_at) VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT (user_id, effect_type) DO UPDATE SET guild_id = ?, channel_id = ?, expires_at = ?`,
+      [userId, effectType, guildId, channelId, expiresAt, guildId, channelId, expiresAt]
+    );
+  },
+  async getEffect(userId, effectType) {
+    const row = await db.get('SELECT * FROM active_effects WHERE user_id = ? AND effect_type = ?', [userId, effectType]);
+    if (!row) return null;
+    if (row.expires_at && new Date(row.expires_at).getTime() < Date.now()) {
+      await this.clearEffect(userId, effectType);
+      return null;
+    }
+    return row;
+  },
+  async clearEffect(userId, effectType) {
+    await db.run('DELETE FROM active_effects WHERE user_id = ? AND effect_type = ?', [userId, effectType]);
   },
 
   // ── Active game tracking ──────────────────────────────────────────────────
@@ -581,6 +639,10 @@ async function initDB() {
     'CREATE TABLE IF NOT EXISTS rr_channel_config (channel_id TEXT PRIMARY KEY, guild_id TEXT NOT NULL, winner_role_id TEXT, ping_role1_id TEXT, ping_role2_id TEXT, ping_role3_id TEXT, next_channel_id TEXT, announce_channel_id TEXT, reward_amount BIGINT DEFAULT 0, battle_message TEXT, battle_image TEXT, embed_color TEXT DEFAULT \'#cab2fb\', total_games INT DEFAULT 0, total_players INT DEFAULT 0)',
     'ALTER TABLE rr_channel_config ADD COLUMN IF NOT EXISTS last_host TEXT DEFAULT NULL',
     'CREATE TABLE IF NOT EXISTS rr_stats (id SERIAL PRIMARY KEY, guild_id TEXT NOT NULL, channel_id TEXT, user_id TEXT NOT NULL, username TEXT, wins INT DEFAULT 0, losses INT DEFAULT 0, games INT DEFAULT 0, UNIQUE(guild_id, user_id))',
+
+    // ── Weekly streak items ────────────────────────────────────────────────────
+    'CREATE TABLE IF NOT EXISTS weekly_items (user_id TEXT NOT NULL, item_id TEXT NOT NULL, qty INTEGER DEFAULT 0, PRIMARY KEY(user_id, item_id))',
+    'CREATE TABLE IF NOT EXISTS active_effects (user_id TEXT NOT NULL, effect_type TEXT NOT NULL, guild_id TEXT, channel_id TEXT, expires_at TIMESTAMP, PRIMARY KEY(user_id, effect_type))',
   ];
   for (const m of migrations) {
     await pool.query(m).catch(() => {});
