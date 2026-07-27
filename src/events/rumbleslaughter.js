@@ -1165,7 +1165,7 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
     .setColor(lobbyColor)
     .setTitle('<:sword:1495666991187361943> RUMBLE SLAUGHTER: You Thought You Ate <:sword:1495666991187361943>')
     .setDescription(
-      `**${hostName}** opened the arena.\n\n` +
+      `<@${hostId}> opened the arena.\n\n` +
       `Welcome to the most disrespectful arena in existence.\n` +
       `Join the fight. Gain power. Collect weapons. Or get eliminated in the most embarrassing way possible.\n\n` +
       `<a:SINS:1522338223613804724> Entry fee: **${bet} sins**\n` +
@@ -2259,7 +2259,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
           { name: '<:member:1495666085121491024> Signed Up', value: `${game.players.length}`,       inline: true },
           { name: '<a:marked:1511508970882465832> Phase',     value: game.phase,                     inline: true },
           { name: '<a:RojasClock:1511506715453947904> Fires At',  value: tsUnix ? `<t:${tsUnix}:F> (<t:${tsUnix}:R>)` : 'Manual (`!startgame`)', inline: false },
-          { name: '👤 Host',      value: game.hostName,                  inline: true },
+          { name: '👤 Host',      value: `<@${game.hostId}>`,             inline: true },
         )
         .setFooter({ text: '!startgame to fire now • !cancelevent to cancel' })
     ]});
