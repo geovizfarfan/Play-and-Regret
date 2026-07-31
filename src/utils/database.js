@@ -615,6 +615,23 @@ async function initDB() {
     )`,
     'ALTER TABLE rs_settings ADD COLUMN IF NOT EXISTS log_channel_id TEXT DEFAULT NULL',
     'ALTER TABLE rs_bounties ADD COLUMN IF NOT EXISTS void_reason TEXT DEFAULT NULL',
+    'ALTER TABLE rs_schedules ADD COLUMN IF NOT EXISTS message_id TEXT DEFAULT NULL',
+    `CREATE TABLE IF NOT EXISTS rs_auto_config (
+      channel_id       TEXT PRIMARY KEY,
+      enabled          BOOLEAN DEFAULT true,
+      interval_value   INT,
+      interval_unit    TEXT,
+      player_threshold INT,
+      bet              INT NOT NULL,
+      era              TEXT,
+      mode             TEXT,
+      role_restrict    TEXT,
+      role_a           TEXT,
+      role_b           TEXT,
+      host_id          TEXT NOT NULL,
+      host_name        TEXT NOT NULL,
+      created_at       TIMESTAMPTZ DEFAULT NOW()
+    )`,
 
     // ── Regret Games ───────────────────────────────────────────────────────────
     'CREATE TABLE IF NOT EXISTS rg_seasons (id SERIAL PRIMARY KEY, guild_id TEXT NOT NULL UNIQUE, arena_channel_id TEXT, votes_channel_id TEXT, entry_fee INTEGER DEFAULT 500, status TEXT DEFAULT \'setup\', current_day INTEGER DEFAULT 0, pot INTEGER DEFAULT 0, prize_pot INTEGER DEFAULT 0, vote_open INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())',

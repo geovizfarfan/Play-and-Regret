@@ -205,6 +205,15 @@ const slashCommands = [
     .addRoleOption(o => o.setName('rolerestrict').setDescription('Restrict to this role only').setRequired(false))
     .addRoleOption(o => o.setName('rolea').setDescription('Team A role (Role vs Role mode)').setRequired(false))
     .addRoleOption(o => o.setName('roleb').setDescription('Team B role (Role vs Role mode)').setRequired(false)),
+  new SlashCommandBuilder().setName('rsauto').setDescription('Set up recurring Rumble Slaughter matches for this channel')
+    .addIntegerOption(o => o.setName('bet').setDescription('Entry fee in sins').setRequired(true).setMinValue(10))
+    .addIntegerOption(o => o.setName('interval_value').setDescription('Recurring interval — pair with interval_unit').setRequired(false))
+    .addStringOption(o => o.setName('interval_unit').setDescription('Unit for the interval').setRequired(false).addChoices(
+      {name:'Hours',value:'hours'},{name:'Days',value:'days'},
+    ))
+    .addIntegerOption(o => o.setName('player_threshold').setDescription('Auto-fire once this many players join').setRequired(false))
+    .addStringOption(o => o.setName('era').setDescription('Era to use for every auto-fired match').setRequired(false)),
+  new SlashCommandBuilder().setName('rsautostop').setDescription('Turn off recurring Rumble Slaughter matches for this channel'),
   new SlashCommandBuilder().setName('rsprofile').setDescription('View your Rumble Slaughter profile — level, power, kills, gear')
     .addUserOption(o => o.setName('user').setDescription('User to view')),
   new SlashCommandBuilder().setName('rsleaderboard').setDescription('Rumble Slaughter XP leaderboard'),
@@ -540,7 +549,7 @@ client.on('interactionCreate', async (interaction) => {
 
     // Rumble Slaughter
     if (['rumbleslaughter','rsprofile','rsleaderboard','openbackpack','rsinventory',
-         'rsjoin','eras','setera','rsmatchstats','rshalloffame',
+         'rsjoin','eras','setera','rsmatchstats','rshalloffame','rsauto','rsautostop',
          'setemoji','addemoji','pickemoji','rig','unrig','staffrole','riggedmode','rigrandom','givebackpack'].includes(commandName))
       return await rsModule.handleSlash(interaction, commandName);
 
@@ -645,7 +654,7 @@ client.on('messageCreate', async (message) => {
          'openbackpack','rsbag','rsinventory','rsinv','rschedule',
          'eras','rseras','rsmatchstats','rsrecap','rshalloffame','rshof',
          'rig','unrig','rigrole','rigrandom','riggedmode','staffrole','givebackpack',
-         'setemoji','addemoji','pickemoji','animemoji','startgame'].includes(command))
+         'setemoji','addemoji','pickemoji','animemoji','startgame','autorumble'].includes(command))
       return await rsModule.handleCommand(message, args, command);
 
     if (command === 'cancel') return await handleUniversalCancelMsg(message);
@@ -735,6 +744,7 @@ function buildHelpEmbeds() {
       { name: '🗡️ Rumble Slaughter', value: [
         '`/rumbleslaughter bet [timestamp]` — Start the arena',
         '`!rsjoin` or click Join — Enter',
+        '`/rsauto` — Auto-post recurring matches (by time and/or player count)',
         '`/rsprofile` — Level, power, kills, gear, all in one place',
         '`/rsleaderboard` — XP leaderboard',
         '`/openbackpack` — Open a backpack',

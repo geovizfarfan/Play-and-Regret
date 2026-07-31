@@ -1105,7 +1105,6 @@ async function runGame(channel, game) {
     ];
 
     const winLine = pick(ERA_WIN).replace('@winner', `**${getDisplayName(winner)}**`);
-    await channel.send(`# <a:MVP24:1495665626688131183> ${getDisplayName(winner).toUpperCase()} IS THE CHAMPION <a:MVP24:1495665626688131183>\n<@${winner.user_id}>`).catch(()=>{});
     await channel.send({ embeds: [
       new EmbedBuilder().setColor(ERA_HIGHLIGHT)
         .setTitle('<a:MVP24:1495665626688131183> RUMBLE SLAUGHTER — CHAMPION')
@@ -1148,6 +1147,39 @@ async function runGame(channel, game) {
   }
 }
 
+// ─── AUTO-SCHEDULE CYCLE ──────────────────────────────────────────────────────
+// Called after a match ends to chain the next one, if auto mode is on for the channel.
+async function startAutoCycle(channel) {
+  const config = await db.get('SELECT * FROM rs_auto_config WHERE channel_id = ? AND enabled = true', [channel.id]).catch(() => null);
+  if (!config) return;
+  if (activeGames.has(channel.id)) return; // safety — shouldn't happen, but never double-post
+
+  const intervalMs = config.interval_value
+    ? config.interval_value * (config.interval_unit === 'days' ? 86400000 : 3600000)
+    : null;
+  const fireAt = intervalMs ? new Date(Date.now() + intervalMs) : null;
+
+  const result = await db.run(
+    `INSERT INTO rs_schedules (channel_id, bet, fire_at, host_id, host_name, status)
+     VALUES (?, ?, ?, ?, ?, 'pending')
+     ON CONFLICT (channel_id) DO UPDATE SET bet = EXCLUDED.bet, fire_at = EXCLUDED.fire_at, host_id = EXCLUDED.host_id, host_name = EXCLUDED.host_name, status = 'pending'`,
+    [channel.id, config.bet, fireAt?.toISOString() || null, config.host_id, config.host_name]
+  ).catch(() => null);
+  if (!result) return;
+  const scheduleId = (await db.get('SELECT id FROM rs_schedules WHERE channel_id = ?', [channel.id]))?.id;
+
+  const matchConfig = {
+    era: config.era,
+    mode: config.mode,
+    roleRestrict: config.role_restrict,
+    roleA: config.role_a,
+    roleB: config.role_b,
+    autoPlayerThreshold: config.player_threshold || null,
+  };
+
+  await launchSignup(channel, config.bet, config.host_id, config.host_name, fireAt, scheduleId, matchConfig).catch(() => {});
+}
+
 // ─── LAUNCH SIGNUP ────────────────────────────────────────────────────────────
 async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, matchConfig = {}) {
   if (activeGames.has(channel.id)) return null;
@@ -1163,15 +1195,16 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
   const lobbyColor = (era.colors && era.colors.primary) || era.color || '#CC0000';
   const embed  = new EmbedBuilder()
     .setColor(lobbyColor)
-    .setTitle('<:sword:1495666991187361943> RUMBLE SLAUGHTER: You Thought You Ate <:sword:1495666991187361943>')
+    .setTitle('<:sword_tbp:1532592707548090559> RUMBLE SLAUGHTER <:sword_tbp:1532592707548090559>')
     .setDescription(
       `<@${hostId}> opened the arena.\n\n` +
-      `Welcome to the most disrespectful arena in existence.\n` +
-      `Join the fight. Gain power. Collect weapons. Or get eliminated in the most embarrassing way possible.\n\n` +
+      `Welcome to the slaughter arena.\n` +
+      `Join the fight. Gain power. Collect weapons.\n` +
+      `Or leave embarrassed and with regrets!\n\n` +
       `<a:SINS:1522338223613804724> Entry fee: **${bet} sins**\n` +
       (eraKey && eraKey !== 'default' ? `<a:sparkle:1511506717584920696> Era: **${era.name || eraKey}**\n` : '') +
-      (gameMode === 'staffvsmembers' ? `<:sword:1495666991187361943> **Mode: Staff vs Members** — teams auto-assigned\n` : '') +
-      ((gameMode === 'rolevrole' || gameMode === 'rolevs' || gameMode === 'rolevroле') && roleAId && roleBId ? `<:sword:1495666991187361943> **Mode: Role vs Role** — <@&${roleAId}> vs <@&${roleBId}>\n` : '') +
+      (gameMode === 'staffvsmembers' ? `<:sword_tbp:1532592707548090559> **Mode: Staff vs Members** — teams auto-assigned\n` : '') +
+      ((gameMode === 'rolevrole' || gameMode === 'rolevs' || gameMode === 'rolevroле') && roleAId && roleBId ? `<:sword_tbp:1532592707548090559> **Mode: Role vs Role** — <@&${roleAId}> vs <@&${roleBId}>\n` : '') +
       (roleRestrict ? `🔒 **Restricted:** <@&${roleRestrict}> members only\n` : '') +
       `${tsUnix ? `<a:RojasClock:1511506715453947904> **Starts:** <t:${tsUnix}:F> (<t:${tsUnix}:R>)` : '<a:purplesparkle:1479210541691175054> Host will start manually with `!rumble`'}\n\n` +
       `*Most of you will lose. Loudly.*`
@@ -1182,19 +1215,22 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
   const btn = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`rs_join:${channel.id}`)
-      .setEmoji('<:sword:1495666991187361943>').setLabel('Join the Arena')
-      .setStyle(ButtonStyle.Danger),
-    new ButtonBuilder()
-      .setCustomId(`rs_start:${channel.id}`)
-      .setEmoji('<a:fire1:1495666086534844516>').setLabel('Start Game')
+      .setEmoji('<a:rumblesword:1522338907465842789>').setLabel('Join the Arena')
       .setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
+      .setCustomId(`rs_start:${channel.id}`)
+      .setEmoji('<a:CheckCheckmarkSticker:1532595713010040972>').setLabel('Start Game')
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
       .setCustomId(`rs_viewmembers:${channel.id}`)
-      .setEmoji('<a:purplecheck:1478983961450643538>').setLabel('View Members')
+      .setEmoji('<:member:1495666085121491024>').setLabel('View Members')
       .setStyle(ButtonStyle.Secondary),
   );
 
   const msg = await channel.send({ embeds: [embed], components: [btn] });
+  if (scheduleId) {
+    await db.run('UPDATE rs_schedules SET message_id = ? WHERE id = ?', [msg.id, scheduleId]).catch(() => {});
+  }
 
   const game = {
     scheduleId, channelId: channel.id,
@@ -1204,6 +1240,7 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
     roleRestrict,
     roleAId,
     roleBId,
+    autoPlayerThreshold: matchConfig.autoPlayerThreshold || null,
     teamA: [], teamB: [],
     players: [], phase: 'signup',
     message: msg, timer: null,
@@ -1271,6 +1308,7 @@ async function fireGame(channel) {
   } finally {
     activeGames.delete(channel.id);
     if (game.scheduleId) await db.run("UPDATE rs_schedules SET status = 'finished' WHERE id = ?", [game.scheduleId]).catch(() => {});
+    await startAutoCycle(channel).catch(() => {});
   }
 }
 
@@ -1355,6 +1393,12 @@ module.exports = {
         await game.message.edit({ embeds: [updated] }).catch(() => {});
       }
       await interaction.followUp({ content: `<a:SINS:1522338223613804724> **${interaction.user.username}** entered the arena. (${game.players.length} signed up)`, ephemeral: true });
+
+      // Auto-fire once the configured player threshold is reached
+      if (game.autoPlayerThreshold && game.players.length >= game.autoPlayerThreshold) {
+        if (game.timer) clearTimeout(game.timer);
+        fireGame(interaction.channel).catch(() => {});
+      }
     });
 
     // Handle animated emoji picker select menu
@@ -1446,16 +1490,37 @@ It will affect your duels in the next Rumble Slaughter match.`,
         const savedPlayers = await db.all('SELECT * FROM rs_players WHERE user_id IN (SELECT user_id FROM rs_schedule_players WHERE schedule_id = ?)', [row.id]);
         const fireAt = row.fire_at ? new Date(row.fire_at) : null;
 
-        const msg = await channel.send({ embeds: [
-          new EmbedBuilder().setColor('#6B2FA0')
-            .setTitle('♻️ Rumble Slaughter — Restored')
-            .setDescription(`Bot restarted but the arena is still open.\n\n<a:SINS:1522338223613804724> Entry: **${row.bet} sins** — use \`!rsjoin\` or click Join.\n${fireAt ? `<a:RojasClock:1511506715453947904> Starts: <t:${Math.floor(fireAt.getTime()/1000)}:F>` : 'Use `!startgame` to fire.'}`)
-            .addFields({ name: '<a:purplecheck:1478983961450643538> Already In', value: savedPlayers.length ? savedPlayers.map(p => getDisplayName(p)).join(', ') : 'Nobody yet' })
-        ], components: [
-          new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId(`rs_join:${row.channel_id}`).setEmoji('<:sword:1495666991187361943>').setLabel('Join the Arena').setStyle(ButtonStyle.Danger)
-          )
-        ]});
+        // Prefer reusing the original lobby message — its buttons already work fine
+        // (the click handler is a persistent global listener, not tied to message age),
+        // so re-editing it just keeps the Signed Up count accurate. Only post a fresh
+        // "Restored" message if the original is gone (deleted, channel issue, etc).
+        let msg = null;
+        if (row.message_id) {
+          msg = await channel.messages.fetch(row.message_id).catch(() => null);
+          if (msg) {
+            const refreshedEmbed = msg.embeds?.[0]
+              ? EmbedBuilder.from(msg.embeds[0]).spliceFields(0, 1, {
+                  name: '<:member:1495666085121491024> Signed Up',
+                  value: `**${savedPlayers.length}** player${savedPlayers.length !== 1 ? 's' : ''}`,
+                })
+              : null;
+            if (refreshedEmbed) await msg.edit({ embeds: [refreshedEmbed] }).catch(() => {});
+          }
+        }
+
+        if (!msg) {
+          msg = await channel.send({ embeds: [
+            new EmbedBuilder().setColor('#6B2FA0')
+              .setTitle('♻️ Rumble Slaughter — Restored')
+              .setDescription(`Bot restarted but the arena is still open.\n\n<a:SINS:1522338223613804724> Entry: **${row.bet} sins** — use \`!rsjoin\` or click Join.\n${fireAt ? `<a:RojasClock:1511506715453947904> Starts: <t:${Math.floor(fireAt.getTime()/1000)}:F>` : 'Use `!startgame` to fire.'}`)
+              .addFields({ name: '<a:purplecheck:1478983961450643538> Already In', value: savedPlayers.length ? savedPlayers.map(p => getDisplayName(p)).join(', ') : 'Nobody yet' })
+          ], components: [
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId(`rs_join:${row.channel_id}`).setEmoji('<a:rumblesword:1522338907465842789>').setLabel('Join the Arena').setStyle(ButtonStyle.Primary)
+            )
+          ]});
+          await db.run('UPDATE rs_schedules SET message_id = ? WHERE id = ?', [msg.id, row.id]).catch(() => {});
+        }
 
         const game = {
           scheduleId: row.id, channelId: row.channel_id,
@@ -1509,6 +1574,21 @@ It will affect your duels in the next Rumble Slaughter match.`,
 
       return this.handleCommand(fakeMsg, [String(bet), ...extraArgs], 'rumbleslaughter');
     }
+    if (commandName === 'rsauto') {
+      const bet          = opts.getInteger('bet') || 50;
+      const intervalVal  = opts.getInteger('interval_value');
+      const intervalUnit = opts.getString('interval_unit');
+      const threshold    = opts.getInteger('player_threshold');
+      const eraOpt       = opts.getString('era') || '';
+
+      const parts = [String(bet)];
+      if (intervalVal && intervalUnit) parts.push(`every${intervalVal}${intervalUnit === 'days' ? 'd' : 'h'}`);
+      if (threshold) parts.push(`at${threshold}players`);
+      if (eraOpt) parts.push(`era:${eraOpt}`);
+
+      return this.autoSetup(fakeMsg, parts);
+    }
+    if (commandName === 'rsautostop')      return this.autoStop(fakeMsg);
     if (commandName === 'rsprofile' || commandName === 'rsstats') {
       const target = opts.getUser('user') || interaction.user;
       return this.showProfile(interaction.channel, target, interaction);
@@ -1556,6 +1636,12 @@ It will affect your duels in the next Rumble Slaughter match.`,
       case 'rsinventory': case 'rsinv':   return this.showInventoryMsg(message);
       case 'startgame':
       case 'rumble':                     return this.manualFire(message);
+      case 'autorumble': {
+        const sub = (args[0] || '').toLowerCase();
+        if (sub === 'stop' || sub === 'off') return this.autoStop(message);
+        if (sub === 'status')                return this.autoStatus(message);
+        return this.autoSetup(message, args);
+      }
       case 'cancelevent':                 return this.cancelGame(message);
       case 'rschedule':                   return this.showSchedule(message);
       case 'eras': case 'rseras':          return this.listErasCmd(message);
@@ -1649,6 +1735,103 @@ It will affect your duels in the next Rumble Slaughter match.`,
     }
   },
 
+  // ── Auto-Schedule Setup ─────────────────────────────────────────────────────
+  // !autorumble <bet> [every<N>h|every<N>d] [at<N>players] [era:<name>]
+  // At least one of interval or player threshold is required.
+  async autoSetup(message, args) {
+    if (!isHost(message.member)) return message.reply(`<:wrong:1495666083594502174> You need the **${process.env.EVENT_HOST_ROLE || 'Event Host'}** role to set up auto-scheduling.`);
+
+    const bet = parseInt(args[0]) || 50;
+    if (bet < 10) return message.reply('<:wrong:1495666083594502174> Minimum bet is 10 sins.');
+
+    const rawArgs = args.slice(1).join(' ');
+
+    const intervalMatch = rawArgs.match(/every\s*(\d+)\s*(h|hour|hours|d|day|days)/i);
+    const intervalValue = intervalMatch ? parseInt(intervalMatch[1]) : null;
+    const intervalUnit  = intervalMatch ? (intervalMatch[2][0].toLowerCase() === 'd' ? 'days' : 'hours') : null;
+
+    const thresholdMatch = rawArgs.match(/at\s*(\d+)\s*players?/i);
+    const playerThreshold = thresholdMatch ? parseInt(thresholdMatch[1]) : null;
+
+    if (!intervalValue && !playerThreshold) {
+      return message.reply(
+        '<:wrong:1495666083594502174> Set at least one trigger:\n' +
+        '`!autorumble 100 every6h` — fires every 6 hours\n' +
+        '`!autorumble 100 every1d` — fires every 1 day\n' +
+        '`!autorumble 100 at8players` — fires once 8 players join\n' +
+        '`!autorumble 100 every6h at8players` — whichever comes first\n' +
+        'Add `era:<name>` at the end to lock in an era.'
+      );
+    }
+    if (playerThreshold && playerThreshold < MIN_PLAYERS) {
+      return message.reply(`<:wrong:1495666083594502174> Player threshold needs to be at least ${MIN_PLAYERS}.`);
+    }
+
+    const eraMatch = rawArgs.match(/era:(.+)$/i);
+    const eraInput = eraMatch ? eraMatch[1].trim() : null;
+    const resolvedEra = eraInput ? resolveEra(eraInput) : null;
+    if (eraInput && !resolvedEra) return message.reply(`<:wrong:1495666083594502174> Unknown era **${eraInput}**. Use \`!eras\` to see available eras.`);
+
+    await db.run(
+      `INSERT INTO rs_auto_config (channel_id, enabled, interval_value, interval_unit, player_threshold, bet, era, host_id, host_name)
+       VALUES (?, true, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (channel_id) DO UPDATE SET
+         enabled = true, interval_value = EXCLUDED.interval_value, interval_unit = EXCLUDED.interval_unit,
+         player_threshold = EXCLUDED.player_threshold, bet = EXCLUDED.bet, era = EXCLUDED.era,
+         host_id = EXCLUDED.host_id, host_name = EXCLUDED.host_name`,
+      [message.channel.id, intervalValue, intervalUnit, playerThreshold, bet, resolvedEra || 'default', message.author.id, message.author.username]
+    );
+
+    const triggerLines = [];
+    if (intervalValue) triggerLines.push(`<a:RojasClock:1511506715453947904> Every **${intervalValue} ${intervalUnit}**`);
+    if (playerThreshold) triggerLines.push(`<:member:1495666085121491024> Once **${playerThreshold} players** join`);
+
+    const eraDisplayName = resolvedEra ? (getEra(resolvedEra)?.name || resolvedEra) : null;
+
+    await message.reply({ embeds: [
+      new EmbedBuilder().setColor('#C9B1FF')
+        .setTitle('<a:purplesparkle:1479210541691175054> Auto-Scheduling Enabled')
+        .setDescription(
+          `New Rumble Slaughter matches will open automatically in this channel — a fresh lobby posts right after each match ends.\n\n` +
+          `<a:SINS:1522338223613804724> Bet: **${bet} sins**\n` +
+          (eraDisplayName ? `<a:sparkle:1511506717584920696> Era: **${eraDisplayName}**\n` : '') +
+          triggerLines.join('\n') +
+          `\n\nUse \`!autorumble stop\` to turn this off.`
+        )
+    ]});
+
+    if (!activeGames.has(message.channel.id)) {
+      await startAutoCycle(message.channel);
+    }
+  },
+
+  async autoStop(message) {
+    if (!isHost(message.member)) return message.reply('<:wrong:1495666083594502174> Staff only.');
+    const existing = await db.get('SELECT * FROM rs_auto_config WHERE channel_id = ?', [message.channel.id]);
+    if (!existing) return message.reply('<:wrong:1495666083594502174> Auto-scheduling isn\'t set up in this channel.');
+    await db.run('UPDATE rs_auto_config SET enabled = false WHERE channel_id = ?', [message.channel.id]);
+    return message.reply('<:checkmark:1495666088417956002> Auto-scheduling turned off. The current match (if any) will finish normally, but no new one will auto-post after.');
+  },
+
+  async autoStatus(message) {
+    const config = await db.get('SELECT * FROM rs_auto_config WHERE channel_id = ?', [message.channel.id]);
+    if (!config) return message.reply('<:wrong:1495666083594502174> Auto-scheduling has never been set up in this channel.');
+
+    const triggerLines = [];
+    if (config.interval_value) triggerLines.push(`<a:RojasClock:1511506715453947904> Every **${config.interval_value} ${config.interval_unit}**`);
+    if (config.player_threshold) triggerLines.push(`<:member:1495666085121491024> Once **${config.player_threshold} players** join`);
+
+    return message.reply({ embeds: [
+      new EmbedBuilder().setColor(config.enabled ? '#C9B1FF' : '#555555')
+        .setTitle(`<a:purplesparkle:1479210541691175054> Auto-Scheduling — ${config.enabled ? 'ON' : 'OFF'}`)
+        .setDescription(
+          `<a:SINS:1522338223613804724> Bet: **${config.bet} sins**\n` +
+          (config.era && config.era !== 'default' ? `<a:sparkle:1511506717584920696> Era: **${config.era}**\n` : '') +
+          (triggerLines.length ? triggerLines.join('\n') : 'No trigger set.')
+        )
+    ]});
+  },
+
   // ── Join game ──────────────────────────────────────────────────────────────────
   async joinGame(message) {
     const game = activeGames.get(message.channel.id);
@@ -1708,6 +1891,13 @@ It will affect your duels in the next Rumble Slaughter match.`,
     }
     const joinMsg = await message.reply(`<a:SINS:1522338223613804724> **${message.author.username}** entered the arena! (${game.players.length} signed up)`);
     setTimeout(() => joinMsg.delete().catch(() => {}), 5000);
+
+    // Auto-fire once the configured player threshold is reached
+    if (game.autoPlayerThreshold && game.players.length >= game.autoPlayerThreshold) {
+      if (game.timer) clearTimeout(game.timer);
+      fireGame(message.channel).catch(() => {});
+    }
+
     return joinMsg;
   },
 
@@ -1727,7 +1917,15 @@ It will affect your duels in the next Rumble Slaughter match.`,
     const game = activeGames.get(message.channel.id);
     if (!game) return message.reply('<:wrong:1495666083594502174> No active Rumble Slaughter in this channel.');
     if (!canCancel(message.member, game.hostId)) return message.reply('<:wrong:1495666083594502174> Only the host, admins, or server Owner can cancel.');
-    if (game.phase === 'running') return message.reply('<:wrong:1495666083594502174> The game is already running. Too late.');
+    if (game.phase === 'running') {
+      // Can't cancel a match mid-fight, but still let this turn off future auto-cycling
+      const runningAuto = await db.get('SELECT * FROM rs_auto_config WHERE channel_id = ? AND enabled = true', [message.channel.id]).catch(() => null);
+      if (runningAuto) {
+        await db.run('UPDATE rs_auto_config SET enabled = false WHERE channel_id = ?', [message.channel.id]).catch(() => {});
+        return message.reply('<:wrong:1495666083594502174> The game is already running, too late to cancel it — but auto-scheduling has been turned off, so no new match will auto-post after this one.');
+      }
+      return message.reply('<:wrong:1495666083594502174> The game is already running. Too late.');
+    }
     if (game.timer) clearTimeout(game.timer);
     for (const p of game.players) await economy.addFunds(p.user_id, game.bet, 'Rumble Slaughter cancelled').catch(() => {});
     const btn = new ActionRowBuilder().addComponents(
@@ -1736,7 +1934,18 @@ It will affect your duels in the next Rumble Slaughter match.`,
     await game.message?.edit({ components: [btn] }).catch(() => {});
     activeGames.delete(message.channel.id);
     if (game.scheduleId) await db.run("UPDATE rs_schedules SET status = 'cancelled' WHERE id = ?", [game.scheduleId]).catch(() => {});
-    return message.reply(`<:checkmark:1495666088417956002> Rumble Slaughter cancelled. **${game.players.length}** player(s) refunded.`);
+
+    // Cancelling also turns off auto-scheduling for this channel, if it was on —
+    // one command stops everything instead of needing !autorumble stop separately.
+    const autoConfig = await db.get('SELECT * FROM rs_auto_config WHERE channel_id = ? AND enabled = true', [message.channel.id]).catch(() => null);
+    if (autoConfig) {
+      await db.run('UPDATE rs_auto_config SET enabled = false WHERE channel_id = ?', [message.channel.id]).catch(() => {});
+    }
+
+    return message.reply(
+      `<:checkmark:1495666088417956002> Rumble Slaughter cancelled. **${game.players.length}** player(s) refunded.` +
+      (autoConfig ? '\n<a:purplesparkle:1479210541691175054> Auto-scheduling was also turned off for this channel.' : '')
+    );
   },
 
   // ── Profile (RS-only — level, power, kills, gear, all in one place) ─────────
