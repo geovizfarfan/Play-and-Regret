@@ -197,6 +197,7 @@ const slashCommands = [
       { name: 'You Thought Wrong', value: 'you thought wrong' },
       { name: 'Delulu Destroyer', value: 'delulu destroyer' },
       { name: 'Eat Dirt Era', value: 'eat dirt era' },
+      { name: 'Cat Fight Era', value: 'cat fight era' },
     ))
     .addStringOption(o => o.setName('mode').setDescription('Match mode').setRequired(false).addChoices(
       {name:'Staff vs Members',value:'staffvsmembers'},
@@ -212,7 +213,21 @@ const slashCommands = [
       {name:'Hours',value:'hours'},{name:'Days',value:'days'},
     ))
     .addIntegerOption(o => o.setName('player_threshold').setDescription('Auto-fire once this many players join').setRequired(false))
-    .addStringOption(o => o.setName('era').setDescription('Era to use for every auto-fired match').setRequired(false)),
+    .addStringOption(o => o.setName('era').setDescription('Era to use for every auto-fired match').setRequired(false).addChoices(
+      { name: 'Default', value: 'default' },
+      { name: 'Gut Feeling Era', value: 'gut feeling era' },
+      { name: 'Darling I Bite', value: 'darling i bite' },
+      { name: 'Baddie Body Count', value: 'baddie body count' },
+      { name: 'Kiss Then Kill', value: 'kiss then kill' },
+      { name: 'Eat or Be Eaten', value: 'eat or be eaten' },
+      { name: 'Blood Buffet', value: 'blood buffet' },
+      { name: 'Served You Wrong', value: 'served you wrong' },
+      { name: 'No Survivors Era', value: 'no survivors era' },
+      { name: 'You Thought Wrong', value: 'you thought wrong' },
+      { name: 'Delulu Destroyer', value: 'delulu destroyer' },
+      { name: 'Eat Dirt Era', value: 'eat dirt era' },
+      { name: 'Cat Fight Era', value: 'cat fight era' },
+    )),
   new SlashCommandBuilder().setName('rsautostop').setDescription('Turn off recurring Rumble Slaughter matches for this channel'),
   new SlashCommandBuilder().setName('rsprofile').setDescription('View your Rumble Slaughter profile — level, power, kills, gear')
     .addUserOption(o => o.setName('user').setDescription('User to view')),
