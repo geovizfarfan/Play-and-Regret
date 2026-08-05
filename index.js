@@ -601,7 +601,7 @@ client.on('interactionCreate', async (interaction) => {
       const fakeMsg = {
         author: interaction.user, member: interaction.member, guild: interaction.guild,
         client: interaction.client, channel: interaction.channel,
-        mentions: { channels: { first: () => targetChannel || null } },
+        mentions: { channels: { first: () => targetChannel || null, values: () => (targetChannel ? [targetChannel] : []) } },
         reply: (d) => interaction.editReply(d),
       };
       const args = [sub];

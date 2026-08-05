@@ -215,18 +215,22 @@ module.exports = {
 
   async addChannel(message) {
     if (!isHost(message.member)) return message.reply(`${E.ERROR} Staff only.`);
-    const ch = message.mentions?.channels?.first();
-    if (!ch) return message.reply(`${E.ERROR} Mention a channel. Example: \`!autodrop addchannel #general\``);
-    await db.run('INSERT INTO auto_drop_channels (guild_id, channel_id) VALUES (?, ?) ON CONFLICT DO NOTHING', [message.guild.id, ch.id]);
-    return message.reply(`<:checkmark:1495666088417956002> <#${ch.id}> added to the auto-drop channel list.`);
+    const chans = [...(message.mentions?.channels?.values() || [])];
+    if (!chans.length) return message.reply(`${E.ERROR} Mention one or more channels. Example: \`!autodrop addchannel #general #chat #memes\``);
+    for (const ch of chans) {
+      await db.run('INSERT INTO auto_drop_channels (guild_id, channel_id) VALUES (?, ?) ON CONFLICT DO NOTHING', [message.guild.id, ch.id]);
+    }
+    return message.reply(`<:checkmark:1495666088417956002> Added to the auto-drop channel list: ${chans.map(c => `<#${c.id}>`).join(', ')}`);
   },
 
   async removeChannel(message) {
     if (!isHost(message.member)) return message.reply(`${E.ERROR} Staff only.`);
-    const ch = message.mentions?.channels?.first();
-    if (!ch) return message.reply(`${E.ERROR} Mention a channel. Example: \`!autodrop removechannel #general\``);
-    await db.run('DELETE FROM auto_drop_channels WHERE guild_id = ? AND channel_id = ?', [message.guild.id, ch.id]);
-    return message.reply(`<:checkmark:1495666088417956002> <#${ch.id}> removed from the auto-drop channel list.`);
+    const chans = [...(message.mentions?.channels?.values() || [])];
+    if (!chans.length) return message.reply(`${E.ERROR} Mention one or more channels. Example: \`!autodrop removechannel #general #chat\``);
+    for (const ch of chans) {
+      await db.run('DELETE FROM auto_drop_channels WHERE guild_id = ? AND channel_id = ?', [message.guild.id, ch.id]);
+    }
+    return message.reply(`<:checkmark:1495666088417956002> Removed from the auto-drop channel list: ${chans.map(c => `<#${c.id}>`).join(', ')}`);
   },
 
   async listChannels(message) {
