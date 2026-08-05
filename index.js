@@ -24,6 +24,7 @@ const bettingModule   = require('./src/economy/betting');
 const itemsModule     = require('./src/economy/items');
 const gambleModule    = require('./src/economy/gamble');
 const dropsModule     = require('./src/economy/drops');
+const autodropModule  = require('./src/economy/autodrop');
 const rgModule        = require('./src/games/regretgames');
 const jackpotModule   = require('./src/economy/jackpot');
 
@@ -229,6 +230,19 @@ const slashCommands = [
       { name: 'Cat Fight Era', value: 'cat fight era' },
     )),
   new SlashCommandBuilder().setName('rsautostop').setDescription('Turn off recurring Rumble Slaughter matches for this channel'),
+  new SlashCommandBuilder().setName('autodrop').setDescription('Guild-wide automatic random sins drops')
+    .addSubcommand(sc => sc.setName('setup').setDescription('Enable and configure auto-drops')
+      .addIntegerOption(o => o.setName('min_amount').setDescription('Minimum sins per drop').setRequired(true).setMinValue(1))
+      .addIntegerOption(o => o.setName('max_amount').setDescription('Maximum sins per drop').setRequired(true).setMinValue(1))
+      .addIntegerOption(o => o.setName('min_minutes').setDescription('Minimum minutes between drops').setRequired(true).setMinValue(1))
+      .addIntegerOption(o => o.setName('max_minutes').setDescription('Maximum minutes between drops').setRequired(true).setMinValue(1)))
+    .addSubcommand(sc => sc.setName('stop').setDescription('Turn off auto-drops for this server'))
+    .addSubcommand(sc => sc.setName('status').setDescription('View current auto-drop config'))
+    .addSubcommand(sc => sc.setName('addchannel').setDescription('Allow auto-drops in a channel')
+      .addChannelOption(o => o.setName('channel').setDescription('Channel to allow').setRequired(true)))
+    .addSubcommand(sc => sc.setName('removechannel').setDescription('Disallow auto-drops in a channel')
+      .addChannelOption(o => o.setName('channel').setDescription('Channel to remove').setRequired(true)))
+    .addSubcommand(sc => sc.setName('channels').setDescription('List channels allowed for auto-drops')),
   new SlashCommandBuilder().setName('rsprofile').setDescription('View your Rumble Slaughter profile — level, power, kills, gear')
     .addUserOption(o => o.setName('user').setDescription('User to view')),
   new SlashCommandBuilder().setName('rsleaderboard').setDescription('Rumble Slaughter XP leaderboard'),
@@ -323,6 +337,7 @@ client.once('clientReady', async () => {
   client.user.setActivity('/help | Play & Regret', { type: 4 });
 
   rsModule.init(client);
+  autodropModule.init(client);
 
   // ── Startup refund — refund any players stuck in games from before restart ──
   try {
@@ -579,6 +594,27 @@ client.on('interactionCreate', async (interaction) => {
       const fakeMsg = { author: interaction.user, reply: (d) => interaction.editReply(d) };
       return await gambleModule.gamble(fakeMsg, [String(amount), tier]);
     }
+    if (commandName === 'autodrop') {
+      const sub = interaction.options.getSubcommand();
+      await interaction.deferReply({ ephemeral: sub !== 'setup' && sub !== 'status' && sub !== 'channels' });
+      const targetChannel = interaction.options.getChannel?.('channel');
+      const fakeMsg = {
+        author: interaction.user, member: interaction.member, guild: interaction.guild,
+        client: interaction.client, channel: interaction.channel,
+        mentions: { channels: { first: () => targetChannel || null } },
+        reply: (d) => interaction.editReply(d),
+      };
+      const args = [sub];
+      if (sub === 'setup') {
+        args.push(
+          String(interaction.options.getInteger('min_amount')),
+          String(interaction.options.getInteger('max_amount')),
+          String(interaction.options.getInteger('min_minutes')),
+          String(interaction.options.getInteger('max_minutes')),
+        );
+      }
+      return await autodropModule.handleCommand(fakeMsg, args, 'autodrop');
+    }
     if (commandName === 'items') {
       await interaction.deferReply({ ephemeral: true });
       const fakeSource = { reply: (d) => interaction.editReply(d) };
@@ -640,6 +676,9 @@ client.on('messageCreate', async (message) => {
 
     if (['bigbag','drop'].includes(command))
       return await dropsModule.handleCommand(message, args, command);
+
+    if (command === 'autodrop')
+      return await autodropModule.handleCommand(message, args, command);
 
     if (['jackpot','richpot','lottery','enter','lotteryenter','jackpotdraw','jackpothistory',
          'jackpotstart','jackpotstop','jackpotentries','potentries'].includes(command))
@@ -727,6 +766,7 @@ function buildHelpEmbeds() {
       { name: `💸 Drops`, value: [
         '`/drop amount` — Drop sins, first click wins',
         '`/bigbag amount` — Throw a bag, everyone grabs',
+        '`/autodrop setup` — *(Admin)* Random auto-drops across the server',
       ].join('\n') },
       { name: `<a:jackpot:1479203793806557385> Rich Pot`, value: [
         '`/richpot` — View the jackpot',

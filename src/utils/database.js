@@ -633,6 +633,25 @@ async function initDB() {
       created_at       TIMESTAMPTZ DEFAULT NOW()
     )`,
 
+    // ── Auto Drops (guild-wide random sins drops) ─────────────────────────────
+    `CREATE TABLE IF NOT EXISTS auto_drop_config (
+      guild_id     TEXT PRIMARY KEY,
+      enabled      BOOLEAN DEFAULT true,
+      min_amount   INT NOT NULL DEFAULT 50,
+      max_amount   INT NOT NULL DEFAULT 500,
+      min_minutes  INT NOT NULL DEFAULT 60,
+      max_minutes  INT NOT NULL DEFAULT 180,
+      next_drop_at TIMESTAMPTZ,
+      host_id      TEXT NOT NULL,
+      host_name    TEXT NOT NULL,
+      created_at   TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    `CREATE TABLE IF NOT EXISTS auto_drop_channels (
+      guild_id   TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      PRIMARY KEY (guild_id, channel_id)
+    )`,
+
     // ── Regret Games ───────────────────────────────────────────────────────────
     'CREATE TABLE IF NOT EXISTS rg_seasons (id SERIAL PRIMARY KEY, guild_id TEXT NOT NULL UNIQUE, arena_channel_id TEXT, votes_channel_id TEXT, entry_fee INTEGER DEFAULT 500, status TEXT DEFAULT \'setup\', current_day INTEGER DEFAULT 0, pot INTEGER DEFAULT 0, prize_pot INTEGER DEFAULT 0, vote_open INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())',
     'CREATE TABLE IF NOT EXISTS rg_players (id SERIAL PRIMARY KEY, season_id INTEGER NOT NULL, user_id TEXT NOT NULL, username TEXT, status TEXT DEFAULT \'alive\', regret INTEGER DEFAULT 0, sins_earned INTEGER DEFAULT 0, food INTEGER DEFAULT 1, has_shield INTEGER DEFAULT 0, title TEXT, elim_cause TEXT, elim_day INTEGER, UNIQUE(season_id, user_id))',
