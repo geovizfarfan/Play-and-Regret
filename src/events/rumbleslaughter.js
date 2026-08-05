@@ -1175,6 +1175,7 @@ async function startAutoCycle(channel) {
     roleA: config.role_a,
     roleB: config.role_b,
     autoPlayerThreshold: config.player_threshold || null,
+    isAutoContinuation: true,
   };
 
   await launchSignup(channel, config.bet, config.host_id, config.host_name, fireAt, scheduleId, matchConfig).catch(() => {});
@@ -1197,7 +1198,9 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
     .setColor(lobbyColor)
     .setTitle('<:sword_tbp:1532592707548090559> RUMBLE SLAUGHTER <:sword_tbp:1532592707548090559>')
     .setDescription(
-      `<@${hostId}> opened the arena.\n\n` +
+      (matchConfig.isAutoContinuation
+        ? `<a:purplesparkle:1479210541691175054> A new arena opened automatically.\n\n`
+        : `<@${hostId}> opened the arena.\n\n`) +
       `Welcome to the slaughter arena.\n` +
       `Join the fight. Gain power. Collect weapons.\n` +
       `Or leave embarrassed and with regrets!\n\n` +
@@ -1272,6 +1275,7 @@ async function fireGame(channel) {
     );
     await game.message?.edit({ components: [disabledBtn] }).catch(() => {});
     await channel.send(`<:wrong:1495666083594502174> **Rumble Slaughter** cancelled — only **${game.players.length}** showed up (need ${MIN_PLAYERS}). Everyone refunded. Embarrassing turnout.`);
+    setTimeout(() => { startAutoCycle(channel).catch(() => {}); }, 20000);
     return;
   }
 
@@ -1308,7 +1312,7 @@ async function fireGame(channel) {
   } finally {
     activeGames.delete(channel.id);
     if (game.scheduleId) await db.run("UPDATE rs_schedules SET status = 'finished' WHERE id = ?", [game.scheduleId]).catch(() => {});
-    await startAutoCycle(channel).catch(() => {});
+    setTimeout(() => { startAutoCycle(channel).catch(() => {}); }, 20000);
   }
 }
 
