@@ -1,6 +1,6 @@
 /**
  * utils/prestige-bridge.js
- * Writes game events directly to Prestige Tracker's unified tables
+ * Writes game events to Prestige Tracker's unified tables
  */
 const { Pool } = require('pg');
 
@@ -15,6 +15,14 @@ function getPrestigePool() {
     });
   }
   return prestigePool;
+}
+
+// Normalize game types so auto and manual rumble both show under same category
+function normalizeGameType(gameType) {
+  if (gameType === 'rumbleslaughter_ar') return 'rumbleslaughter';
+  if (gameType === 'rumble') return 'rumbleslaughter';
+  if (gameType === 'hungergames') return 'regretgames';
+  return gameType;
 }
 
 async function ensureTables(pool) {
@@ -52,15 +60,16 @@ async function logWinner(guildId, channelId, gameType, winner, winnerId) {
   if (!pool) return;
   try {
     await ensureTables(pool);
+    const normalized = normalizeGameType(gameType);
     await pool.query(
       `INSERT INTO unified_game_wins (guild_id, game_type, channel_id, winner_username, winner_id) VALUES ($1,$2,$3,$4,$5)`,
-      [guildId, gameType, channelId, winner, winnerId || null]
+      [guildId, normalized, channelId, winner, winnerId || null]
     );
     await pool.query(
       `INSERT INTO unified_game_events (guild_id, channel_id, game_type, event_type, winner) VALUES ($1,$2,$3,'winner',$4)`,
-      [guildId, channelId, gameType, winner]
+      [guildId, channelId, normalized, winner]
     );
-    console.log(`[Prestige Bridge] Logged winner: ${winner} (${gameType})`);
+    console.log(`[Prestige Bridge] Logged winner: ${winner} (${normalized})`);
   } catch (err) {
     console.error('[Prestige Bridge] logWinner error:', err.message);
   }
@@ -71,9 +80,10 @@ async function logKill(guildId, channelId, gameType, killer, killerId, victim, v
   if (!pool) return;
   try {
     await ensureTables(pool);
+    const normalized = normalizeGameType(gameType);
     await pool.query(
       `INSERT INTO unified_game_events (guild_id, channel_id, game_type, event_type, killer, victim) VALUES ($1,$2,$3,'kill',$4,$5)`,
-      [guildId, channelId, gameType, killer, victim || null]
+      [guildId, channelId, normalized, killer, victim || null]
     );
   } catch (err) {
     console.error('[Prestige Bridge] logKill error:', err.message);
@@ -85,9 +95,10 @@ async function logSuicide(guildId, channelId, gameType, victim, victimId) {
   if (!pool) return;
   try {
     await ensureTables(pool);
+    const normalized = normalizeGameType(gameType);
     await pool.query(
       `INSERT INTO unified_game_events (guild_id, channel_id, game_type, event_type, victim) VALUES ($1,$2,$3,'suicide',$4)`,
-      [guildId, channelId, gameType, victim]
+      [guildId, channelId, normalized, victim]
     );
   } catch (err) {
     console.error('[Prestige Bridge] logSuicide error:', err.message);
