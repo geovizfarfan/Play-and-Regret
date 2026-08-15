@@ -1370,6 +1370,14 @@ module.exports = {
         return interaction.reply({ content: '<a:Warning:1497476844860215366> You\'re already in! Sit down.', ephemeral: true });
       }
 
+      // Role-restricted match check
+      if (game.roleRestrict) {
+        const hasRole = interaction.member?.roles.cache.has(game.roleRestrict);
+        if (!hasRole) {
+          return interaction.reply({ content: `<:wrong:1495666083594502174> This match is restricted to <@&${game.roleRestrict}> members only.`, ephemeral: true });
+        }
+      }
+
       await interaction.deferUpdate();
       await economy.getUser(interaction.user.id, interaction.user.username);
       const bal = await economy.getBalance(interaction.user.id);
