@@ -1343,20 +1343,26 @@ module.exports = {
       }
 
       if (interaction.customId.startsWith('rs_viewmembers:')) {
-        const channelId = interaction.customId.split(':')[1];
-        const game      = activeGames.get(channelId);
-        if (!game) {
-          return interaction.reply({ content: '<:wrong:1495666083594502174> No open game in this channel right now.', ephemeral: true });
+        try {
+          const channelId = interaction.customId.split(':')[1];
+          const game      = activeGames.get(channelId);
+          if (!game) {
+            return interaction.reply({ content: '<:wrong:1495666083594502174> No open game in this channel right now.', ephemeral: true });
+          }
+          let list = game.players.length
+            ? game.players.map((p, i) => `**${i + 1}.** ${getDisplayName(p)}`).join('\n')
+            : 'Nobody yet.';
+          if (list.length > 4000) list = list.slice(0, 3980) + `\n*...and ${game.players.length} total signed up.*`;
+          return interaction.reply({
+            embeds: [new EmbedBuilder().setColor('#6B2FA0')
+              .setTitle('<a:purplecheck:1478983961450643538> Signed up')
+              .setDescription(list)],
+            ephemeral: true,
+          });
+        } catch (e) {
+          console.error('[rs_viewmembers error]', e);
+          return interaction.reply({ content: '<:wrong:1495666083594502174> Something went wrong pulling the member list. Try again.', ephemeral: true }).catch(() => {});
         }
-        const list = game.players.length
-          ? game.players.map((p, i) => `**${i + 1}.** ${getDisplayName(p)}`).join('\n')
-          : 'Nobody yet.';
-        return interaction.reply({
-          embeds: [new EmbedBuilder().setColor('#6B2FA0')
-            .setTitle('<a:purplecheck:1478983961450643538> Signed up')
-            .setDescription(list)],
-          ephemeral: true,
-        });
       }
 
       if (!interaction.customId.startsWith('rs_join:')) return;
