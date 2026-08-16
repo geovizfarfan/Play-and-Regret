@@ -1167,6 +1167,7 @@ async function startAutoCycle(channel) {
   ).catch(() => null);
   if (!result) return;
   const scheduleId = (await db.get('SELECT id FROM rs_schedules WHERE channel_id = ?', [channel.id]))?.id;
+  if (scheduleId) await db.run('DELETE FROM rs_schedule_players WHERE schedule_id = ?', [scheduleId]).catch(() => {});
 
   const matchConfig = {
     era: config.era,
@@ -1744,6 +1745,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
       [message.channel.id, bet, fireAt?.toISOString() || null, message.author.id, message.author.username]
     );
     const scheduleId = (await db.get('SELECT id FROM rs_schedules WHERE channel_id = ?', [message.channel.id]))?.id;
+    if (scheduleId) await db.run('DELETE FROM rs_schedule_players WHERE schedule_id = ?', [scheduleId]).catch(() => {});
 
     await launchSignup(message.channel, bet, message.author.id, message.author.username, fireAt, scheduleId, matchConfig);
     if (fireAt) {
