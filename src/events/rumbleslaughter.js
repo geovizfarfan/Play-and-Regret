@@ -1725,7 +1725,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
 
     // Parse timestamp (strip all other args first)
     let tsRaw = rawArgs
-      .replace(/(?:--era|era:)\s*['"]?[^'"<\s][^'"<]*/gi, '')
+      .replace(/(?:--era|era:)\s*['"]?[^'"<\s][^'"<]*?(?=\s+role:|\s+--|<|$)/gi, '')
       .replace(/--mode\s+\S+/gi, '')
       .replace(/(?:^|\s)role:<@&\d+>/gi, '')
       .replace(/<@&\d+>\s+vs\s+<@&\d+>/gi, '')
