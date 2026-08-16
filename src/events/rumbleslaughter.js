@@ -1609,6 +1609,11 @@ It will affect your duels in the next Rumble Slaughter match.`,
     if (commandName === 'openbackpack')    return this.openBackpackCmd(interaction);
     if (commandName === 'rsinventory')     return this.showInventory(interaction);
     if (commandName === 'rsjoin')          return this.handleCommand(fakeMsg, [], 'rsjoin');
+    if (commandName === 'rskick') {
+      const target = opts.getUser('user');
+      fakeMsg.mentions = { users: { first: () => target || null } };
+      return this.kickPlayer(fakeMsg, []);
+    }
     if (commandName === 'setera')         return this.setEraDropdown(interaction);
     if (commandName === 'rsmatchstats')    return this.handleCommand(fakeMsg, [], 'rsmatchstats');
     if (commandName === 'rshalloffame')    return this.handleCommand(fakeMsg, [], 'rshalloffame');
@@ -1641,6 +1646,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
     switch (command) {
       case 'rumbleslaughter': case 'rs':  return this.startGame(message, args);
       case 'rsjoin': case 'rsenter':      return this.joinGame(message);
+      case 'rskick':                       return this.kickPlayer(message, args);
       case 'rsprofile': case 'rsp': case 'rsstats':
         return this.showProfile(message.channel, args[0] ? message.mentions?.users?.first() || null : message.author, message);
       case 'rsleaderboard': case 'rslb':  return this.showLeaderboard(message);
@@ -1911,6 +1917,37 @@ It will affect your duels in the next Rumble Slaughter match.`,
     }
 
     return joinMsg;
+  },
+
+  // ── Kick a player from signup ─────────────────────────────────────────────────
+  async kickPlayer(message, args) {
+    const game = activeGames.get(message.channel.id);
+    if (!game) return message.reply('<:wrong:1495666083594502174> No open game in this channel.');
+    if (!canCancel(message.member, game.hostId)) return message.reply('<:wrong:1495666083594502174> Only the host, admins, or server Owner can remove players.');
+    if (game.phase !== 'signup') return message.reply('<:wrong:1495666083594502174> Can\'t remove players once the arena is running.');
+
+    const target = message.mentions?.users?.first();
+    if (!target) return message.reply('<:wrong:1495666083594502174> Mention who to remove. Example: `!rskick @user`');
+
+    const idx = game.players.findIndex(p => p.user_id === target.id);
+    if (idx === -1) return message.reply(`<:wrong:1495666083594502174> **${target.username}** isn't signed up for this match.`);
+
+    game.players.splice(idx, 1);
+    game.teamA = game.teamA?.filter(p => p.user_id !== target.id) || [];
+    game.teamB = game.teamB?.filter(p => p.user_id !== target.id) || [];
+    await economy.addFunds(target.id, game.bet, 'Removed from Rumble Slaughter by host').catch(() => {});
+    if (game.scheduleId) {
+      await db.run('DELETE FROM rs_schedule_players WHERE schedule_id = ? AND user_id = ?', [game.scheduleId, target.id]).catch(() => {});
+    }
+
+    if (game.message?.embeds?.[0]) {
+      const updated = EmbedBuilder.from(game.message.embeds[0]).spliceFields(0, 1, {
+        name: '<a:purplecheck:1478983961450643538> Signed Up', value: `**${game.players.length}** player${game.players.length !== 1 ? 's' : ''}`,
+      });
+      await game.message.edit({ embeds: [updated] }).catch(() => {});
+    }
+
+    return message.reply(`<:checkmark:1495666088417956002> **${target.username}** removed and refunded **${game.bet} sins**. (${game.players.length} signed up)`);
   },
 
   // ── Manual fire ───────────────────────────────────────────────────────────────

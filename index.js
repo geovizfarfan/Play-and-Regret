@@ -252,6 +252,8 @@ const slashCommands = [
     )),
   new SlashCommandBuilder().setName('rsinventory').setDescription('View your Rumble Slaughter inventory'),
   new SlashCommandBuilder().setName('rsjoin').setDescription('Join the open Rumble Slaughter game'),
+  new SlashCommandBuilder().setName('rskick').setDescription('Remove a player from the current Rumble Slaughter signup and refund them')
+    .addUserOption(o => o.setName('user').setDescription('Player to remove').setRequired(true)),
   new SlashCommandBuilder().setName('setemoji').setDescription('Set your Rumble Slaughter emoji tag')
     .addStringOption(o => o.setName('emoji').setDescription('Emoji').setRequired(true)),
   new SlashCommandBuilder().setName('pickemoji').setDescription('Pick your animated arena emoji from the server pool (level 10+)'),
@@ -579,7 +581,7 @@ client.on('interactionCreate', async (interaction) => {
 
     // Rumble Slaughter
     if (['rumbleslaughter','rsprofile','rsleaderboard','openbackpack','rsinventory',
-         'rsjoin','eras','setera','rsmatchstats','rshalloffame','rsauto','rsautostop',
+         'rsjoin','rskick','eras','setera','rsmatchstats','rshalloffame','rsauto','rsautostop',
          'setemoji','addemoji','pickemoji','rig','unrig','staffrole','riggedmode','rigrandom','givebackpack'].includes(commandName))
       return await rsModule.handleSlash(interaction, commandName);
 
@@ -704,7 +706,7 @@ client.on('messageCreate', async (message) => {
     if (['memory','memoryleaderboard'].includes(command))
       return await memoryModule.handleCommand(message, args, command);
 
-    if (['rumbleslaughter','rs','rsjoin','rsenter','rsprofile','rsp','rsleaderboard','rslb','rsstats',
+    if (['rumbleslaughter','rs','rsjoin','rsenter','rskick','rsprofile','rsp','rsleaderboard','rslb','rsstats',
          'openbackpack','rsbag','rsinventory','rsinv','rschedule',
          'eras','rseras','rsmatchstats','rsrecap','rshalloffame','rshof',
          'rig','unrig','rigrole','rigrandom','riggedmode','staffrole','givebackpack',
@@ -799,6 +801,7 @@ function buildHelpEmbeds() {
       { name: '🗡️ Rumble Slaughter', value: [
         '`/rumbleslaughter bet [timestamp]` — Start the arena',
         '`!rsjoin` or click Join — Enter',
+        '`/rskick @user` — *(Admin)* Remove + refund a signed-up player',
         '`/rsauto` — Auto-post recurring matches (by time and/or player count)',
         '`/rsprofile` — Level, power, kills, gear, all in one place',
         '`/rsleaderboard` — XP leaderboard',
