@@ -1696,7 +1696,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
     const rawArgs = args.slice(1).join(' ');
 
     // Parse era
-    const eraMatch = rawArgs.match(/(?:--era\s+|era:)(['"]?)([^'"<]+?)\1(?:\s+--|$)/i) || rawArgs.match(/(?:--era\s+|era:)(.+?)(?:\s+--|$)/i);
+    const eraMatch = rawArgs.match(/(?:--era\s+|era:)(['"]?)([^'"<]+?)\1(?:\s+--|\s+role:|$)/i) || rawArgs.match(/(?:--era\s+|era:)(.+?)(?:\s+--|\s+role:|$)/i);
     const eraInput = eraMatch ? eraMatch[2]?.trim() || eraMatch[1]?.trim() : null;
     const resolvedEra = eraInput ? resolveEra(eraInput) : null;
     if (eraInput && !resolvedEra) return message.reply(`<:wrong:1495666083594502174> Unknown era **${eraInput}**. Use \`!eras\` to see available eras.`);
