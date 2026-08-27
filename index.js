@@ -25,6 +25,7 @@ const itemsModule     = require('./src/economy/items');
 const gambleModule    = require('./src/economy/gamble');
 const dropsModule     = require('./src/economy/drops');
 const autodropModule  = require('./src/economy/autodrop');
+const riggedNumbersModule = require('./src/games/riggednumbers');
 const rgModule        = require('./src/games/regretgames');
 const jackpotModule   = require('./src/economy/jackpot');
 
@@ -243,6 +244,12 @@ const slashCommands = [
     .addSubcommand(sc => sc.setName('removechannel').setDescription('Disallow auto-drops in a channel')
       .addChannelOption(o => o.setName('channel').setDescription('Channel to remove').setRequired(true)))
     .addSubcommand(sc => sc.setName('channels').setDescription('List channels allowed for auto-drops')),
+  new SlashCommandBuilder().setName('riggednumbers').setDescription('Pick a secret number, first correct guess wins')
+    .addSubcommand(sc => sc.setName('start').setDescription('Start a Rigged Numbers game')
+      .addIntegerOption(o => o.setName('min').setDescription('Lowest possible number').setRequired(true))
+      .addIntegerOption(o => o.setName('max').setDescription('Highest possible number').setRequired(true)))
+    .addSubcommand(sc => sc.setName('cancel').setDescription('Cancel the current game in this channel'))
+    .addSubcommand(sc => sc.setName('status').setDescription('Check the active game in this channel')),
   new SlashCommandBuilder().setName('rsprofile').setDescription('View your Rumble Slaughter profile — level, power, kills, gear')
     .addUserOption(o => o.setName('user').setDescription('User to view')),
   new SlashCommandBuilder().setName('rsleaderboard').setDescription('Rumble Slaughter XP leaderboard'),
@@ -467,6 +474,9 @@ client.on('interactionCreate', async (interaction) => {
         interaction.customId.startsWith('sins_rich_modal:')) {
       return jackpotModule.handleModal(interaction);
     }
+    if (interaction.customId.startsWith('rn_modal:')) {
+      return riggedNumbersModule.handleModal(interaction);
+    }
     return;
   }
   if (interaction.isStringSelectMenu()) {
@@ -482,6 +492,9 @@ client.on('interactionCreate', async (interaction) => {
     }
     if (interaction.customId.startsWith('lot_')) {
       return loteriaModule.handleButton(interaction);
+    }
+    if (interaction.customId.startsWith('rn_setup:')) {
+      return riggedNumbersModule.handleButton(interaction);
     }
     if (interaction.customId.startsWith('bet_resolve_') || interaction.customId.startsWith('bet_quick_') || interaction.customId.startsWith('bet_amt_') || interaction.customId.startsWith('bet_pick_') || interaction.customId.startsWith('bet_select_') || interaction.customId.startsWith('bet_cancel_')) {
       try {
@@ -617,6 +630,9 @@ client.on('interactionCreate', async (interaction) => {
       }
       return await autodropModule.handleCommand(fakeMsg, args, 'autodrop');
     }
+    if (commandName === 'riggednumbers') {
+      return await riggedNumbersModule.handleSlash(interaction, commandName);
+    }
     if (commandName === 'items') {
       await interaction.deferReply({ ephemeral: true });
       const fakeSource = { reply: (d) => interaction.editReply(d) };
@@ -654,6 +670,13 @@ client.on('messageCreate', async (message) => {
   }
 });
 
+// ── Rigged Numbers guesses — plain numbers typed in a channel with an active game ──
+client.on('messageCreate', async (message) => {
+  if (message.author.bot) return;
+  if (!riggedNumbersModule.activeGames.has(message.channel.id)) return;
+  await riggedNumbersModule.handleGuess(message).catch(() => {});
+});
+
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith(PREFIX)) return;
@@ -681,6 +704,9 @@ client.on('messageCreate', async (message) => {
 
     if (command === 'autodrop')
       return await autodropModule.handleCommand(message, args, command);
+
+    if (['riggednumbers','rignum'].includes(command))
+      return await riggedNumbersModule.handleCommand(message, args, command);
 
     if (['jackpot','richpot','lottery','enter','lotteryenter','jackpotdraw','jackpothistory',
          'jackpotstart','jackpotstop','jackpotentries','potentries'].includes(command))
@@ -798,6 +824,7 @@ function buildHelpEmbeds() {
       ].join('\n') },
       { name: '🐹 Find the Cuy', value: '`/findthecuy` — Click the hidden cuy to win!' },
       { name: '<a:brain:1511530555588612126> Memory', value: '`/memory` — Match emoji pairs (solo or multiplayer)' },
+      { name: '🎲 Rigged Numbers', value: '`/riggednumbers start min max` — Secretly pick a number, first correct guess wins' },
       { name: '🗡️ Rumble Slaughter', value: [
         '`/rumbleslaughter bet [timestamp]` — Start the arena',
         '`!rsjoin` or click Join — Enter',
@@ -964,6 +991,21 @@ async function tryCancelAll(channel, userId, username, replyFn, guildId = null) 
         await economy.addFunds(p.id, g.bet, 'Find the Cuy cancelled').catch(() => {});
       await economy.untrackGameChannel(channelId).catch(() => {});
       return replyFn(`<:checkmark:1495666088417956002> Find the Cuy cancelled. Players refunded.`);
+    }
+  } catch(e) {}
+
+  // Try Rigged Numbers
+  try {
+    if (!cancelled && riggedNumbersModule.activeGames.has(channelId)) {
+      const member = channel.guild ? await channel.guild.members.fetch(userId).catch(() => null) : null;
+      const result = await riggedNumbersModule.cancelViaUniversal(channel, userId, member);
+      if (result?.blocked) {
+        return replyFn('<:wrong:1495666083594502174> Only the host or admins can cancel.');
+      }
+      if (result) {
+        cancelMsg = `<:checkmark:1495666088417956002> Rigged Numbers cancelled. The number was **${result.secretNumber}**.`;
+        cancelled = true;
+      }
     }
   } catch(e) {}
 
