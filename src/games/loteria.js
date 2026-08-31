@@ -418,7 +418,7 @@ module.exports = {
             return inter.channel.send({ embeds: [new EmbedBuilder().setColor('#C9B1FF')
               .setTitle(`<a:trophies:1507765453299122387> ¡LOTERÍA!`)
               .setDescription(`<a:trophies:1507765453299122387> <@${inter.user.id}> wins with a **${win}**!\n${E.BB_COIN} Prize: **${pot.toLocaleString()} sins**!`)
-              .setFooter({ text: '¡Felicidades! <a:trophies:1507765453299122387>' })] });
+              .setFooter({ text: '¡Felicidades!' })] });
           }
 
           // Show updated board
@@ -579,7 +579,7 @@ module.exports = {
     await channel.send({ embeds: [new EmbedBuilder().setColor('#C9B1FF')
       .setTitle('<a:trophies:1507765453299122387> ¡LOTERÍA!')
       .setDescription(`<a:trophies:1507765453299122387> ${names} wins!\n${E.BB_COIN} Each gets **${share.toLocaleString()} sins**!`)
-      .setFooter({ text: '¡Felicidades! <a:trophies:1507765453299122387>' })] });
+      .setFooter({ text: '¡Felicidades!' })] });
   },
 
   // ─── Cancel ───────────────────────────────────────────────────────────────
@@ -707,7 +707,7 @@ module.exports = {
         return interaction.channel.send({ embeds: [new EmbedBuilder().setColor('#C9B1FF')
           .setTitle('<a:trophies:1507765453299122387> ¡LOTERÍA!')
           .setDescription(`<a:trophies:1507765453299122387> <@${interaction.user.id}> wins with a **${win}**!\n${E.BB_COIN} Prize: **${pot.toLocaleString()} sins**!`)
-          .setFooter({ text: '¡Felicidades! <a:trophies:1507765453299122387>' })] });
+          .setFooter({ text: '¡Felicidades!' })] });
       }
 
       return interaction.reply(await buildBoardMsg(pd, g.drawnCards, true));

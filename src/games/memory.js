@@ -437,7 +437,7 @@ async function launchMemory(channel, bet, sizeKey, mode, triggeredBy, hostId, gu
     const g = activeGames.get(channelId);
     if (!g || g.phase !== 'signup') return;
     const closed = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(joinId).setLabel('<a:RojasClock:1511506715453947904> Closed').setStyle(ButtonStyle.Secondary).setDisabled(true),
+      new ButtonBuilder().setCustomId(joinId).setEmoji({ id: '1511506715453947904', name: 'RojasClock', animated: true }).setLabel('Closed').setStyle(ButtonStyle.Secondary).setDisabled(true),
       new ButtonBuilder().setCustomId(startId).setLabel('▶️ Started').setStyle(ButtonStyle.Secondary).setDisabled(true),
     );
     await signupMsg.edit({ components: [closed] }).catch(() => {});

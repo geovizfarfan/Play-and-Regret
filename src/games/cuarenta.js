@@ -272,7 +272,7 @@ async function doDeal(channel, game, isFirst=false) {
       (game.table.length > 0 ? `\n<a:cards:1511530261551124561> **Table:** ${cardLinks(game.table)}\n` : '') +
       `\n${scoreBar(game)}`
     )
-    .setFooter({text:'Press <a:Loading:1511506718666784778> Ronda or <:373840:1511531231756419202> Cuarenta right after receiving cards if you have them!'})
+    .setFooter({text:'Press Ronda or Cuarenta right after receiving cards if you have them!'})
   ]});
 
   // Check ronda/cuarenta for all players immediately after deal

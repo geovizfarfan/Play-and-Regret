@@ -344,8 +344,8 @@ module.exports = {
     const xEmoji = xShop?.emoji || null;
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('ttt_openjoin').setLabel('<:sword:1495666991187361943> Accept Challenge!').setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId('ttt_opendecline').setLabel('<:wrong:1495666083594502174> Cancel').setStyle(ButtonStyle.Danger)
+      new ButtonBuilder().setCustomId('ttt_openjoin').setEmoji({ id: '1495666991187361943', name: 'sword' }).setLabel('Accept Challenge!').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId('ttt_opendecline').setEmoji({ id: '1495666083594502174', name: 'wrong' }).setLabel('Cancel').setStyle(ButtonStyle.Danger)
     );
 
     const content = [
@@ -480,8 +480,8 @@ module.exports = {
       .setFooter({ text: 'Challenge expires in 60 seconds' });
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('ttt_accept').setLabel('<:checkmark:1495666088417956002> Accept').setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId('ttt_decline').setLabel('<:wrong:1495666083594502174> Decline').setStyle(ButtonStyle.Danger)
+      new ButtonBuilder().setCustomId('ttt_accept').setEmoji({ id: '1495666088417956002', name: 'checkmark' }).setLabel('Accept').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId('ttt_decline').setEmoji({ id: '1495666083594502174', name: 'wrong' }).setLabel('Decline').setStyle(ButtonStyle.Danger)
     );
 
     const challengeMsg = await message.channel.send({ embeds: [challengeEmbed], components: [row] });

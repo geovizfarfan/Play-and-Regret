@@ -92,7 +92,7 @@ function makeSignupEmbed(players, bet, timeLabel, mode = 'multi') {
 }
 
 const makeButtons = (mode = 'multi') => new ActionRowBuilder().addComponents(
-  new ButtonBuilder().setCustomId('bj_join_placeholder').setLabel('<a:cards:1511530261551124561> Join Blackjack').setStyle(ButtonStyle.Primary),
+  new ButtonBuilder().setCustomId('bj_join_placeholder').setEmoji({ id: '1511530261551124561', name: 'cards', animated: true }).setLabel('Join Blackjack').setStyle(ButtonStyle.Primary),
   new ButtonBuilder().setCustomId('bj_start_placeholder').setLabel('▶️ Start Now').setStyle(ButtonStyle.Success),
 );
 
@@ -337,7 +337,7 @@ async function launchBlackjack(channel, bet, triggeredBy, hostId, mode = 'multi'
   activeGames.set(channelId, game);
 
   const makeButtons = (m = 'multi') => new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(joinId).setLabel('<a:cards:1511530261551124561> Join Blackjack').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId(joinId).setEmoji({ id: '1511530261551124561', name: 'cards', animated: true }).setLabel('Join Blackjack').setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setCustomId(startId).setLabel('▶️ Start Now').setStyle(ButtonStyle.Success),
   );
 
@@ -399,7 +399,7 @@ async function launchBlackjack(channel, bet, triggeredBy, hostId, mode = 'multi'
     if (!g || g.phase !== 'signup') return;
 
     const closed = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(joinId).setLabel('<a:cards:1511530261551124561> Table Closed').setStyle(ButtonStyle.Secondary).setDisabled(true),
+      new ButtonBuilder().setCustomId(joinId).setEmoji({ id: '1511530261551124561', name: 'cards', animated: true }).setLabel('Table Closed').setStyle(ButtonStyle.Secondary).setDisabled(true),
       new ButtonBuilder().setCustomId(startId).setLabel('▶️ Started').setStyle(ButtonStyle.Secondary).setDisabled(true),
     );
     await gameMsg.edit({ components: [closed] }).catch(() => {});

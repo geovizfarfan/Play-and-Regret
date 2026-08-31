@@ -262,6 +262,7 @@ async function launchCuy(channel, bet, rounds, triggeredBy, hostId) {
 
   const joinId  = `cuy_join_${channelId}`;
   const startId = `cuy_start_${channelId}`;
+  const rulesId = `cuy_rules_${channelId}`;
   const game    = { players: [], bet, phase: 'signup', hostId, triggeredBy };
   activeGames.set(channelId, game);
 
@@ -283,7 +284,7 @@ async function launchCuy(channel, bet, rounds, triggeredBy, hostId) {
 
   const makeButtons = () => new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(joinId).setEmoji({ id: '1511512778542813214', name: 'guineapig', animated: true }).setLabel('Join').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(rulesId || 'cuy_rules').setEmoji({ id: '1511510712986632352', name: 'rules', animated: true }).setLabel('Rules').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(rulesId).setEmoji({ id: '1511510712986632352', name: 'rules', animated: true }).setLabel('Rules').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId(startId).setEmoji({ id: '1511506717584920696', name: 'sparkle', animated: true }).setLabel('Start').setStyle(ButtonStyle.Success),
   );
 
@@ -308,6 +309,13 @@ async function launchCuy(channel, bet, rounds, triggeredBy, hostId) {
       return;
     }
 
+    if (interaction.customId === rulesId) {
+      return interaction.reply({
+        content: `🐹 **Find the Cuy — Rules**\nA cuy hides in one of the grid cells. Take turns clicking cells to find it. Whoever finds the cuy wins the pot!\nEntry: **${bet} sins** per player. Need at least 2 players to start.`,
+        ephemeral: true,
+      });
+    }
+
     if (interaction.customId !== joinId) return;
     await interaction.deferUpdate();
 
@@ -330,7 +338,7 @@ async function launchCuy(channel, bet, rounds, triggeredBy, hostId) {
     if (!g || g.phase !== 'signup') return;
 
     const closed = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(joinId).setLabel('<a:RojasClock:1511506715453947904> Closed').setStyle(ButtonStyle.Secondary).setDisabled(true),
+      new ButtonBuilder().setCustomId(joinId).setEmoji({ id: '1511506715453947904', name: 'RojasClock', animated: true }).setLabel('Closed').setStyle(ButtonStyle.Secondary).setDisabled(true),
       new ButtonBuilder().setCustomId(startId).setLabel('▶️ Started').setStyle(ButtonStyle.Secondary).setDisabled(true),
     );
     await gameMsg.edit({ components: [closed] }).catch(() => {});
