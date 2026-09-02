@@ -679,6 +679,37 @@ async function initDB() {
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )`,
 
+    // ── Shared regret log — powers the future /regrets stats breakdown by game ──
+    `CREATE TABLE IF NOT EXISTS regret_log (
+      id         BIGSERIAL PRIMARY KEY,
+      user_id    TEXT NOT NULL,
+      source_game TEXT NOT NULL,
+      tier       TEXT NOT NULL,
+      amount     INT NOT NULL,
+      reason     TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+
+    // ── FAFO ────────────────────────────────────────────────────────────────────
+    `CREATE TABLE IF NOT EXISTS fafo_stats (
+      user_id                TEXT PRIMARY KEY,
+      games_played           INT DEFAULT 0,
+      total_wagered          BIGINT DEFAULT 0,
+      total_sins_won         BIGINT DEFAULT 0,
+      total_sins_lost        BIGINT DEFAULT 0,
+      regrets_earned         INT DEFAULT 0,
+      fuck_arounds           INT DEFAULT 0,
+      find_outs              INT DEFAULT 0,
+      chicken_outs           INT DEFAULT 0,
+      highest_round          INT DEFAULT 0,
+      best_streak            INT DEFAULT 0,
+      biggest_cash_out       BIGINT DEFAULT 0,
+      biggest_pot_lost       BIGINT DEFAULT 0,
+      biggest_wager_lost     BIGINT DEFAULT 0,
+      final_fafo_attempts    INT DEFAULT 0,
+      final_fafo_wins        INT DEFAULT 0
+    )`,
+
     // ── Regret Games ───────────────────────────────────────────────────────────
     'CREATE TABLE IF NOT EXISTS rg_seasons (id SERIAL PRIMARY KEY, guild_id TEXT NOT NULL UNIQUE, arena_channel_id TEXT, votes_channel_id TEXT, entry_fee INTEGER DEFAULT 500, status TEXT DEFAULT \'setup\', current_day INTEGER DEFAULT 0, pot INTEGER DEFAULT 0, prize_pot INTEGER DEFAULT 0, vote_open INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())',
     'CREATE TABLE IF NOT EXISTS rg_players (id SERIAL PRIMARY KEY, season_id INTEGER NOT NULL, user_id TEXT NOT NULL, username TEXT, status TEXT DEFAULT \'alive\', regret INTEGER DEFAULT 0, sins_earned INTEGER DEFAULT 0, food INTEGER DEFAULT 1, has_shield INTEGER DEFAULT 0, title TEXT, elim_cause TEXT, elim_day INTEGER, UNIQUE(season_id, user_id))',
