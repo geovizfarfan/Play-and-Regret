@@ -717,7 +717,8 @@ module.exports = {
   async handleSlash(interaction, commandName) {
     if (commandName === 'cuarenta') {
       const mode  = interaction.options.getString('mode') || '1v1';
-      const bet   = interaction.options.getInteger('bet') || 100;
+      const feeConfig = await economy.getEntryFeeConfig('cuarenta');
+      const bet   = feeConfig.enabled ? (interaction.options.getInteger('bet') || 100) : 0;
       const vsBot = interaction.options.getBoolean('vsbot') || false;
       await interaction.reply({ content:'Starting...', ephemeral:true });
       await startGame(interaction.channel, interaction.user.id, interaction.user.username, mode==='2v2', bet,
@@ -741,7 +742,8 @@ module.exports = {
     if (command === 'cuarenta') {
       const is2v2 = args[0]?.toLowerCase() === '2v2';
       const vsBot = args.includes('bot');
-      const bet   = parseInt(args.find(a=>!isNaN(parseInt(a)))) || 100;
+      const feeConfig = await economy.getEntryFeeConfig('cuarenta');
+      const bet   = feeConfig.enabled ? (parseInt(args.find(a=>!isNaN(parseInt(a)))) || 100) : 0;
       await startGame(message.channel, message.author.id, message.author.username, is2v2, bet,
         msg => message.reply(msg), vsBot);
     }

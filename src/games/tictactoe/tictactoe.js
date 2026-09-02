@@ -194,7 +194,8 @@ module.exports = {
   async handleSlash(interaction) {
     if (interaction.commandName === 'cancelttb' || interaction.commandName === 'cancelttt' || interaction.commandName === 'canceltictacbruh') return this.cancelGame(interaction);
     const opponent = interaction.options.getUser('opponent');
-    const bet      = interaction.options.getInteger('bet') || 10;
+    const feeConfig = await economy.getEntryFeeConfig('tictactoe');
+    const bet      = feeConfig.enabled ? (interaction.options.getInteger('bet') || 10) : 0;
     const vsBot    = interaction.options.getBoolean('vsbot') || false;
 
     if (vsBot) {
@@ -330,7 +331,8 @@ module.exports = {
 
   // ── Open challenge — anyone can join ──────────────────────────────────────
   async openChallenge(message, args) {
-    const bet     = parseInt(args[0]) || 10;
+    const feeConfig = await economy.getEntryFeeConfig('tictactoe');
+    const bet     = feeConfig.enabled ? (parseInt(args[0]) || 10) : 0;
     const gameKey = message.channel.id;
     if (activeGames.has(gameKey))
       return message.reply(`${E.ERROR} There\'s already a game in this channel!`);
@@ -461,7 +463,8 @@ module.exports = {
     if (opponent.id === message.author.id) return message.reply(`${E.ERROR} You can't play yourself!`);
     if (opponent.bot) return message.reply(`${E.ERROR} Use \`/ttt vsbot:True\` to play against the bot!`);
 
-    const bet     = parseInt(args[1]) || 10;
+    const feeConfig = await economy.getEntryFeeConfig('tictactoe');
+    const bet     = feeConfig.enabled ? (parseInt(args[1]) || 10) : 0;
     const gameKey = message.channel.id;
     if (activeGames.has(gameKey)) return message.reply(`${E.ERROR} There's already a game in this channel!`);
 

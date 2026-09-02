@@ -244,8 +244,9 @@ module.exports = {
     if (activeGames.has(channelId))
       return message.reply(`${E.ERROR} A Lotería game is already running here!`);
 
-    const bet = parseInt(args[0]) || 50;
-    if (bet < 10) return message.reply(`${E.ERROR} Minimum bet is 10 Sins!`);
+    const feeConfig = await economy.getEntryFeeConfig('loteria');
+    const bet = feeConfig.enabled ? (parseInt(args[0]) || 50) : 0;
+    if (feeConfig.enabled && bet < 10) return message.reply(`${E.ERROR} Minimum bet is 10 Sins!`);
 
     // Parse speed from args e.g. !loteria 100 <t:...> 10
     const rawArgs = message.content.split(' ').slice(1).join(' ');

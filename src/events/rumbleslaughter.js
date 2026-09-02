@@ -1690,8 +1690,9 @@ It will affect your duels in the next Rumble Slaughter match.`,
     if (!isHost(message.member)) return message.reply(`<:wrong:1495666083594502174> You need the **${process.env.EVENT_HOST_ROLE || 'Event Host'}** role to start Rumble Slaughter.`);
     if (activeGames.has(message.channel.id)) return message.reply('<:wrong:1495666083594502174> There\'s already a game open here. Use `!cancelevent` first.');
 
-    const bet    = parseInt(args[0]) || 50;
-    if (bet < 10) return message.reply('<:wrong:1495666083594502174> Minimum bet is 10 sins.');
+    const feeConfig = await economy.getEntryFeeConfig('rumbleslaughter');
+    const bet = feeConfig.enabled ? (parseInt(args[0]) || feeConfig.defaultAmount) : 0;
+    if (feeConfig.enabled && bet < 10) return message.reply('<:wrong:1495666083594502174> Minimum bet is 10 sins.');
 
     const rawArgs = args.slice(1).join(' ');
 
@@ -1767,8 +1768,9 @@ It will affect your duels in the next Rumble Slaughter match.`,
   async autoSetup(message, args) {
     if (!isHost(message.member)) return message.reply(`<:wrong:1495666083594502174> You need the **${process.env.EVENT_HOST_ROLE || 'Event Host'}** role to set up auto-scheduling.`);
 
-    const bet = parseInt(args[0]) || 50;
-    if (bet < 10) return message.reply('<:wrong:1495666083594502174> Minimum bet is 10 sins.');
+    const feeConfig = await economy.getEntryFeeConfig('rumbleslaughter');
+    const bet = feeConfig.enabled ? (parseInt(args[0]) || feeConfig.defaultAmount) : 0;
+    if (feeConfig.enabled && bet < 10) return message.reply('<:wrong:1495666083594502174> Minimum bet is 10 sins.');
 
     const rawArgs = args.slice(1).join(' ');
 

@@ -458,7 +458,8 @@ module.exports = {
 
   async handleSlash(interaction, commandName) {
     if (commandName === 'memory') {
-      const bet     = interaction.options.getInteger('bet') || 50;
+      const feeConfig = await economy.getEntryFeeConfig('memory');
+      const bet     = feeConfig.enabled ? (interaction.options.getInteger('bet') || 50) : 0;
       const sizeKey = interaction.options.getString('size') || 'medium';
       const mode    = interaction.options.getString('mode') || 'solo';
       try {
@@ -490,7 +491,8 @@ module.exports = {
   },
 
   async handleCommand(message, args) {
-    const bet     = parseInt(args[0]) || 50;
+    const feeConfig = await economy.getEntryFeeConfig('memory');
+    const bet     = feeConfig.enabled ? (parseInt(args[0]) || 50) : 0;
     const sizeKey = args[1] || 'medium';
     const mode    = args[2] || 'solo';
     await launchMemory(message.channel, bet, sizeKey, mode, message.author.username, message.author.id, message.guild);

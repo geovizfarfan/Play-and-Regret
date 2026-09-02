@@ -26,6 +26,7 @@ const gambleModule    = require('./src/economy/gamble');
 const dropsModule     = require('./src/economy/drops');
 const autodropModule  = require('./src/economy/autodrop');
 const riggedNumbersModule = require('./src/games/riggednumbers');
+const entryFeeModule = require('./src/economy/entryfee');
 const rgModule        = require('./src/games/regretgames');
 const jackpotModule   = require('./src/economy/jackpot');
 
@@ -250,6 +251,21 @@ const slashCommands = [
       .addIntegerOption(o => o.setName('max').setDescription('Highest possible number').setRequired(true)))
     .addSubcommand(sc => sc.setName('cancel').setDescription('Cancel the current game in this channel'))
     .addSubcommand(sc => sc.setName('status').setDescription('Check the active game in this channel')),
+  new SlashCommandBuilder().setName('entryfee').setDescription('Admin: turn a game\'s entry fee on or off')
+    .addSubcommand(sc => sc.setName('set').setDescription('Enable or disable a game\'s entry fee')
+      .addStringOption(o => o.setName('game').setDescription('Which game').setRequired(true).addChoices(
+        { name: 'Rumble Slaughter', value: 'rumbleslaughter' },
+        { name: 'Cuarenta', value: 'cuarenta' },
+        { name: 'Blackjack', value: 'blackjack' },
+        { name: 'Lotería', value: 'loteria' },
+        { name: 'Find the Cuy', value: 'findthecuy' },
+        { name: 'Memory', value: 'memory' },
+        { name: 'Tic-Tac-Bruh', value: 'tictactoe' },
+      ))
+      .addStringOption(o => o.setName('state').setDescription('On (costs sins) or off (free)').setRequired(true).addChoices(
+        { name: 'On', value: 'on' }, { name: 'Off', value: 'off' },
+      )))
+    .addSubcommand(sc => sc.setName('status').setDescription('View entry fee status for every game')),
   new SlashCommandBuilder().setName('rsprofile').setDescription('View your Rumble Slaughter profile — level, power, kills, gear')
     .addUserOption(o => o.setName('user').setDescription('User to view')),
   new SlashCommandBuilder().setName('rsleaderboard').setDescription('Rumble Slaughter XP leaderboard'),
@@ -633,6 +649,9 @@ client.on('interactionCreate', async (interaction) => {
     if (commandName === 'riggednumbers') {
       return await riggedNumbersModule.handleSlash(interaction, commandName);
     }
+    if (commandName === 'entryfee') {
+      return await entryFeeModule.handleSlash(interaction);
+    }
     if (commandName === 'items') {
       await interaction.deferReply({ ephemeral: true });
       const fakeSource = { reply: (d) => interaction.editReply(d) };
@@ -707,6 +726,9 @@ client.on('messageCreate', async (message) => {
 
     if (['riggednumbers','rignum'].includes(command))
       return await riggedNumbersModule.handleCommand(message, args, command);
+
+    if (command === 'entryfee')
+      return await entryFeeModule.handleCommand(message, args, command);
 
     if (['jackpot','richpot','lottery','enter','lotteryenter','jackpotdraw','jackpothistory',
          'jackpotstart','jackpotstop','jackpotentries','potentries'].includes(command))
@@ -825,6 +847,7 @@ function buildHelpEmbeds() {
       { name: '🐹 Find the Cuy', value: '`/findthecuy` — Click the hidden cuy to win!' },
       { name: '<a:brain:1511530555588612126> Memory', value: '`/memory` — Match emoji pairs (solo or multiplayer)' },
       { name: '🎲 Rigged Numbers', value: '`/riggednumbers start min max` — Secretly pick a number, first correct guess wins' },
+      { name: `${E.BB_COIN} Entry Fees`, value: '`/entryfee set game state` — *(Admin)* Turn a game\'s entry fee on/off\n`/entryfee status` — See what\'s free right now' },
       { name: '🗡️ Rumble Slaughter', value: [
         '`/rumbleslaughter bet [timestamp]` — Start the arena',
         '`!rsjoin` or click Join — Enter',
