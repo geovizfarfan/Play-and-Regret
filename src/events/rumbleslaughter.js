@@ -1213,14 +1213,14 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
       `${tsUnix ? `<a:RojasClock:1511506715453947904> **Starts:** <t:${tsUnix}:F> (<t:${tsUnix}:R>)` : '<a:purplesparkle:1479210541691175054> Host will start manually with `!rumble`'}\n\n` +
       `*Most of you will lose. Loudly.*`
     )
-    .addFields({ name: '<:member:1495666085121491024> Signed Up', value: '**0** players' })
+    .addFields({ name: '<:member:1495666085121491024> Joined', value: '**0** players' })
     .setFooter({ text: `Min ${MIN_PLAYERS} players • !rsjoin to enter` });
 
   const btn = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`rs_join:${channel.id}`)
-      .setEmoji('<a:rumblesword:1522338907465842789>').setLabel('Join the Arena')
-      .setStyle(ButtonStyle.Primary),
+      .setEmoji('<a:join:1544891352582459454>').setLabel('Join the Arena')
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(`rs_start:${channel.id}`)
       .setEmoji('<a:CheckCheckmarkSticker:1532595713010040972>').setLabel('Start Game')
@@ -1228,7 +1228,7 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
     new ButtonBuilder()
       .setCustomId(`rs_viewmembers:${channel.id}`)
       .setEmoji('<:member:1495666085121491024>').setLabel('View Members')
-      .setStyle(ButtonStyle.Secondary),
+      .setStyle(ButtonStyle.Primary),
   );
 
   const msg = await channel.send({ embeds: [embed], components: [btn] });
@@ -1406,7 +1406,7 @@ module.exports = {
       // Update embed
       if (game.message?.embeds?.[0]) {
         const updated = EmbedBuilder.from(game.message.embeds[0]).spliceFields(0, 1, {
-          name: '<a:purplecheck:1478983961450643538> Signed Up',
+          name: '<:member:1495666085121491024> Joined',
           value: `**${game.players.length}** player${game.players.length !== 1 ? 's' : ''}`,
         });
         await game.message.edit({ embeds: [updated] }).catch(() => {});
@@ -1519,7 +1519,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
           if (msg) {
             const refreshedEmbed = msg.embeds?.[0]
               ? EmbedBuilder.from(msg.embeds[0]).spliceFields(0, 1, {
-                  name: '<:member:1495666085121491024> Signed Up',
+                  name: '<:member:1495666085121491024> Joined',
                   value: `**${savedPlayers.length}** player${savedPlayers.length !== 1 ? 's' : ''}`,
                 })
               : null;
@@ -1913,7 +1913,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
 
     if (game.message?.embeds?.[0]) {
       const updated = EmbedBuilder.from(game.message.embeds[0]).spliceFields(0, 1, {
-        name: '<a:purplecheck:1478983961450643538> Signed Up', value: `**${game.players.length}** player${game.players.length !== 1 ? 's' : ''}`,
+        name: '<:member:1495666085121491024> Joined', value: `**${game.players.length}** player${game.players.length !== 1 ? 's' : ''}`,
       });
       await game.message.edit({ embeds: [updated] }).catch(() => {});
     }
@@ -1952,7 +1952,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
 
     if (game.message?.embeds?.[0]) {
       const updated = EmbedBuilder.from(game.message.embeds[0]).spliceFields(0, 1, {
-        name: '<a:purplecheck:1478983961450643538> Signed Up', value: `**${game.players.length}** player${game.players.length !== 1 ? 's' : ''}`,
+        name: '<:member:1495666085121491024> Joined', value: `**${game.players.length}** player${game.players.length !== 1 ? 's' : ''}`,
       });
       await game.message.edit({ embeds: [updated] }).catch(() => {});
     }
@@ -2524,7 +2524,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
         .setTitle('<:sword:1495666991187361943> Rumble Slaughter — Schedule')
         .addFields(
           { name: '<a:SINS:1522338223613804724> Entry',     value: `${game.bet} sins`,            inline: true },
-          { name: '<:member:1495666085121491024> Signed Up', value: `${game.players.length}`,       inline: true },
+          { name: '<:member:1495666085121491024> Joined', value: `${game.players.length}`,       inline: true },
           { name: '<a:marked:1511508970882465832> Phase',     value: game.phase,                     inline: true },
           { name: '<a:RojasClock:1511506715453947904> Fires At',  value: tsUnix ? `<t:${tsUnix}:F> (<t:${tsUnix}:R>)` : 'Manual (`!startgame`)', inline: false },
           { name: '👤 Host',      value: `<@${game.hostId}>`,             inline: true },

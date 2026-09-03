@@ -203,7 +203,7 @@ async function startGame(channel, authorId, authorUsername, is2v2, bet, replyFn,
     .addFields({ name: '<a:purplecheck:1478983961450643538> Joined', value: `**1**/${game.numPlayers}` })
     .setFooter({text:'Lobby open 2 minutes'})],
     components: [new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('cq_join').setLabel('Join').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId('cq_join').setLabel('Join').setEmoji('<a:join:1544891352582459454>').setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId('cq_rules_lobby').setEmoji({ id: '1511510712986632352', name: 'rules', animated: true }).setLabel('Rules').setStyle(ButtonStyle.Secondary),
     )]
   });
