@@ -92,7 +92,7 @@ function makeSignupEmbed(players, bet, timeLabel, mode = 'multi') {
 }
 
 const makeButtons = (mode = 'multi') => new ActionRowBuilder().addComponents(
-  new ButtonBuilder().setCustomId('bj_join_placeholder').setEmoji('<a:join:1544891352582459454>').setLabel('Join Blackjack').setStyle(ButtonStyle.Secondary),
+  new ButtonBuilder().setCustomId('bj_join_placeholder').setEmoji('<a:cards:1511530261551124561>').setLabel('Join Blackjack').setStyle(ButtonStyle.Secondary),
   new ButtonBuilder().setCustomId('bj_start_placeholder').setLabel('▶️ Start Now').setStyle(ButtonStyle.Success),
 );
 
@@ -337,7 +337,7 @@ async function launchBlackjack(channel, bet, triggeredBy, hostId, mode = 'multi'
   activeGames.set(channelId, game);
 
   const makeButtons = (m = 'multi') => new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(joinId).setEmoji('<a:join:1544891352582459454>').setLabel('Join Blackjack').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(joinId).setEmoji('<a:cards:1511530261551124561>').setLabel('Join Blackjack').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId(startId).setLabel('▶️ Start Now').setStyle(ButtonStyle.Success),
   );
 
