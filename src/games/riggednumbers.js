@@ -121,7 +121,7 @@ module.exports = {
           `**${interaction.user.username}** is thinking of a number between **${min}** and **${max}**.\n\n` +
           `Type your guess in chat — first person to nail it wins bragging rights (and eternal smugness).\n\n` +
           `<:purp_caveira50:1495665632845369354> Winner also gets **10% of their regret wiped**.\n\n` +
-          `*No hints. No mercy. Good luck.*`
+          `*Wrong guesses get a hint. No mercy otherwise. Good luck.*`
         )
         .setFooter({ text: 'Use !riggednumbers cancel to end this early' })
     ] });
@@ -154,7 +154,7 @@ module.exports = {
           .setDescription(`**${message.author.username}** correctly guessed **${game.secretNumber}**!\n\n**${game.hostName}**'s number has been cracked. New champion crowned.${regretLine}`)
       ] });
     } else {
-      await message.react('<:wrong:1495666083594502174>').catch(() => {});
+      await message.react(guess < game.secretNumber ? '<a:higher:1544885549662470165>' : '<a:lower:1544885551126155324>').catch(() => {});
     }
   },
 
