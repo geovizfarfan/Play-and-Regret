@@ -268,7 +268,7 @@ async function launchCuy(channel, bet, rounds, triggeredBy, hostId) {
 
   const makeEmbed = () => new EmbedBuilder()
     .setColor('#C9B1FF')
-    .setTitle('<a:guineapig:1511512778542813214> FIND THE CUY — Signups!')
+    .setTitle('<a:GuineaPig_tbpbots:1544900084410490910> FIND THE CUY — Signups!')
     .setDescription(
       `**Find and click the 🐹 cuy hiding in the grid before everyone else!**\n\n` +
       `<a:moneybag:1479268556687540345> Entry: **${bet} sins** per player\n` +

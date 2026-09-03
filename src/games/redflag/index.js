@@ -69,7 +69,7 @@ async function startLobby(channel, hostId, hostName, prize) {
 
   const embed = new EmbedBuilder()
     .setColor('#CC0000')
-    .setTitle('🚩 RED FLAG RUMBLE')
+    .setTitle('<a:redflag:1545091812924858469> RED FLAG RUMBLE')
     .setDescription(
       `<@${hostId}> opened a Red Flag Rumble.\n\n` +
       `Every round, someone gets accused. Vote, defend, collect abilities, survive.\n` +
@@ -81,7 +81,7 @@ async function startLobby(channel, hostId, hostName, prize) {
     .setFooter({ text: 'Use !cancel to end this early' });
 
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`rf_join:${channel.id}`).setLabel('Join').setEmoji('🚩').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`rf_join:${channel.id}`).setLabel('Join').setEmoji('<a:redflag:1545091812924858469>').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId(`rf_viewmembers:${channel.id}`).setLabel('View Members').setEmoji('<:member:1495666085121491024>').setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setCustomId(`rf_start:${channel.id}`).setLabel('Start Game').setEmoji('<a:CheckCheckmarkSticker:1532595713010040972>').setStyle(ButtonStyle.Success),
   );
@@ -147,7 +147,7 @@ async function beginGame(channel) {
   game.phase = 'playing';
   await game.lobbyMsg?.edit({ components: [] }).catch(() => {});
   await channel.send({ embeds: [
-    new EmbedBuilder().setColor('#CC0000').setTitle('🚩 THE RUMBLE BEGINS')
+    new EmbedBuilder().setColor('#CC0000').setTitle('<a:redflag:1545091812924858469> THE RUMBLE BEGINS')
       .setDescription(`**${game.players.size}** players. Everyone's got something to hide.`)
   ] });
   await runRound(channel, game);
@@ -186,7 +186,7 @@ async function runRound(channel, game) {
   const suspectMentions = suspects.map(s => `<@${s.userId}>`).join(', ');
   const embed = new EmbedBuilder()
     .setColor('#CC0000')
-    .setTitle('🚩 RED FLAG ALERT')
+    .setTitle('<a:redflag:1545091812924858469> RED FLAG ALERT')
     .setDescription(
       `Someone here allegedly...\n*"${scenario}"*\n\n` +
       `**Possible suspects:** ${suspectMentions}${abilityLine}\n\n` +
@@ -201,7 +201,7 @@ async function runRound(channel, game) {
     ...suspects.map(s => new ButtonBuilder().setCustomId(`rf_defend:${roundTag}:${s.userId}`).setLabel(`${s.username}: Defend`).setStyle(ButtonStyle.Secondary))
   );
   const abilityRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`rf_useability:${roundTag}`).setLabel('Use Ability').setEmoji('✨').setStyle(ButtonStyle.Primary)
+    new ButtonBuilder().setCustomId(`rf_useability:${roundTag}`).setLabel('Use Ability').setEmoji('<a:ability:1545092941666721954>').setStyle(ButtonStyle.Primary)
   );
 
   const roundMsg = await channel.send({ embeds: [embed], components: [selectRow, defendRow, abilityRow] });
@@ -229,11 +229,11 @@ async function runRound(channel, game) {
           if (i.user.id !== suspectId) return i.reply({ content: '<:wrong:1495666083594502174> Not your accusation to defend.', ephemeral: true });
           if (defenses.has(suspectId)) return i.reply({ content: '<a:Warning:1497476844860215366> Already defended yourself this round.', ephemeral: true });
           const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId(`rf_def:${roundTag}:innocent`).setLabel("I'm Innocent").setEmoji('😇').setStyle(ButtonStyle.Success),
-            new ButtonBuilder().setCustomId(`rf_def:${roundTag}:receipts`).setLabel('Show Receipts').setEmoji('🧾').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId(`rf_def:${roundTag}:unoreverse`).setLabel('Uno Reverse').setEmoji('🔄').setStyle(ButtonStyle.Danger),
-            new ButtonBuilder().setCustomId(`rf_def:${roundTag}:and`).setLabel('And?').setEmoji('💅').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId(`rf_def:${roundTag}:wrongperson`).setLabel('Wrong Person').setEmoji('🤡').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`rf_def:${roundTag}:innocent`).setLabel("I'm Innocent").setEmoji('<:innocent:1545091807917113454>').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId(`rf_def:${roundTag}:receipts`).setLabel('Show Receipts').setEmoji('<a:receipt:1545092059587940484>').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId(`rf_def:${roundTag}:unoreverse`).setLabel('Uno Reverse').setEmoji('<a:reverse:1545091814770348145>').setStyle(ButtonStyle.Danger),
+            new ButtonBuilder().setCustomId(`rf_def:${roundTag}:and`).setLabel('And?').setEmoji('<a:yeah_and:1545091816674689044>').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`rf_def:${roundTag}:wrongperson`).setLabel('Wrong Person').setEmoji('<a:wrongperson:1545091819136884746>').setStyle(ButtonStyle.Secondary),
           );
           return i.reply({ content: 'Pick your defense:', components: [row], ephemeral: true });
         }
@@ -270,20 +270,20 @@ async function runRound(channel, game) {
 
           if (key === 'green_flag') {
             p.flags = Math.max(0, p.flags - 1);
-            await i.update({ content: `💚 Used Green Flag — down to **${p.flags}** flags.`, components: [] });
+            await i.update({ content: `<a:greenflag:1545091809473069066> Used Green Flag — down to **${p.flags}** flags.`, components: [] });
           } else if (key === 'uno_reverse') {
             p.unoShield = true;
-            await i.update({ content: '🔄 Uno Reverse armed — your next flag redirects to someone else.', components: [] });
+            await i.update({ content: '<a:reverse:1545091814770348145> Uno Reverse armed — your next flag redirects to someone else.', components: [] });
           } else if (key === 'nda') {
             p.ndaShield = true;
             await i.update({ content: '🤐 NDA active — nobody can Receipts you now.', components: [] });
           } else if (key === 'double_flag') {
             p.doubleFlagNext = true;
-            await i.update({ content: '🚩 Your next vote will count twice.', components: [] });
+            await i.update({ content: '<a:redflag:1545091812924858469> Your next vote will count twice.', components: [] });
           } else if (key === 'run') {
             if (suspects.some(s => s.userId === i.user.id)) {
               removedSuspects.add(i.user.id);
-              await i.update({ content: '🏃 You\'re out of this round\'s accusation pool.', components: [] });
+              await i.update({ content: '<a:runn:1545091905027707032> You\'re out of this round\'s accusation pool.', components: [] });
             } else {
               p.abilities.push(key); // wasn't a suspect, refund the card
               await i.update({ content: '<:wrong:1495666083594502174> You\'re not a suspect this round.', components: [] });
@@ -292,7 +292,7 @@ async function runRound(channel, game) {
             const tally = {};
             for (const v of votes.values()) tally[v.target] = (tally[v.target] || 0) + v.weight;
             const leaderId = Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0];
-            await i.update({ content: leaderId ? `👀 Current leader: **${game.players.get(leaderId)?.username}**` : '👀 No votes yet.', components: [] });
+            await i.update({ content: leaderId ? `<a:eyes:1511507447704191026> Current leader: **${game.players.get(leaderId)?.username}**` : '<a:eyes:1511507447704191026> No votes yet.', components: [] });
           } else if (key === 'receipts') {
             const others = suspects.filter(s => s.userId !== i.user.id);
             const target = others[Math.floor(Math.random() * others.length)];
@@ -301,7 +301,7 @@ async function runRound(channel, game) {
             } else {
               const theirVote = [...votes.entries()].find(([voterId]) => voterId === target?.userId);
               const votedFor = theirVote ? game.players.get(theirVote[1].target)?.username : 'nobody yet';
-              await i.update({ content: `🧾 **${target?.username}** flagged: **${votedFor}**`, components: [] });
+              await i.update({ content: `<a:receipt:1545092059587940484> **${target?.username}** flagged: **${votedFor}**`, components: [] });
             }
           }
         }
@@ -324,7 +324,7 @@ async function resolveRound(channel, game, suspects, votes, defenses, removedSus
 
   const validSuspects = suspects.filter(s => !removedSuspects.has(s.userId));
   if (!validSuspects.length) {
-    await channel.send({ embeds: [new EmbedBuilder().setColor('#CC0000').setTitle('🚩 ROUND RESULT').setDescription('Everyone wriggled out of it. No flag this round.')] });
+    await channel.send({ embeds: [new EmbedBuilder().setColor('#CC0000').setTitle('<a:redflag:1545091812924858469> ROUND RESULT').setDescription('Everyone wriggled out of it. No flag this round.')] });
     setTimeout(() => runRound(channel, game).catch(() => {}), CONFIG.interRoundDelayMs);
     return;
   }
@@ -343,25 +343,25 @@ async function resolveRound(channel, game, suspects, votes, defenses, removedSus
     const accusers = [...votes.entries()].filter(([, v]) => v.target === leaderId).map(([voterId]) => voterId);
     if (accusers.length) {
       flagTarget = accusers[Math.floor(Math.random() * accusers.length)];
-      lines.push(`🔄 **${leader.username}** ${S.pick(S.DEFENSE_LINES.unoreverse)} It worked — the flag goes to **${game.players.get(flagTarget)?.username}** instead.`);
+      lines.push(`<a:reverse:1545091814770348145> **${leader.username}** ${S.pick(S.DEFENSE_LINES.unoreverse)} It worked — the flag goes to **${game.players.get(flagTarget)?.username}** instead.`);
       await bumpStat(leaderId, 'uno_reverses');
       await bumpStat(leaderId, 'successful_defenses');
     } else {
       backfired = true;
-      lines.push(`🔄 **${leader.username}** ${S.pick(S.DEFENSE_LINES.unoreverse)} Nobody to redirect to — it backfires.`);
+      lines.push(`<a:reverse:1545091814770348145> **${leader.username}** ${S.pick(S.DEFENSE_LINES.unoreverse)} Nobody to redirect to — it backfires.`);
       await bumpStat(leaderId, 'failed_defenses');
     }
   } else if (leaderDefense === 'and') {
     // AND?: survive = immunity next round, convicted = extra flag
-    lines.push(`💅 **${leader.username}** ${S.pick(S.DEFENSE_LINES.and)}`);
+    lines.push(`<a:yeah_and:1545091816674689044> **${leader.username}** ${S.pick(S.DEFENSE_LINES.and)}`);
     extraFlag = true;
     await bumpStat(leaderId, 'failed_defenses');
   } else if (leaderDefense === 'innocent') {
-    lines.push(`😇 **${leader.username}** ${S.pick(S.DEFENSE_LINES.innocent)}`);
+    lines.push(`<:innocent:1545091807917113454> **${leader.username}** ${S.pick(S.DEFENSE_LINES.innocent)}`);
   } else if (leaderDefense === 'receipts') {
-    lines.push(`🧾 **${leader.username}** ${S.pick(S.DEFENSE_LINES.receipts)}`);
+    lines.push(`<a:receipt:1545092059587940484> **${leader.username}** ${S.pick(S.DEFENSE_LINES.receipts)}`);
   } else if (leaderDefense === 'wrongperson') {
-    lines.push(`🤡 **${leader.username}** ${S.pick(S.DEFENSE_LINES.wrongperson)}`);
+    lines.push(`<a:wrongperson:1545091819136884746> **${leader.username}** ${S.pick(S.DEFENSE_LINES.wrongperson)}`);
   }
 
   // Inventory Uno Reverse shield (checked separately, proactive)
@@ -371,7 +371,7 @@ async function resolveRound(channel, game, suspects, votes, defenses, removedSus
     const others = activePlayers(game).filter(p => p.userId !== flagTarget);
     if (others.length) {
       const redirectTo = others[Math.floor(Math.random() * others.length)];
-      lines.push(`🔄 **${flaggedPlayer.username}**'s Uno Reverse card redirects the flag to **${redirectTo.username}**!`);
+      lines.push(`<a:reverse:1545091814770348145> **${flaggedPlayer.username}**'s Uno Reverse card redirects the flag to **${redirectTo.username}**!`);
       flagTarget = redirectTo.userId;
     }
   }
@@ -383,7 +383,7 @@ async function resolveRound(channel, game, suspects, votes, defenses, removedSus
   finalTarget.flags += flagsToAdd;
   await bumpStat(flagTarget, 'red_flags_received');
 
-  lines.push(`\n🚩 **${finalTarget.username}** receives ${flagsToAdd > 1 ? `**${flagsToAdd} flags**` : 'a flag'}. Total: **${finalTarget.flags}/${CONFIG.eliminationThreshold}**`);
+  lines.push(`\n<a:redflag:1545091812924858469> **${finalTarget.username}** receives ${flagsToAdd > 1 ? `**${flagsToAdd} flags**` : 'a flag'}. Total: **${finalTarget.flags}/${CONFIG.eliminationThreshold}**`);
 
   // Grant immunity next round to any suspect who defended with AND? and survived (wasn't flagged).
   for (const s of validSuspects) {
@@ -402,10 +402,10 @@ async function resolveRound(channel, game, suspects, votes, defenses, removedSus
     const regretAmt = await awardRegret(finalTarget.userId, tier, 'redflag', `Eliminated round ${game.round}`);
     await bumpStat(finalTarget.userId, 'times_eliminated');
     await db.run('UPDATE redflag_stats SET regrets_earned = regrets_earned + ? WHERE user_id = ?', [regretAmt, finalTarget.userId]).catch(() => {});
-    lines.push(`\n💀 *${S.pick(S.ELIMINATION_ROASTS)}* **${finalTarget.username}** is eliminated. **+${regretAmt} regret.**`);
+    lines.push(`\n<a:skull:1544848392428064888> *${S.pick(S.ELIMINATION_ROASTS)}* **${finalTarget.username}** is eliminated. **+${regretAmt} regret.**`);
   }
 
-  await channel.send({ embeds: [new EmbedBuilder().setColor('#CC0000').setTitle('🚩 ROUND RESULT').setDescription(lines.join('\n'))] });
+  await channel.send({ embeds: [new EmbedBuilder().setColor('#CC0000').setTitle('<a:redflag:1545091812924858469> ROUND RESULT').setDescription(lines.join('\n'))] });
 
   const remaining = activePlayers(game);
   if (remaining.length <= 2) {
@@ -432,14 +432,14 @@ async function runFinale(channel, game) {
   const choices = new Map();
 
   await channel.send({ embeds: [
-    new EmbedBuilder().setColor('#FFD700').setTitle('🚨 FINAL BACKGROUND CHECK')
+    new EmbedBuilder().setColor('#FFD700').setTitle('<a:redsiren:1545091813805658122> FINAL BACKGROUND CHECK')
       .setDescription(`*${S.pick(S.FINAL_ROUND_LINES)}*\n\n<@${a.userId}> vs <@${b.userId}> — check your private messages below.`)
   ] });
 
   const makeRow = (target) => new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`rf_finale:${finaleTag}:${target.userId}:expose`).setLabel('Expose').setEmoji('🧾').setStyle(ButtonStyle.Danger),
-    new ButtonBuilder().setCustomId(`rf_finale:${finaleTag}:${target.userId}:defend`).setLabel('Defend').setEmoji('🛡️').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(`rf_finale:${finaleTag}:${target.userId}:lie`).setLabel('Lie').setEmoji('🤥').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId(`rf_finale:${finaleTag}:${target.userId}:expose`).setLabel('Expose').setEmoji('<a:receipt:1545092059587940484>').setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId(`rf_finale:${finaleTag}:${target.userId}:defend`).setLabel('Defend').setEmoji('<a:shield:1545091817979117718>').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`rf_finale:${finaleTag}:${target.userId}:lie`).setLabel('Lie').setEmoji('<a:lie:1545091811247263916>').setStyle(ButtonStyle.Primary),
   );
 
   const msgA = await channel.send({ content: `<@${a.userId}> — allegation about **${b.username}**: *"${allegB}"*`, components: [makeRow(a)] });
@@ -485,7 +485,7 @@ async function runFinale(channel, game) {
   await db.run('UPDATE redflag_stats SET regrets_earned = regrets_earned + ? WHERE user_id = ?', [regretAmt, loser.userId]).catch(() => {});
 
   await channel.send({ embeds: [
-    new EmbedBuilder().setColor('#FFD700').setTitle('💚 CERTIFIED NOT TERRIBLE™')
+    new EmbedBuilder().setColor('#FFD700').setTitle('<a:greenflag:1545091809473069066> CERTIFIED NOT TERRIBLE™')
       .setDescription(`**${winner.username}** wins Red Flag Rumble.\n\n**${loser.username}** was the bigger red flag. **+${regretAmt} regret.**`)
   ] });
 
@@ -521,13 +521,13 @@ async function showStats(message, targetUser) {
   await ensureStats(target.id);
   const s = await db.get('SELECT * FROM redflag_stats WHERE user_id = ?', [target.id]);
   return message.reply({ embeds: [
-    new EmbedBuilder().setColor('#CC0000').setTitle(`🚩 ${target.username.toUpperCase()}'S RED FLAG RECORD`)
+    new EmbedBuilder().setColor('#CC0000').setTitle(`<a:redflag:1545091812924858469> ${target.username.toUpperCase()}'S RED FLAG RECORD`)
       .addFields(
         { name: '🏆 Wins', value: `${s.games_won}`, inline: true },
-        { name: '💀 Times Eliminated', value: `${s.times_eliminated}`, inline: true },
-        { name: '🚩 Flags Received', value: `${s.red_flags_received}`, inline: true },
-        { name: '💚 Green Flags Used', value: `${s.green_flags_used}`, inline: true },
-        { name: '🔄 Uno Reverses', value: `${s.uno_reverses}`, inline: true },
+        { name: '<a:skull:1544848392428064888> Times Eliminated', value: `${s.times_eliminated}`, inline: true },
+        { name: '<a:redflag:1545091812924858469> Flags Received', value: `${s.red_flags_received}`, inline: true },
+        { name: '<a:greenflag:1545091809473069066> Green Flags Used', value: `${s.green_flags_used}`, inline: true },
+        { name: '<a:reverse:1545091814770348145> Uno Reverses', value: `${s.uno_reverses}`, inline: true },
         { name: '<:purp_caveira50:1495665632845369354> Regrets', value: `${s.regrets_earned}`, inline: true },
       )
       .setFooter({ text: `${s.games_played} games played` })
