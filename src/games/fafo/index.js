@@ -455,22 +455,10 @@ module.exports = {
 
   async handleSlash(interaction, commandName) {
     if (commandName !== 'fafo') return;
-    const sub = interaction.options.getSubcommand();
-    if (sub === 'stats') {
-      const target = interaction.options.getUser('user') || interaction.user;
-      const fakeMsg = { author: interaction.user, reply: (d) => interaction.reply(d) };
-      return showStats(fakeMsg, target);
-    }
-    if (sub === 'leaderboard') {
-      const fakeMsg = { reply: (d) => interaction.reply(d) };
-      return showLeaderboard(fakeMsg);
-    }
-    if (sub === 'start') {
-      if (!isHost(interaction.member)) return interaction.reply({ content: `<:wrong:1495666083594502174> You need the **${process.env.EVENT_HOST_ROLE || 'Event Host'}** role to start FAFO.`, ephemeral: true });
-      if (activeSessions.has(interaction.channel.id)) return interaction.reply({ content: '<:wrong:1495666083594502174> A FAFO session is already running here.', ephemeral: true });
-      await interaction.reply({ content: '<:checkmark:1495666088417956002> Opening the arena...', ephemeral: true });
-      await startLobby(interaction.channel, interaction.user.id, interaction.user.username);
-    }
+    if (!isHost(interaction.member)) return interaction.reply({ content: `<:wrong:1495666083594502174> You need the **${process.env.EVENT_HOST_ROLE || 'Event Host'}** role to start FAFO.`, ephemeral: true });
+    if (activeSessions.has(interaction.channel.id)) return interaction.reply({ content: '<:wrong:1495666083594502174> A FAFO session is already running here.', ephemeral: true });
+    await interaction.reply({ content: '<:checkmark:1495666088417956002> Opening the arena...', ephemeral: true });
+    await startLobby(interaction.channel, interaction.user.id, interaction.user.username);
   },
 
   // ── Button routing (called from index.js's global interaction listener) ──

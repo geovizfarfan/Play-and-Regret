@@ -224,19 +224,11 @@ module.exports = {
   // ── Slash handler ─────────────────────────────────────────────────────────
   async handleSlash(interaction, commandName) {
     if (commandName !== 'riggednumbers') return;
-    const sub = interaction.options.getSubcommand();
-
-    if (sub === 'start') {
-      const min = interaction.options.getInteger('min');
-      const max = interaction.options.getInteger('max');
-      if (min >= max) return interaction.reply({ content: `${E.ERROR} Min has to be less than max.`, ephemeral: true });
-      if (max - min > MAX_RANGE_SPAN) return interaction.reply({ content: `${E.ERROR} That range is way too big. Keep it under ${MAX_RANGE_SPAN.toLocaleString()}.`, ephemeral: true });
-      if (activeGames.has(interaction.channel.id)) return interaction.reply({ content: `${E.ERROR} There's already a Rigged Numbers game running in this channel.`, ephemeral: true });
-      return interaction.showModal(buildModal(interaction.channel.id, min, max));
-    }
-    if (sub === 'status') {
-      const fakeMsg = { channel: interaction.channel, reply: (d) => interaction.reply(typeof d === 'string' ? { content: d, ephemeral: true } : { ...d, ephemeral: true }) };
-      return this.status(fakeMsg);
-    }
+    const min = interaction.options.getInteger('min');
+    const max = interaction.options.getInteger('max');
+    if (min >= max) return interaction.reply({ content: `${E.ERROR} Min has to be less than max.`, ephemeral: true });
+    if (max - min > MAX_RANGE_SPAN) return interaction.reply({ content: `${E.ERROR} That range is way too big. Keep it under ${MAX_RANGE_SPAN.toLocaleString()}.`, ephemeral: true });
+    if (activeGames.has(interaction.channel.id)) return interaction.reply({ content: `${E.ERROR} There's already a Rigged Numbers game running in this channel.`, ephemeral: true });
+    return interaction.showModal(buildModal(interaction.channel.id, min, max));
   },
 };

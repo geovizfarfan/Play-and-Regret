@@ -150,14 +150,12 @@ const slashCommands = [
     ))
     .addStringOption(o => o.setName('timestamp').setDescription('Optional: Discord timestamp to auto-start <t:...:F>').setRequired(false))
     .addIntegerOption(o => o.setName('speed').setDescription('Seconds between cards (5-60, default 10)').setMinValue(5).setMaxValue(60)),
-  new SlashCommandBuilder().setName('loteriarules').setDescription('How to play Lotería'),
 
   // Cuarenta
   new SlashCommandBuilder().setName('cuarenta').setDescription('Start a Cuarenta game')
     .addStringOption(o => o.setName('mode').setDescription('Game mode').addChoices({name:'1v1',value:'1v1'},{name:'2v2',value:'2v2'}))
     .addIntegerOption(o => o.setName('bet').setDescription('Entry fee in sins').setMinValue(10))
     .addBooleanOption(o => o.setName('vsbot').setDescription('Play against the bot')),
-  new SlashCommandBuilder().setName('cuarentarules').setDescription('How to play Cuarenta'),
 
   // Find the Cuy
   new SlashCommandBuilder().setName('findthecuy').setDescription('Find the hidden cuy to win!')
@@ -176,12 +174,6 @@ const slashCommands = [
       {name:'3×4 Small (6 pairs)',value:'small'},
       {name:'4×4 Medium (8 pairs)',value:'medium'},
       {name:'4×5 Large (10 pairs)',value:'large'},
-    )),
-  new SlashCommandBuilder().setName('memoryleaderboard').setDescription('Memory Game fastest solves')
-    .addStringOption(o => o.setName('size').setDescription('Board size').addChoices(
-      {name:'3×4 Small',value:'small'},
-      {name:'4×4 Medium',value:'medium'},
-      {name:'4×5 Large',value:'large'},
     )),
 
   // Rumble Slaughter
@@ -247,10 +239,8 @@ const slashCommands = [
       .addChannelOption(o => o.setName('channel').setDescription('Channel to remove').setRequired(true)))
     .addSubcommand(sc => sc.setName('channels').setDescription('List channels allowed for auto-drops')),
   new SlashCommandBuilder().setName('riggednumbers').setDescription('Pick a secret number, first correct guess wins')
-    .addSubcommand(sc => sc.setName('start').setDescription('Start a Rigged Numbers game')
-      .addIntegerOption(o => o.setName('min').setDescription('Lowest possible number').setRequired(true))
-      .addIntegerOption(o => o.setName('max').setDescription('Highest possible number').setRequired(true)))
-    .addSubcommand(sc => sc.setName('status').setDescription('Check the active game in this channel')),
+    .addIntegerOption(o => o.setName('min').setDescription('Lowest possible number').setRequired(true))
+    .addIntegerOption(o => o.setName('max').setDescription('Highest possible number').setRequired(true)),
   new SlashCommandBuilder().setName('entryfee').setDescription('Admin: turn a game\'s entry fee on or off')
     .addSubcommand(sc => sc.setName('set').setDescription('Enable or disable a game\'s entry fee')
       .addStringOption(o => o.setName('game').setDescription('Which game').setRequired(true).addChoices(
@@ -266,11 +256,7 @@ const slashCommands = [
         { name: 'On', value: 'on' }, { name: 'Off', value: 'off' },
       )))
     .addSubcommand(sc => sc.setName('status').setDescription('View entry fee status for every game')),
-  new SlashCommandBuilder().setName('fafo').setDescription('Fuck Around & Find Out — push-your-luck wagering game')
-    .addSubcommand(sc => sc.setName('start').setDescription('Admin: open a FAFO lobby'))
-    .addSubcommand(sc => sc.setName('stats').setDescription('View FAFO stats')
-      .addUserOption(o => o.setName('user').setDescription('Whose stats to view')))
-    .addSubcommand(sc => sc.setName('leaderboard').setDescription('FAFO leaderboard — biggest profit')),
+  new SlashCommandBuilder().setName('fafo').setDescription('Admin: open a FAFO lobby — Fuck Around & Find Out'),
   new SlashCommandBuilder().setName('rsprofile').setDescription('View your Rumble Slaughter profile — level, power, kills, gear')
     .addUserOption(o => o.setName('user').setDescription('User to view')),
   new SlashCommandBuilder().setName('rsleaderboard').setDescription('Rumble Slaughter XP leaderboard'),
@@ -358,7 +344,11 @@ const slashCommands = [
       {name:'Knife',value:'knife'},{name:'Roast',value:'roast'},{name:'Super Vacuum',value:'supervacuum'},{name:'Detonator',value:'detonator'},
     ))
     .addUserOption(o => o.setName('target').setDescription('Who to use it on (not needed for Shield/Super Vacuum)')),
-  new SlashCommandBuilder().setName('help').setDescription('Show all commands'),
+  new SlashCommandBuilder().setName('help').setDescription('Show all commands, or look up a specific game\'s rules')
+    .addStringOption(o => o.setName('rules').setDescription('View a specific game\'s rules').setRequired(false).addChoices(
+      { name: 'Cuarenta', value: 'cuarenta' },
+      { name: 'Lotería', value: 'loteria' },
+    )),
 ].map(cmd => cmd.toJSON());
 
 // ── Ready ─────────────────────────────────────────────────────────────────────
@@ -604,11 +594,11 @@ client.on('interactionCreate', async (interaction) => {
       return await blackjackModule.handleSlash(interaction, commandName);
 
     // Lotería
-    if (['loteria','loteriarules'].includes(commandName))
+    if (commandName === 'loteria')
       return await loteriaModule.handleSlash(interaction, commandName);
 
     // Cuarenta
-    if (['cuarenta','cuarentarules'].includes(commandName))
+    if (commandName === 'cuarenta')
       return await cuarentaModule.handleSlash(interaction, commandName);
 
     // Find the Cuy
@@ -616,7 +606,7 @@ client.on('interactionCreate', async (interaction) => {
       return await guineaModule.handleSlash(interaction, commandName);
 
     // Memory
-    if (['memory','memoryleaderboard'].includes(commandName))
+    if (commandName === 'memory')
       return await memoryModule.handleSlash(interaction, commandName);
 
     // Rumble Slaughter
@@ -662,9 +652,6 @@ client.on('interactionCreate', async (interaction) => {
     }
     if (commandName === 'entryfee') {
       return await entryFeeModule.handleSlash(interaction);
-    }
-    if (commandName === 'fafo') {
-      return await fafoModule.handleSlash(interaction, commandName);
     }
     if (commandName === 'fafo') {
       return await fafoModule.handleSlash(interaction, commandName);
@@ -793,7 +780,7 @@ client.on('messageCreate', async (message) => {
       if (sub === 'recap')     return await rgModule.recap({ guild: message.guild, channel: message.channel, member: message.member, user: message.author, reply: async (d) => message.reply(d) });
     }
     if (command === 'help' || command === 'commands')
-      return await sendHelp(message);
+      return await sendHelp(message, args);
 
   } catch (err) {
     console.error(`Error in !${command}:`, err);
@@ -802,10 +789,23 @@ client.on('messageCreate', async (message) => {
 });
 
 // ── Help ──────────────────────────────────────────────────────────────────────
+const GAME_RULES = {
+  cuarenta: () => cuarentaModule.getRulesText(),
+  loteria: () => loteriaModule.getRulesText(),
+};
+
 async function sendHelpSlash(interaction) {
+  const rulesGame = interaction.options.getString('rules');
+  if (rulesGame && GAME_RULES[rulesGame]) {
+    return interaction.reply({ content: GAME_RULES[rulesGame](), ephemeral: true });
+  }
   await interaction.reply({ embeds: buildHelpEmbeds(), ephemeral: true });
 }
-async function sendHelp(message) {
+async function sendHelp(message, args = []) {
+  const rulesGame = (args[0] || '').toLowerCase();
+  if (GAME_RULES[rulesGame]) {
+    return message.reply(GAME_RULES[rulesGame]());
+  }
   return message.reply({ embeds: buildHelpEmbeds() });
 }
 
@@ -858,20 +858,16 @@ function buildHelpEmbeds() {
       { name: '<a:cards:1511530261551124561> Blackjack', value: '`/blackjack bet` — Solo or Multiplayer vs dealer' },
       { name: '🎴 Lotería', value: [
         '`/loteria bet` — Start a Lotería game',
-        '`/loteriarules` — How to play',
+        '`/help rules:loteria` — How to play',
       ].join('\n') },
       { name: '<a:cards:1511530261551124561> Cuarenta', value: [
         '`/cuarenta bet` — Start Cuarenta (1v1 or 2v2)',
-        '`/cuarentarules` — How to play',
+        '`/help rules:cuarenta` — How to play',
       ].join('\n') },
       { name: '🐹 Find the Cuy', value: '`/findthecuy` — Click the hidden cuy to win!' },
       { name: '<a:brain:1511530555588612126> Memory', value: '`/memory` — Match emoji pairs (solo or multiplayer)' },
-      { name: '🎲 Rigged Numbers', value: '`/riggednumbers start min max` — Secretly pick a number, first correct guess wins' },
-      { name: '🧨 Fuck Around & Find Out', value: [
-        '`/fafo start` — *(Admin)* Push-your-luck wagering game',
-        '`/fafo stats [user]` — Your FAFO record',
-        '`/fafo leaderboard` — Biggest FAFO profit',
-      ].join('\n') },
+      { name: '🎲 Rigged Numbers', value: '`/riggednumbers min max` — Secretly pick a number, first correct guess wins' },
+      { name: '🧨 Fuck Around & Find Out', value: '`/fafo` — *(Admin)* Push-your-luck wagering game' },
       { name: `${E.BB_COIN} Entry Fees`, value: '`/entryfee set game state` — *(Admin)* Turn a game\'s entry fee on/off\n`/entryfee status` — See what\'s free right now' },
       { name: '🗡️ Rumble Slaughter', value: [
         '`/rumbleslaughter bet [timestamp]` — Start the arena',
@@ -1039,6 +1035,26 @@ async function tryCancelAll(channel, userId, username, replyFn, guildId = null) 
         await economy.addFunds(p.id, g.bet, 'Find the Cuy cancelled').catch(() => {});
       await economy.untrackGameChannel(channelId).catch(() => {});
       return replyFn(`<:checkmark:1495666088417956002> Find the Cuy cancelled. Players refunded.`);
+    }
+  } catch(e) {}
+
+  // Try Memory
+  try {
+    if (memoryModule.activeGames?.has(channelId)) {
+      const g = memoryModule.activeGames.get(channelId);
+      const member = channel.guild ? await channel.guild.members.fetch(userId).catch(() => null) : null;
+      const isHost  = g.hostId === userId;
+      const isAdmin = member && (member.permissions.has('Administrator') || member.roles.cache.some(r => r.name === (process.env.EVENT_HOST_ROLE || 'Event Host')));
+      if (!isHost && !isAdmin) {
+        return replyFn('<:wrong:1495666083594502174> Only the host or admins can cancel.');
+      }
+      if (g.phase && g.phase !== 'signup') {
+        return replyFn('<:wrong:1495666083594502174> The game is already running. Too late.');
+      }
+      memoryModule.activeGames.delete(channelId);
+      for (const p of (g?.players || []))
+        await economy.addFunds(p.id, g.bet, 'Memory Game cancelled').catch(() => {});
+      return replyFn(`<:checkmark:1495666088417956002> Memory Game cancelled. Players refunded.`);
     }
   } catch(e) {}
 
