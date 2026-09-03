@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Red Flag Rumble flavor text pools.
+// Walkin Red Flag flavor text pools.
 // ─────────────────────────────────────────────────────────────────────────────
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 

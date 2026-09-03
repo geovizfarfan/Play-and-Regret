@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Red Flag Rumble — every round, 2-4 random players get accused of a fictional
+// Walkin Red Flag — every round, 2-4 random players get accused of a fictional
 // red-flag scenario. Everyone else votes who to flag; the accused get a chance
 // to defend themselves. 3 flags = eliminated. Last two face a Final Background
 // Check. Free to join; host can optionally set a sins prize for the winner.
@@ -69,9 +69,9 @@ async function startLobby(channel, hostId, hostName, prize) {
 
   const embed = new EmbedBuilder()
     .setColor('#CC0000')
-    .setTitle('<a:redflag:1545091812924858469> RED FLAG RUMBLE')
+    .setTitle('<a:redflag:1545091812924858469> WALKIN RED FLAG')
     .setDescription(
-      `<@${hostId}> opened a Red Flag Rumble.\n\n` +
+      `<@${hostId}> opened a Walkin Red Flag.\n\n` +
       `Every round, someone gets accused. Vote, defend, collect abilities, survive.\n` +
       `**${CONFIG.eliminationThreshold} red flags and you're back on the market.**\n\n` +
       (game.prize > 0 ? `<a:SINS:1522338223613804724> Prize: **${game.prize.toLocaleString()} sins** to the winner\n\n` : 'Free to play — bragging rights only.\n\n') +
@@ -104,7 +104,7 @@ async function refreshLobbyEmbed(game) {
 async function handleLobbyButton(interaction) {
   const [action, channelId] = interaction.customId.split(':');
   const game = activeGames.get(channelId);
-  if (!game) return interaction.reply({ content: '<:wrong:1495666083594502174> No active Red Flag Rumble here.', ephemeral: true });
+  if (!game) return interaction.reply({ content: '<:wrong:1495666083594502174> No active Walkin Red Flag here.', ephemeral: true });
 
   if (action === 'rf_join') {
     if (game.phase !== 'lobby') return interaction.reply({ content: '<:wrong:1495666083594502174> This game already started.', ephemeral: true });
@@ -140,7 +140,7 @@ async function beginGame(channel) {
   if (game.players.size < CONFIG.minPlayers) {
     activeGames.delete(channel.id);
     await game.lobbyMsg?.edit({ components: [] }).catch(() => {});
-    await channel.send(`<:wrong:1495666083594502174> Not enough players joined Red Flag Rumble (need ${CONFIG.minPlayers}).`);
+    await channel.send(`<:wrong:1495666083594502174> Not enough players joined Walkin Red Flag (need ${CONFIG.minPlayers}).`);
     return;
   }
 
@@ -486,7 +486,7 @@ async function runFinale(channel, game) {
 
   await channel.send({ embeds: [
     new EmbedBuilder().setColor('#FFD700').setTitle('<a:greenflag:1545091809473069066> CERTIFIED NOT TERRIBLE™')
-      .setDescription(`**${winner.username}** wins Red Flag Rumble.\n\n**${loser.username}** was the bigger red flag. **+${regretAmt} regret.**`)
+      .setDescription(`**${winner.username}** wins Walkin Red Flag.\n\n**${loser.username}** was the bigger red flag. **+${regretAmt} regret.**`)
   ] });
 
   await endGame(channel, game, winner);
@@ -497,7 +497,7 @@ async function endGame(channel, game, winner) {
   if (winner) {
     await bumpStat(winner.userId, 'games_won');
     if (game.prize > 0) {
-      await economy.addFunds(winner.userId, game.prize, 'Red Flag Rumble prize').catch(() => {});
+      await economy.addFunds(winner.userId, game.prize, 'Walkin Red Flag prize').catch(() => {});
       await channel.send(`<a:SINS:1522338223613804724> **${winner.username}** takes home **${game.prize.toLocaleString()} sins**.`);
     }
   }
@@ -545,7 +545,7 @@ module.exports = {
       const target = message.mentions?.users?.first() || message.author;
       return showStats(message, target);
     }
-    if (!isHost(message.member)) return message.reply(`<:wrong:1495666083594502174> You need the **${process.env.EVENT_HOST_ROLE || 'Event Host'}** role to start Red Flag Rumble.`);
+    if (!isHost(message.member)) return message.reply(`<:wrong:1495666083594502174> You need the **${process.env.EVENT_HOST_ROLE || 'Event Host'}** role to start Walkin Red Flag.`);
     if (activeGames.has(message.channel.id)) return message.reply('<:wrong:1495666083594502174> Already running here.');
     const prize = parseInt(args[0]) || 0;
     await startLobby(message.channel, message.author.id, message.author.username, prize);
@@ -553,7 +553,7 @@ module.exports = {
 
   async handleSlash(interaction, commandName) {
     if (commandName !== 'redflag') return;
-    if (!isHost(interaction.member)) return interaction.reply({ content: `<:wrong:1495666083594502174> You need the **${process.env.EVENT_HOST_ROLE || 'Event Host'}** role to start Red Flag Rumble.`, ephemeral: true });
+    if (!isHost(interaction.member)) return interaction.reply({ content: `<:wrong:1495666083594502174> You need the **${process.env.EVENT_HOST_ROLE || 'Event Host'}** role to start Walkin Red Flag.`, ephemeral: true });
     if (activeGames.has(interaction.channel.id)) return interaction.reply({ content: '<:wrong:1495666083594502174> Already running here.', ephemeral: true });
     const prize = interaction.options.getInteger('prize') || 0;
     await interaction.reply({ content: '<:checkmark:1495666088417956002> Opening the rumble...', ephemeral: true });

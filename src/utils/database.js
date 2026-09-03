@@ -710,7 +710,7 @@ async function initDB() {
       final_fafo_wins        INT DEFAULT 0
     )`,
 
-    // ── Red Flag Rumble ─────────────────────────────────────────────────────────
+    // ── Walkin Red Flag ─────────────────────────────────────────────────────────
     `CREATE TABLE IF NOT EXISTS redflag_stats (
       user_id               TEXT PRIMARY KEY,
       games_played          INT DEFAULT 0,

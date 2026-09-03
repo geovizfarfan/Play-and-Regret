@@ -258,7 +258,7 @@ const slashCommands = [
       )))
     .addSubcommand(sc => sc.setName('status').setDescription('View entry fee status for every game')),
   new SlashCommandBuilder().setName('fafo').setDescription('Admin: open a FAFO lobby — Fuck Around & Find Out'),
-  new SlashCommandBuilder().setName('redflag').setDescription('Admin: open a Red Flag Rumble lobby')
+  new SlashCommandBuilder().setName('redflag').setDescription('Admin: open a Walkin Red Flag lobby')
     .addIntegerOption(o => o.setName('prize').setDescription('Optional sins prize for the winner').setMinValue(1)),
   new SlashCommandBuilder().setName('openbackpack').setDescription('Open one of your backpacks')
     .addStringOption(o => o.setName('type').setDescription('Backpack type').setRequired(true).addChoices(
@@ -877,7 +877,7 @@ function buildHelpEmbeds() {
       { name: '<a:brain:1511530555588612126> Memory', value: '`/memory` — Match emoji pairs (solo or multiplayer)' },
       { name: '🎲 Rigged Numbers', value: '`/riggednumbers min max` — Secretly pick a number, first correct guess wins' },
       { name: '🧨 Fuck Around & Find Out', value: '`/fafo` — *(Admin)* Push-your-luck wagering game' },
-      { name: '🚩 Red Flag Rumble', value: [
+      { name: '🚩 Walkin Red Flag', value: [
         '`/redflag [prize]` — *(Admin)* Accuse, defend, survive',
         '`!redflag stats` — Your red flag record',
       ].join('\n') },
@@ -1103,18 +1103,18 @@ async function tryCancelAll(channel, userId, username, replyFn, guildId = null) 
     }
   } catch(e) {}
 
-  // Try Red Flag Rumble
+  // Try Walkin Red Flag
   try {
     if (!cancelled && redflagModule.activeGames.has(channelId)) {
       const member = channel.guild ? await channel.guild.members.fetch(userId).catch(() => null) : null;
       const result = await redflagModule.cancelViaUniversal(channel, userId, member);
       if (result?.blocked) {
         return replyFn(result.reason === 'running'
-          ? '<:wrong:1495666083594502174> Red Flag Rumble already started — can\'t cancel mid-session.'
+          ? '<:wrong:1495666083594502174> Walkin Red Flag already started — can\'t cancel mid-session.'
           : '<:wrong:1495666083594502174> Only the host or admins can cancel.');
       }
       if (result) {
-        cancelMsg = `<:checkmark:1495666088417956002> Red Flag Rumble cancelled.`;
+        cancelMsg = `<:checkmark:1495666088417956002> Walkin Red Flag cancelled.`;
         cancelled = true;
       }
     }

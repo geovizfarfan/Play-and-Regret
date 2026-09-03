@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Red Flag Rumble abilities — collectible, persistent inventory items.
+// Walkin Red Flag abilities — collectible, persistent inventory items.
 // One is randomly awarded to a random active player each round (after round 1).
 // ─────────────────────────────────────────────────────────────────────────────
 
