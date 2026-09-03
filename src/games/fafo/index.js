@@ -45,7 +45,7 @@ async function startLobby(channel, hostId, hostName) {
 
   const embed = new EmbedBuilder()
     .setColor('#8B0000')
-    .setTitle('🧨 FUCK AROUND & FIND OUT')
+    .setTitle('<a:BlowUpBoom:1544848366377246760> FUCK AROUND & FIND OUT')
     .setDescription(
       `*${M.pick(M.LOBBY_LINES)}*\n\n` +
       `<@${hostId}> opened a FAFO session.\n\n` +
@@ -57,7 +57,7 @@ async function startLobby(channel, hostId, hostName) {
     .setFooter({ text: 'Wagers are locked in privately — nobody else sees your amount' });
 
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`fafo_join:${channel.id}`).setLabel('Join').setEmoji('🧨').setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId(`fafo_join:${channel.id}`).setLabel('Join').setEmoji('<a:BlowUpBoom:1544848366377246760>').setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId(`fafo_startearly:${channel.id}`).setLabel('Start Early').setStyle(ButtonStyle.Success),
     new ButtonBuilder().setCustomId(`fafo_cancel:${channel.id}`).setLabel('Cancel').setStyle(ButtonStyle.Secondary),
   );
@@ -177,7 +177,7 @@ async function beginRounds(channel) {
   await session.lobbyMsg?.edit({ components: [] }).catch(() => {});
   await channel.send({ embeds: [
     new EmbedBuilder().setColor('#8B0000')
-      .setTitle('🧨 THE ARENA IS SEALED')
+      .setTitle('<a:BlowUpBoom:1544848366377246760> THE ARENA IS SEALED')
       .setDescription(`**${session.players.size}** players locked in. Checking your DMs...\n\n*Financial regret begins now.*`)
   ] });
 
@@ -204,9 +204,9 @@ async function runRound(channel, session) {
 
   const embed = new EmbedBuilder()
     .setColor('#8B0000')
-    .setTitle(`🧨 ROUND ${session.round}`)
+    .setTitle(`<a:BlowUpBoom:1544848366377246760> ROUND ${session.round}`)
     .setDescription(
-      `💀 **Find out chance:** ${Math.round(cfg.findOutChance * 100)}%\n` +
+      `<a:skull:1544848392428064888> **Find out chance:** ${Math.round(cfg.findOutChance * 100)}%\n` +
       (cfg.findOutChance >= 0.5 ? `*${M.pick(M.HIGH_RISK_WARNING_LINES)}*\n` : '') +
       `\n${stakeLines.join('\n')}\n\n` +
       `Everyone still in, choose now — **${Math.floor(CONFIG.roundDecisionMs / 1000)}s**.`
@@ -214,8 +214,8 @@ async function runRound(channel, session) {
     .setFooter({ text: 'Your choice stays hidden from everyone else until the round resolves' });
 
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`fafo_decide:${decisionTag}:cash`).setLabel('Cash Out').setEmoji('😇').setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId(`fafo_decide:${decisionTag}:fuckaround`).setLabel('Fuck Around').setEmoji('🧨').setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId(`fafo_decide:${decisionTag}:cash`).setLabel('Cash Out').setEmoji('<a:cashout:1544848377009803274>').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(`fafo_decide:${decisionTag}:fuckaround`).setLabel('Fuck Around').setEmoji('<a:BlowUpBoom:1544848366377246760>').setStyle(ButtonStyle.Danger),
   );
 
   const roundMsg = await channel.send({ embeds: [embed], components: [row] });
@@ -235,7 +235,7 @@ async function runRound(channel, session) {
       const choice = btn.customId.split(':')[2];
       decisions.set(btn.user.id, choice);
       pending.delete(btn.user.id);
-      await btn.reply({ content: choice === 'cash' ? '😇 Locked in: Cash Out.' : '🧨 Locked in: Fuck Around.', ephemeral: true }).catch(() => {});
+      await btn.reply({ content: choice === 'cash' ? '<a:cashout:1544848377009803274> Locked in: Cash Out.' : '<a:BlowUpBoom:1544848366377246760> Locked in: Fuck Around.', ephemeral: true }).catch(() => {});
       if (pending.size === 0) collector.stop('all_decided');
     });
 
@@ -257,7 +257,7 @@ async function resolveRound(channel, session, cfg, active, decisions) {
     if (choice === 'cash') {
       p.status = 'cashed';
       await economy.addFunds(p.userId, p.pot, 'FAFO cash out').catch(() => {});
-      cashLines.push(`🐔 <@${p.userId}> ${M.pick(M.CASH_OUT_LINES)} **(+${p.pot.toLocaleString()} sins)**`);
+      cashLines.push(`<a:chicken:1544848378741915770> <@${p.userId}> ${M.pick(M.CASH_OUT_LINES)} **(+${p.pot.toLocaleString()} sins)**`);
       await db.run('UPDATE fafo_stats SET chicken_outs = chicken_outs + 1, total_sins_won = total_sins_won + ?, biggest_cash_out = GREATEST(biggest_cash_out, ?) WHERE user_id = ?', [p.pot, p.pot, p.userId]).catch(() => {});
       continue;
     }
@@ -268,12 +268,12 @@ async function resolveRound(channel, session, cfg, active, decisions) {
     if (survived) {
       p.pot = Math.floor(p.wager * cfg.multiplier);
       p.streak++;
-      survLines.push(`😈 <@${p.userId}> FUCKED AROUND... ${M.pick(M.SURVIVE_LINES)} **(pot: ${p.pot.toLocaleString()})**`);
+      survLines.push(`<a:devil:1544848380805513266> <@${p.userId}> FUCKED AROUND... ${M.pick(M.SURVIVE_LINES)} **(pot: ${p.pot.toLocaleString()})**`);
       await db.run('UPDATE fafo_stats SET highest_round = GREATEST(highest_round, ?), best_streak = GREATEST(best_streak, ?) WHERE user_id = ?', [session.round, p.streak, p.userId]).catch(() => {});
     } else {
       p.status = 'lost';
       const regretAmt = await awardRegret(p.userId, cfg.regretTier, 'fafo', `Found out at round ${session.round}`);
-      lostLines.push(`💀 <@${p.userId}> ${M.pick(M.FIND_OUT_LINES)} *${M.pick(M.REGRET_LINES)}* **(+${regretAmt} regret)**`);
+      lostLines.push(`<a:skull:1544848392428064888> <@${p.userId}> ${M.pick(M.FIND_OUT_LINES)} *${M.pick(M.REGRET_LINES)}* **(+${regretAmt} regret)**`);
       await db.run(
         'UPDATE fafo_stats SET find_outs = find_outs + 1, total_sins_lost = total_sins_lost + ?, regrets_earned = regrets_earned + ?, biggest_pot_lost = GREATEST(biggest_pot_lost, ?), biggest_wager_lost = GREATEST(biggest_wager_lost, ?) WHERE user_id = ?',
         [p.wager, regretAmt, p.pot, p.wager, p.userId]
@@ -281,10 +281,10 @@ async function resolveRound(channel, session, cfg, active, decisions) {
     }
   }
 
-  const embed = new EmbedBuilder().setColor('#8B0000').setTitle(`🧨 ROUND ${session.round} RESULTS`);
-  if (cashLines.length) embed.addFields({ name: '😇 Cashed Out', value: cashLines.join('\n'), inline: false });
-  if (survLines.length) embed.addFields({ name: '🧨 Survived', value: survLines.join('\n'), inline: false });
-  if (lostLines.length) embed.addFields({ name: '💀 Found Out', value: lostLines.join('\n'), inline: false });
+  const embed = new EmbedBuilder().setColor('#8B0000').setTitle(`<a:BlowUpBoom:1544848366377246760> ROUND ${session.round} RESULTS`);
+  if (cashLines.length) embed.addFields({ name: '<a:cashout:1544848377009803274> Cashed Out', value: cashLines.join('\n'), inline: false });
+  if (survLines.length) embed.addFields({ name: '<a:BlowUpBoom:1544848366377246760> Survived', value: survLines.join('\n'), inline: false });
+  if (lostLines.length) embed.addFields({ name: '<a:skull:1544848392428064888> Found Out', value: lostLines.join('\n'), inline: false });
   await channel.send({ embeds: [embed] });
 
   const stillActive = [...session.players.values()].filter(p => p.status === 'active');
@@ -304,18 +304,18 @@ async function runFinalFafo(channel, session, player) {
 
   const decisionTag = `fafo_final_${session.channelId}_${Date.now()}`;
   const embed = new EmbedBuilder().setColor('#FFD700')
-    .setTitle('👑 LAST IDIOT STANDING')
+    .setTitle('<a:crowned:1544882007652438077> LAST IDIOT STANDING')
     .setDescription(
       `<@${player.userId}>, everyone else had enough sense to leave.\n\n` +
       `*${M.pick(M.FINAL_ROUND_LINES)}*\n\n` +
       `<a:SINS:1522338223613804724> **Current pot:** ${player.pot.toLocaleString()} sins\n` +
-      `👑 **Final jackpot:** ${jackpot.toLocaleString()} sins\n` +
-      `💀 **Find out chance:** ${Math.round(FINAL_FAFO.findOutChance * 100)}%\n\n` +
+      `<a:crowned:1544882007652438077> **Final jackpot:** ${jackpot.toLocaleString()} sins\n` +
+      `<a:skull:1544848392428064888> **Find out chance:** ${Math.round(FINAL_FAFO.findOutChance * 100)}%\n\n` +
       `**${Math.floor(CONFIG.roundDecisionMs / 1000)}s** to decide, <@${player.userId}>.`
     );
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`fafo_decide:${decisionTag}:cash`).setLabel(`Take ${player.pot.toLocaleString()}`).setEmoji('😇').setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId(`fafo_decide:${decisionTag}:fuckaround`).setLabel('Final Fuck Around').setEmoji('🧨').setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId(`fafo_decide:${decisionTag}:cash`).setLabel(`Take ${player.pot.toLocaleString()}`).setEmoji('<a:cashout:1544848377009803274>').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(`fafo_decide:${decisionTag}:fuckaround`).setLabel('Final Fuck Around').setEmoji('<a:BlowUpBoom:1544848366377246760>').setStyle(ButtonStyle.Danger),
   );
   const finalMsg = await channel.send({ embeds: [embed], components: [row] });
 
@@ -330,7 +330,7 @@ async function runFinalFafo(channel, session, player) {
         return btn.reply({ content: '<:wrong:1495666083594502174> This isn\'t your decision to make.', ephemeral: true }).catch(() => {});
       }
       choice = btn.customId.split(':')[2];
-      await btn.reply({ content: choice === 'cash' ? '😇 Taking the money.' : '🧨 Going for the jackpot.', ephemeral: true }).catch(() => {});
+      await btn.reply({ content: choice === 'cash' ? '<a:cashout:1544848377009803274> Taking the money.' : '<a:BlowUpBoom:1544848366377246760> Going for the jackpot.', ephemeral: true }).catch(() => {});
       collector.stop('decided');
     });
     collector.on('end', () => { finalMsg.edit({ components: [] }).catch(() => {}); resolve(); });
@@ -339,7 +339,7 @@ async function runFinalFafo(channel, session, player) {
   if (choice === 'cash') {
     await economy.addFunds(player.userId, player.pot, 'FAFO Final cash out').catch(() => {});
     await channel.send({ embeds: [
-      new EmbedBuilder().setColor('#FFD700').setTitle('😇 TOOK THE MONEY')
+      new EmbedBuilder().setColor('#FFD700').setTitle('<a:cashout:1544848377009803274> TOOK THE MONEY')
         .setDescription(`<@${player.userId}> took the **${player.pot.toLocaleString()} sins** and walked. ${M.pick(M.CASH_OUT_LINES)}`)
     ]});
   } else {
@@ -348,14 +348,14 @@ async function runFinalFafo(channel, session, player) {
       await economy.addFunds(player.userId, jackpot, 'FAFO Final win').catch(() => {});
       await db.run('UPDATE fafo_stats SET final_fafo_wins = final_fafo_wins + 1, total_sins_won = total_sins_won + ? WHERE user_id = ?', [jackpot, player.userId]).catch(() => {});
       await channel.send({ embeds: [
-        new EmbedBuilder().setColor('#FFD700').setTitle('👑 FINAL FAFO — WINNER')
+        new EmbedBuilder().setColor('#FFD700').setTitle('<a:crowned:1544882007652438077> FINAL FAFO — WINNER')
           .setDescription(`<@${player.userId}> WON THE JACKPOT.\n\n**+${jackpot.toLocaleString()} sins**\n\n*${M.pick(M.WINNER_LINES)}*`)
       ]});
     } else {
       const regretAmt = await awardRegret(player.userId, FINAL_FAFO.regretTier, 'fafo', 'Lost the Final FAFO');
       await db.run('UPDATE fafo_stats SET find_outs = find_outs + 1, total_sins_lost = total_sins_lost + ?, regrets_earned = regrets_earned + ? WHERE user_id = ?', [player.wager, regretAmt, player.userId]).catch(() => {});
       await channel.send({ embeds: [
-        new EmbedBuilder().setColor('#4B0082').setTitle('💀 FINAL FAFO — FOUND OUT')
+        new EmbedBuilder().setColor('#4B0082').setTitle('<a:skull:1544848392428064888> FINAL FAFO — FOUND OUT')
           .setDescription(`<@${player.userId}> risked it all and lost the jackpot.\n\n*${M.pick(M.REGRET_LINES)}* **(+${regretAmt} regret)**`)
       ]});
     }
@@ -368,17 +368,17 @@ async function runFinalFafo(channel, session, player) {
 async function runGlobalEvent(channel, session, active) {
   const events = [
     {
-      title: '🚨 THE IRS HAS ENTERED THE CHAT',
+      title: '<a:siren:1544848390632902666> THE IRS HAS ENTERED THE CHAT',
       apply: () => { for (const p of active) p.pot = Math.floor(p.pot * 0.9); },
       desc: 'All active pots just took a 10% haircut.',
     },
     {
-      title: '👑 THE PRINCESS IS FEELING GENEROUS',
+      title: '<a:crowned:1544882007652438077> THE PRINCESS IS FEELING GENEROUS',
       apply: () => { for (const p of active) p.pot = Math.floor(p.pot * 1.2); },
       desc: 'All active pots increased by 20%.',
     },
     {
-      title: '💰 STIMULUS CHECK',
+      title: '<a:moneybag:1479268556687540345> STIMULUS CHECK',
       apply: () => { for (const p of active) p.pot += 100; },
       desc: 'Everyone still active gets a small pot bump.',
     },
@@ -396,7 +396,7 @@ async function endSession(channel, session) {
   const lost = [...session.players.values()].filter(p => p.status === 'lost').length;
   await channel.send({ embeds: [
     new EmbedBuilder().setColor('#8B0000')
-      .setTitle('🧨 FAFO SESSION OVER')
+      .setTitle('<a:BlowUpBoom:1544848366377246760> FAFO SESSION OVER')
       .setDescription(`**${session.players.size}** played. **${cashed}** cashed out. **${lost}** found out.\n\n*Regrets have been recorded. They are permanent.*`)
   ]});
 }
@@ -409,16 +409,16 @@ async function showStats(message, targetUser) {
   const profit = Number(s.total_sins_won) - Number(s.total_sins_lost);
   return message.reply({ embeds: [
     new EmbedBuilder().setColor('#8B0000')
-      .setTitle(`🧨 ${target.username.toUpperCase()}'S POOR DECISIONS`)
+      .setTitle(`<a:BlowUpBoom:1544848366377246760> ${target.username.toUpperCase()}'S POOR DECISIONS`)
       .addFields(
         { name: '<a:SINS:1522338223613804724> FAFO Profit', value: `${profit >= 0 ? '+' : ''}${profit.toLocaleString()} sins`, inline: true },
-        { name: '💀 Actual Sins Lost', value: `${Number(s.total_sins_lost).toLocaleString()}`, inline: true },
+        { name: '<a:skull:1544848392428064888> Actual Sins Lost', value: `${Number(s.total_sins_lost).toLocaleString()}`, inline: true },
         { name: '<:purp_caveira50:1495665632845369354> Regrets Earned', value: `${s.regrets_earned}`, inline: true },
-        { name: '🐔 Chicken Outs', value: `${s.chicken_outs}`, inline: true },
-        { name: '🧨 Fuck Arounds', value: `${s.fuck_arounds}`, inline: true },
-        { name: '💀 Find Outs', value: `${s.find_outs}`, inline: true },
-        { name: '🔥 Highest Round', value: `${s.highest_round}`, inline: true },
-        { name: '💰 Biggest Cash Out', value: `${Number(s.biggest_cash_out).toLocaleString()}`, inline: true },
+        { name: '<a:chicken:1544848378741915770> Chicken Outs', value: `${s.chicken_outs}`, inline: true },
+        { name: '<a:BlowUpBoom:1544848366377246760> Fuck Arounds', value: `${s.fuck_arounds}`, inline: true },
+        { name: '<a:skull:1544848392428064888> Find Outs', value: `${s.find_outs}`, inline: true },
+        { name: '<a:fire:1544848389781459085> Highest Round', value: `${s.highest_round}`, inline: true },
+        { name: '<a:moneybag:1479268556687540345> Biggest Cash Out', value: `${Number(s.biggest_cash_out).toLocaleString()}`, inline: true },
         { name: '🪦 Biggest Bag Fumbled', value: `${Number(s.biggest_pot_lost).toLocaleString()}`, inline: true },
       )
       .setFooter({ text: `${s.games_played} games played • ${s.final_fafo_wins}/${s.final_fafo_attempts} Final FAFO wins` })
@@ -430,7 +430,7 @@ async function showLeaderboard(message) {
   if (!rows.length) return message.reply('<:wrong:1495666083594502174> Nobody has played FAFO yet.');
   const lines = rows.map((r, i) => `${['🥇','🥈','🥉'][i] || `**${i+1}.**`} <@${r.user_id}> — **${Number(r.profit).toLocaleString()} sins** profit`);
   return message.reply({ embeds: [
-    new EmbedBuilder().setColor('#FFD700').setTitle('🧨 FAFO Leaderboard — Biggest Profit').setDescription(lines.join('\n'))
+    new EmbedBuilder().setColor('#FFD700').setTitle('<a:BlowUpBoom:1544848366377246760> FAFO Leaderboard — Biggest Profit').setDescription(lines.join('\n'))
   ]});
 }
 

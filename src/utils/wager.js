@@ -55,7 +55,7 @@ async function promptWager(interaction, { min, max, title = 'Choose your wager',
     ...quickPicks.map(amt =>
       new ButtonBuilder().setCustomId(`wager_pick:${sessionTag}:${amt}`).setLabel(`${fmt(amt)} sins`).setStyle(ButtonStyle.Secondary)
     ),
-    new ButtonBuilder().setCustomId(`wager_custom:${sessionTag}`).setLabel('Custom Amount').setStyle(ButtonStyle.Primary).setEmoji('✏️'),
+    new ButtonBuilder().setCustomId(`wager_custom:${sessionTag}`).setLabel('Custom Amount').setStyle(ButtonStyle.Primary).setEmoji('<a:custom:1544882267409748028>'),
   );
 
   const msg = await interaction.reply({
