@@ -29,6 +29,7 @@ const riggedNumbersModule = require('./src/games/riggednumbers');
 const entryFeeModule = require('./src/economy/entryfee');
 const fafoModule = require('./src/games/fafo');
 const redflagModule = require('./src/games/redflag');
+const pickmeModule = require('./src/games/pickme');
 const rgModule        = require('./src/games/regretgames');
 const jackpotModule   = require('./src/economy/jackpot');
 
@@ -260,6 +261,8 @@ const slashCommands = [
   new SlashCommandBuilder().setName('fafo').setDescription('Admin: open a FAFO lobby — Fuck Around & Find Out'),
   new SlashCommandBuilder().setName('redflag').setDescription('Admin: open a Walkin Red Flag lobby')
     .addIntegerOption(o => o.setName('prize').setDescription('Optional sins prize for the winner').setMinValue(1)),
+  new SlashCommandBuilder().setName('pickme').setDescription('Admin: open a Pick Me Pit lobby')
+    .addIntegerOption(o => o.setName('prize').setDescription('Optional sins prize for the winner').setMinValue(1)),
   new SlashCommandBuilder().setName('openbackpack').setDescription('Open one of your backpacks')
     .addStringOption(o => o.setName('type').setDescription('Backpack type').setRequired(true).addChoices(
       {name:'Basic',value:'basic'},{name:'Royal',value:'royal'},{name:'Cursed',value:'cursed'},
@@ -357,6 +360,7 @@ const slashCommands = [
       { name: 'FAFO', value: 'fafo' },
       { name: 'Walkin Red Flag', value: 'redflag' },
       { name: 'Regret Games', value: 'regretgames' },
+      { name: 'Pick Me Pit', value: 'pickme' },
     )),
 ].map(cmd => cmd.toJSON());
 
@@ -525,6 +529,9 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.customId.startsWith('rf_join:') || interaction.customId.startsWith('rf_viewmembers:') || interaction.customId.startsWith('rf_start:')) {
       return redflagModule.handleButton(interaction);
     }
+    if (interaction.customId.startsWith('pm_join:') || interaction.customId.startsWith('pm_viewmembers:') || interaction.customId.startsWith('pm_start:')) {
+      return pickmeModule.handleButton(interaction);
+    }
     if (interaction.customId.startsWith('bet_resolve_') || interaction.customId.startsWith('bet_quick_') || interaction.customId.startsWith('bet_amt_') || interaction.customId.startsWith('bet_pick_') || interaction.customId.startsWith('bet_select_') || interaction.customId.startsWith('bet_cancel_')) {
       try {
         return await bettingModule.handleButton(interaction);
@@ -671,6 +678,9 @@ client.on('interactionCreate', async (interaction) => {
     if (commandName === 'redflag') {
       return await redflagModule.handleSlash(interaction, commandName);
     }
+    if (commandName === 'pickme') {
+      return await pickmeModule.handleSlash(interaction, commandName);
+    }
     if (commandName === 'items') {
       await interaction.deferReply({ ephemeral: true });
       const fakeSource = { reply: (d) => interaction.editReply(d) };
@@ -755,6 +765,9 @@ client.on('messageCreate', async (message) => {
     if (command === 'redflag')
       return await redflagModule.handleCommand(message, args, command);
 
+    if (command === 'pickme')
+      return await pickmeModule.handleCommand(message, args, command);
+
     if (['jackpot','richpot','lottery','enter','lotteryenter','jackpotdraw','jackpothistory',
          'jackpotstart','jackpotstop','jackpotentries','potentries'].includes(command))
       return await jackpotModule.handleCommand(message, args, command);
@@ -819,6 +832,7 @@ const GAME_RULES = {
   fafo: () => `<a:devil:1544848380805513266> **FAFO (Fuck Around & Find Out) — How to Play**\nWager your sins. Each round, decide to Cash Out (lock in your current pot safely) or Fuck Around (push your luck for a bigger pot, with a real chance of losing it all). The risk climbs every round. If you get caught, you lose your original wager and gain regret — but you keep whatever you already cashed out. Last player standing gets an optional Final FAFO for a bonus jackpot.`,
   redflag: () => `<a:redflag:1545091812924858469> **Walkin Red Flag — How to Play**\nEach round, 2-4 random players get accused of a fictional red-flag scenario. Everyone else votes who to flag; the accused can defend themselves (or use a collected ability to fight back). Collect 3 red flags and you're eliminated. Last two players face a Final Background Check — come out looking less shady to win.`,
   regretgames: () => `<:play_regret_bot:1521042618744700938> **Regret Games — How to Play**\nA multi-day survival season, staff-hosted. Everyone pays entry, then over several days the arena runs story beats, votes, and chaos events that eliminate players one at a time. Survive to the end to win the majority of the pot and the Regret Royalty title.`,
+  pickme: () => `💋 **Pick Me Pit — How to Play**\nEach round, 2-4 random players get tagged with a ridiculous "pick me" accusation. Everyone votes who deserves The Pit — one elimination per round, no threshold. Collect powers (immunity, vote redirects, double votes, vote cancels) to survive longer. Last one standing wins.`,
 };
 
 async function sendHelpSlash(interaction) {
@@ -898,6 +912,10 @@ function buildHelpEmbeds() {
       { name: '🚩 Walkin Red Flag', value: [
         '`/redflag [prize]` — *(Admin)* Accuse, defend, survive',
         '`!redflag stats` — Your red flag record',
+      ].join('\n') },
+      { name: '💋 Pick Me Pit', value: [
+        '`/pickme [prize]` — *(Admin)* Vote out the most pick me player',
+        '`!pickme stats` — Your Pick Me Pit record',
       ].join('\n') },
       { name: `${E.BB_COIN} Entry Fees`, value: '`/entryfee set game state` — *(Admin)* Turn a game\'s entry fee on/off\n`/entryfee status` — See what\'s free right now' },
       { name: '🗡️ Rumble Slaughter', value: [
@@ -1133,6 +1151,23 @@ async function tryCancelAll(channel, userId, username, replyFn, guildId = null) 
       }
       if (result) {
         cancelMsg = `<:checkmark:1495666088417956002> Walkin Red Flag cancelled.`;
+        cancelled = true;
+      }
+    }
+  } catch(e) {}
+
+  // Try Pick Me Pit
+  try {
+    if (!cancelled && pickmeModule.activeGames.has(channelId)) {
+      const member = channel.guild ? await channel.guild.members.fetch(userId).catch(() => null) : null;
+      const result = await pickmeModule.cancelViaUniversal(channel, userId, member);
+      if (result?.blocked) {
+        return replyFn(result.reason === 'running'
+          ? '<:wrong:1495666083594502174> Pick Me Pit already started — can\'t cancel mid-session.'
+          : '<:wrong:1495666083594502174> Only the host or admins can cancel.');
+      }
+      if (result) {
+        cancelMsg = `<:checkmark:1495666088417956002> Pick Me Pit cancelled.`;
         cancelled = true;
       }
     }

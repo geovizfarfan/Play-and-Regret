@@ -726,6 +726,18 @@ async function initDB() {
       regrets_earned        INT DEFAULT 0
     )`,
 
+    // ── Pick Me Pit ─────────────────────────────────────────────────────────────
+    `CREATE TABLE IF NOT EXISTS pickme_stats (
+      user_id            TEXT PRIMARY KEY,
+      games_played       INT DEFAULT 0,
+      games_won          INT DEFAULT 0,
+      times_nominated    INT DEFAULT 0,
+      times_eliminated   INT DEFAULT 0,
+      votes_received     INT DEFAULT 0,
+      powers_used        INT DEFAULT 0,
+      regrets_earned     INT DEFAULT 0
+    )`,
+
     // ── Regret Games ───────────────────────────────────────────────────────────
     'CREATE TABLE IF NOT EXISTS rg_seasons (id SERIAL PRIMARY KEY, guild_id TEXT NOT NULL UNIQUE, arena_channel_id TEXT, votes_channel_id TEXT, entry_fee INTEGER DEFAULT 500, status TEXT DEFAULT \'setup\', current_day INTEGER DEFAULT 0, pot INTEGER DEFAULT 0, prize_pot INTEGER DEFAULT 0, vote_open INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())',
     'CREATE TABLE IF NOT EXISTS rg_players (id SERIAL PRIMARY KEY, season_id INTEGER NOT NULL, user_id TEXT NOT NULL, username TEXT, status TEXT DEFAULT \'alive\', regret INTEGER DEFAULT 0, sins_earned INTEGER DEFAULT 0, food INTEGER DEFAULT 1, has_shield INTEGER DEFAULT 0, title TEXT, elim_cause TEXT, elim_day INTEGER, UNIQUE(season_id, user_id))',
