@@ -283,7 +283,7 @@ async function launchCuy(channel, bet, rounds, triggeredBy, hostId) {
     .setFooter({ text: `Host: ${triggeredBy} • Host can start once 2+ players join` });
 
   const makeButtons = () => new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(joinId).setEmoji('<a:join:1544891352582459454>').setLabel('Join').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(joinId).setEmoji('<a:GuineaPig_tbpbots:1544900084410490910>').setLabel('Join').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId(rulesId).setEmoji({ id: '1511510712986632352', name: 'rules', animated: true }).setLabel('Rules').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId(startId).setEmoji({ id: '1511506717584920696', name: 'sparkle', animated: true }).setLabel('Start').setStyle(ButtonStyle.Success),
   );

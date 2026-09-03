@@ -1611,7 +1611,7 @@ module.exports = {
     const arenaChannel = interaction.channel;
 
     const joinRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`rg_join:${season.id}`).setLabel('Join the Mistake').setStyle(ButtonStyle.Danger).setEmoji('<:purp_caveira50:1495665632845369354>'),
+      new ButtonBuilder().setCustomId(`rg_join:${season.id}`).setLabel('Join the Mistake').setStyle(ButtonStyle.Secondary).setEmoji('<:play_regret_bot:1521042618744700938>'),
       new ButtonBuilder().setCustomId(`rg_rules:${season.id}`).setLabel('View Rules').setStyle(ButtonStyle.Secondary),
     );
 

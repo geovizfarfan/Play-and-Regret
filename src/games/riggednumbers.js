@@ -123,7 +123,7 @@ module.exports = {
       .setFooter({ text: 'Use !cancel to end this early' });
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`rn_join:${channelId}`).setLabel('Join').setEmoji('<a:join:1544891352582459454>').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`rn_join:${channelId}`).setLabel('Join').setEmoji('<a:guess:1542348901217075200>').setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId(`rn_viewmembers:${channelId}`).setLabel('View Members').setEmoji('<:member:1495666085121491024>').setStyle(ButtonStyle.Primary),
       new ButtonBuilder().setCustomId(`rn_start:${channelId}`).setLabel('Start Game').setEmoji('<a:CheckCheckmarkSticker:1532595713010040972>').setStyle(ButtonStyle.Success),
     );

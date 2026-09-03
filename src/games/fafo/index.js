@@ -57,7 +57,7 @@ async function startLobby(channel, hostId, hostName) {
     .setFooter({ text: 'Wagers are locked in privately — nobody else sees your amount' });
 
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`fafo_join:${channel.id}`).setLabel('Join').setEmoji('<a:join:1544891352582459454>').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`fafo_join:${channel.id}`).setLabel('Join').setEmoji('<a:devil:1544848380805513266>').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId(`fafo_startearly:${channel.id}`).setLabel('Start Early').setEmoji('<a:CheckCheckmarkSticker:1532595713010040972>').setStyle(ButtonStyle.Success),
     new ButtonBuilder().setCustomId(`fafo_cancel:${channel.id}`).setLabel('Cancel').setStyle(ButtonStyle.Secondary),
   );

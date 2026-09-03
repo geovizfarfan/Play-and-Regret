@@ -204,7 +204,7 @@ async function buildBoardMsg(pd, drawnCards, isManual = false) {
 
 function lobbyButtons() {
   return [new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('lot_join').setEmoji('<a:join:1544891352582459454>').setLabel('Join').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('lot_join').setEmoji('<a:mexicoflag:1511506713755516961>').setLabel('Join').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('lot_board').setEmoji({ id: '1511507447704191026', name: 'eyes', animated: true }).setLabel('My Board').setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setCustomId('lot_rules').setEmoji({ id: '1511510712986632352', name: 'rules', animated: true }).setLabel('Rules').setStyle(ButtonStyle.Secondary),
   )];

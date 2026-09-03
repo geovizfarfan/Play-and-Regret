@@ -1219,7 +1219,7 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
   const btn = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`rs_join:${channel.id}`)
-      .setEmoji('<a:join:1544891352582459454>').setLabel('Join the Arena')
+      .setEmoji('<a:rumblesword:1522338907465842789>').setLabel('Join the Arena')
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(`rs_start:${channel.id}`)
