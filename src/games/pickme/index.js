@@ -64,7 +64,7 @@ async function startLobby(channel, hostId, hostName, prize) {
 
   const embed = new EmbedBuilder()
     .setColor('#D4537E')
-    .setTitle('💋 PICK ME PIT')
+    .setTitle('<a:kiss:1545098398565142601> PICK ME PIT')
     .setDescription(
       `<@${hostId}> opened a Pick Me Pit.\n\n` +
       `Every round, someone gets exposed for the most "pick me" behavior imaginable. Vote who deserves The Pit.\n\n` +
@@ -75,7 +75,7 @@ async function startLobby(channel, hostId, hostName, prize) {
     .setFooter({ text: 'Use !cancel to end this early' });
 
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`pm_join:${channel.id}`).setLabel('Join').setEmoji('💋').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`pm_join:${channel.id}`).setLabel('Join').setEmoji('<a:kiss:1545098398565142601>').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId(`pm_viewmembers:${channel.id}`).setLabel('View Members').setEmoji('<:member:1495666085121491024>').setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setCustomId(`pm_start:${channel.id}`).setLabel('Start Game').setEmoji('<a:CheckCheckmarkSticker:1532595713010040972>').setStyle(ButtonStyle.Success),
   );
@@ -141,7 +141,7 @@ async function beginGame(channel) {
   game.phase = 'playing';
   await game.lobbyMsg?.edit({ components: [] }).catch(() => {});
   await channel.send({ embeds: [
-    new EmbedBuilder().setColor('#D4537E').setTitle('💋 THE PIT OPENS')
+    new EmbedBuilder().setColor('#D4537E').setTitle('<a:kiss:1545098398565142601> THE PIT OPENS')
       .setDescription(`**${game.players.size}** players. Someone here is exhausting. Let's find out who.`)
   ] });
   await runRound(channel, game);
@@ -179,7 +179,7 @@ async function runRound(channel, game) {
 
   const embed = new EmbedBuilder()
     .setColor('#D4537E')
-    .setTitle('💋 NOMINATIONS')
+    .setTitle('<a:kiss:1545098398565142601> NOMINATIONS')
     .setDescription(
       `${accusationLines.join('\n')}${powerLine}\n\n` +
       `Vote who deserves The Pit. **${Math.floor(CONFIG.roundDecisionMs / 1000)}s.**`
@@ -190,7 +190,7 @@ async function runRound(channel, game) {
       .addOptions(nominees.map(n => ({ label: n.username, value: n.userId })))
   );
   const powerRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`pm_usepower:${roundTag}`).setLabel('Use Power').setEmoji('✨').setStyle(ButtonStyle.Primary)
+    new ButtonBuilder().setCustomId(`pm_usepower:${roundTag}`).setLabel('Use Power').setEmoji('<a:ability:1545092941666721954>').setStyle(ButtonStyle.Primary)
   );
 
   const roundMsg = await channel.send({ embeds: [embed], components: [selectRow, powerRow] });
@@ -230,12 +230,12 @@ async function runRound(channel, game) {
 
           if (key === 'not_me_babe') {
             p.immune = true;
-            await i.update({ content: '💅 You\'re immune this round.', components: [] });
+            await i.update({ content: '<a:yeah_and:1545091816674689044> You\'re immune this round.', components: [] });
           } else if (key === 'try_harder') {
             if (nominees.some(n => n.userId === i.user.id)) {
               votesCancelled.add(i.user.id); // marks self as removed from this round's danger
               p.extraVoteNext = true;
-              await i.update({ content: '💋 Out of danger now — but you\'re auto-flagged next round.', components: [] });
+              await i.update({ content: '<a:kiss:1545098398565142601> Out of danger now — but you\'re auto-flagged next round.', components: [] });
             } else {
               p.powers.push(key);
               await i.update({ content: '<:wrong:1495666083594502174> You\'re not nominated this round.', components: [] });
@@ -261,14 +261,14 @@ async function runRound(channel, game) {
 
           if (key === 'receipts') {
             game._doubleVoteTarget = targetId; // whoever votes for this target counts double — simplified as: target's own vote (if any) counts double next tally
-            await i.update({ content: `🧾 **${game.players.get(targetId)?.username}**'s votes will count double this round.`, components: [] });
+            await i.update({ content: `<a:receipt:1545092059587940484> **${game.players.get(targetId)?.username}**'s votes will count double this round.`, components: [] });
           } else if (key === 'please') {
             votesCancelled.add(targetId);
-            await i.update({ content: `🙄 One vote against **${game.players.get(targetId)?.username}** will be cancelled.`, components: [] });
+            await i.update({ content: `<a:please:1545099154621993110> One vote against **${game.players.get(targetId)?.username}** will be cancelled.`, components: [] });
           } else if (key === 'look_at_yourself') {
             game._redirectMap = game._redirectMap || new Map();
             game._redirectMap.set(i.user.id, targetId);
-            await i.update({ content: `🪞 If you're voted this round, it redirects to **${game.players.get(targetId)?.username}**.`, components: [] });
+            await i.update({ content: `<a:mirror:1545098431557795841> If you're voted this round, it redirects to **${game.players.get(targetId)?.username}**.`, components: [] });
           }
         }
       } catch (e) { console.error('[pickme round error]', e); }
@@ -306,7 +306,7 @@ async function resolveRound(channel, game, nominees, votes, votesCancelled) {
       const oldLeader = game.players.get(leaderId).username;
       leaderId = redirectTo;
       await channel.send({ embeds: [
-        new EmbedBuilder().setColor('#D4537E').setDescription(`🪞 **${oldLeader}** redirected the vote to **${game.players.get(leaderId).username}**.`)
+        new EmbedBuilder().setColor('#D4537E').setDescription(`<a:mirror:1545098431557795841> **${oldLeader}** redirected the vote to **${game.players.get(leaderId).username}**.`)
       ]});
     }
   }
@@ -325,8 +325,8 @@ async function resolveRound(channel, game, nominees, votes, votesCancelled) {
   await db.run('UPDATE pickme_stats SET regrets_earned = regrets_earned + ? WHERE user_id = ?', [regretAmt, leaderId]).catch(() => {});
 
   await channel.send({ embeds: [
-    new EmbedBuilder().setColor('#D4537E').setTitle('💋 THE PIT DECIDES')
-      .setDescription(`*${S.pick(S.VOTE_RESULT_LINES)}*\n\n💋 *${S.pick(S.ELIMINATION_LINES)}* **${eliminated.username}** enters The Pit. **+${regretAmt} regret.**`)
+    new EmbedBuilder().setColor('#D4537E').setTitle('<a:kiss:1545098398565142601> THE PIT DECIDES')
+      .setDescription(`*${S.pick(S.VOTE_RESULT_LINES)}*\n\n<a:kiss:1545098398565142601> *${S.pick(S.ELIMINATION_LINES)}* **${eliminated.username}** enters The Pit. **+${regretAmt} regret.**`)
   ]});
 
   if (remaining.length <= 1) {
@@ -341,7 +341,7 @@ async function endGame(channel, game, winner) {
   if (winner) {
     await bumpStat(winner.userId, 'games_won');
     await channel.send({ embeds: [
-      new EmbedBuilder().setColor('#FFD700').setTitle('👑 LEAST EMBARRASSING PERSON ALIVE')
+      new EmbedBuilder().setColor('#FFD700').setTitle('<a:crowned:1544882007652438077> LEAST EMBARRASSING PERSON ALIVE')
         .setDescription(`**${winner.username}** wins Pick Me Pit.`)
     ]});
     if (game.prize > 0) {
@@ -369,12 +369,12 @@ async function showStats(message, targetUser) {
   await ensureStats(target.id);
   const s = await db.get('SELECT * FROM pickme_stats WHERE user_id = ?', [target.id]);
   return message.reply({ embeds: [
-    new EmbedBuilder().setColor('#D4537E').setTitle(`💋 ${target.username.toUpperCase()}'S PICK ME RECORD`)
+    new EmbedBuilder().setColor('#D4537E').setTitle(`<a:kiss:1545098398565142601> ${target.username.toUpperCase()}'S PICK ME RECORD`)
       .addFields(
-        { name: '👑 Wins', value: `${s.games_won}`, inline: true },
+        { name: '<a:crowned:1544882007652438077> Wins', value: `${s.games_won}`, inline: true },
         { name: '💀 Times Eliminated', value: `${s.times_eliminated}`, inline: true },
-        { name: '💋 Times Nominated', value: `${s.times_nominated}`, inline: true },
-        { name: '✨ Powers Used', value: `${s.powers_used}`, inline: true },
+        { name: '<a:kiss:1545098398565142601> Times Nominated', value: `${s.times_nominated}`, inline: true },
+        { name: '<a:ability:1545092941666721954> Powers Used', value: `${s.powers_used}`, inline: true },
         { name: '<:purp_caveira50:1495665632845369354> Regrets', value: `${s.regrets_earned}`, inline: true },
       )
       .setFooter({ text: `${s.games_played} games played` })
