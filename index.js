@@ -257,9 +257,6 @@ const slashCommands = [
       )))
     .addSubcommand(sc => sc.setName('status').setDescription('View entry fee status for every game')),
   new SlashCommandBuilder().setName('fafo').setDescription('Admin: open a FAFO lobby — Fuck Around & Find Out'),
-  new SlashCommandBuilder().setName('rsprofile').setDescription('View your Rumble Slaughter profile — level, power, kills, gear')
-    .addUserOption(o => o.setName('user').setDescription('User to view')),
-  new SlashCommandBuilder().setName('rsleaderboard').setDescription('Rumble Slaughter XP leaderboard'),
   new SlashCommandBuilder().setName('openbackpack').setDescription('Open one of your backpacks')
     .addStringOption(o => o.setName('type').setDescription('Backpack type').setRequired(true).addChoices(
       {name:'Basic',value:'basic'},{name:'Royal',value:'royal'},{name:'Cursed',value:'cursed'},
@@ -610,7 +607,7 @@ client.on('interactionCreate', async (interaction) => {
       return await memoryModule.handleSlash(interaction, commandName);
 
     // Rumble Slaughter
-    if (['rumbleslaughter','rsprofile','rsleaderboard','openbackpack','rsinventory',
+    if (['rumbleslaughter','openbackpack','rsinventory',
          'rsjoin','rskick','eras','setera','rsmatchstats','rshalloffame','rsauto','rsautostop',
          'setemoji','addemoji','pickemoji','rig','unrig','staffrole','riggedmode','rigrandom','givebackpack'].includes(commandName))
       return await rsModule.handleSlash(interaction, commandName);
@@ -874,8 +871,8 @@ function buildHelpEmbeds() {
         '`!rsjoin` or click Join — Enter',
         '`/rskick @user` — *(Admin)* Remove + refund a signed-up player',
         '`/rsauto` — Auto-post recurring matches (by time and/or player count)',
-        '`/rsprofile` — Level, power, kills, gear, all in one place',
-        '`/rsleaderboard` — XP leaderboard',
+        '`!rsprofile` — Level, power, kills, gear, all in one place',
+        '`!rsleaderboard` — XP leaderboard',
         '`/openbackpack` — Open a backpack',
       ].join('\n') },
     )
