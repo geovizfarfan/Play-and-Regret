@@ -250,7 +250,6 @@ const slashCommands = [
     .addSubcommand(sc => sc.setName('start').setDescription('Start a Rigged Numbers game')
       .addIntegerOption(o => o.setName('min').setDescription('Lowest possible number').setRequired(true))
       .addIntegerOption(o => o.setName('max').setDescription('Highest possible number').setRequired(true)))
-    .addSubcommand(sc => sc.setName('cancel').setDescription('Cancel the current game in this channel'))
     .addSubcommand(sc => sc.setName('status').setDescription('Check the active game in this channel')),
   new SlashCommandBuilder().setName('entryfee').setDescription('Admin: turn a game\'s entry fee on or off')
     .addSubcommand(sc => sc.setName('set').setDescription('Enable or disable a game\'s entry fee')

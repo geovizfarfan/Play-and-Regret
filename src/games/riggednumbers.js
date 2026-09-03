@@ -49,7 +49,6 @@ module.exports = {
     if (command !== 'riggednumbers' && command !== 'rignum') return;
     const sub = (args[0] || '').toLowerCase();
 
-    if (sub === 'cancel' || sub === 'stop') return this.cancelViaMessage(message);
     if (sub === 'status') return this.status(message);
 
     // start
@@ -121,12 +120,12 @@ module.exports = {
         `Click Join if you're in, then wait for the host to start.`
       )
       .addFields({ name: '<:member:1495666085121491024> Joined', value: '**0** players' })
-      .setFooter({ text: 'Use !riggednumbers cancel to end this early' });
+      .setFooter({ text: 'Use !cancel to end this early' });
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`rn_join:${channelId}`).setLabel('Join').setEmoji('<a:guess:1542348901217075200>').setStyle(ButtonStyle.Primary),
-      new ButtonBuilder().setCustomId(`rn_viewmembers:${channelId}`).setLabel('View Members').setEmoji('<:member:1495666085121491024>').setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(`rn_start:${channelId}`).setLabel('Start Game').setEmoji('<a:cashout:1544848377009803274>').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId(`rn_join:${channelId}`).setLabel('Join').setEmoji('<a:join:1544891352582459454>').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`rn_viewmembers:${channelId}`).setLabel('View Members').setEmoji('<:member:1495666085121491024>').setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId(`rn_start:${channelId}`).setLabel('Start Game').setEmoji('<a:CheckCheckmarkSticker:1532595713010040972>').setStyle(ButtonStyle.Success),
     );
 
     const lobbyMsg = await channel.send({ embeds: [lobbyEmbed], components: [row] });
@@ -175,7 +174,7 @@ module.exports = {
             `Type your guess in chat — first person to nail it wins bragging rights (and eternal smugness).\n\n` +
             `*Wrong guesses get a hint. No mercy otherwise. Good luck.*`
           )
-          .setFooter({ text: 'Use !riggednumbers cancel to end this early' })
+          .setFooter({ text: 'Use !cancel to end this early' })
       ] });
     }
   },
@@ -201,17 +200,6 @@ module.exports = {
     } else {
       await message.react(guess < game.secretNumber ? '<a:higher:1544885549662470165>' : '<a:lower:1544885551126155324>').catch(() => {});
     }
-  },
-
-  // ── Cancel ────────────────────────────────────────────────────────────────
-  async cancelViaMessage(message) {
-    const game = activeGames.get(message.channel.id);
-    if (!game) return message.reply(`${E.ERROR} No Rigged Numbers game running here.`);
-    if (!canCancel(message.member, game.hostId, message.author.id)) {
-      return message.reply(`${E.ERROR} Only the host or admins can cancel this.`);
-    }
-    activeGames.delete(message.channel.id);
-    return message.reply(`<:checkmark:1495666088417956002> Rigged Numbers cancelled. The number was **${game.secretNumber}**.`);
   },
 
   // Used by the universal /cancel — returns a result object instead of replying directly
@@ -245,12 +233,6 @@ module.exports = {
       if (max - min > MAX_RANGE_SPAN) return interaction.reply({ content: `${E.ERROR} That range is way too big. Keep it under ${MAX_RANGE_SPAN.toLocaleString()}.`, ephemeral: true });
       if (activeGames.has(interaction.channel.id)) return interaction.reply({ content: `${E.ERROR} There's already a Rigged Numbers game running in this channel.`, ephemeral: true });
       return interaction.showModal(buildModal(interaction.channel.id, min, max));
-    }
-    if (sub === 'cancel') {
-      const result = await this.cancelViaUniversal(interaction.channel, interaction.user.id, interaction.member);
-      if (!result) return interaction.reply({ content: `${E.ERROR} No Rigged Numbers game running here.`, ephemeral: true });
-      if (result.blocked) return interaction.reply({ content: `${E.ERROR} Only the host or admins can cancel this.`, ephemeral: true });
-      return interaction.reply(`<:checkmark:1495666088417956002> Rigged Numbers cancelled. The number was **${result.secretNumber}**.`);
     }
     if (sub === 'status') {
       const fakeMsg = { channel: interaction.channel, reply: (d) => interaction.reply(typeof d === 'string' ? { content: d, ephemeral: true } : { ...d, ephemeral: true }) };
