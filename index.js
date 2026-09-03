@@ -832,7 +832,7 @@ const GAME_RULES = {
   fafo: () => `<a:devil:1544848380805513266> **FAFO (Fuck Around & Find Out) — How to Play**\nWager your sins. Each round, decide to Cash Out (lock in your current pot safely) or Fuck Around (push your luck for a bigger pot, with a real chance of losing it all). The risk climbs every round. If you get caught, you lose your original wager and gain regret — but you keep whatever you already cashed out. Last player standing gets an optional Final FAFO for a bonus jackpot.`,
   redflag: () => `<a:redflag:1545091812924858469> **Walkin Red Flag — How to Play**\nEach round, 2-4 random players get accused of a fictional red-flag scenario. Everyone else votes who to flag; the accused can defend themselves (or use a collected ability to fight back). Collect 3 red flags and you're eliminated. Last two players face a Final Background Check — come out looking less shady to win.`,
   regretgames: () => `<:play_regret_bot:1521042618744700938> **Regret Games — How to Play**\nA multi-day survival season, staff-hosted. Everyone pays entry, then over several days the arena runs story beats, votes, and chaos events that eliminate players one at a time. Survive to the end to win the majority of the pot and the Regret Royalty title.`,
-  pickme: () => `💋 **Pick Me Pit — How to Play**\nEach round, 2-4 random players get tagged with a ridiculous "pick me" accusation. Everyone votes who deserves The Pit — one elimination per round, no threshold. Collect powers (immunity, vote redirects, double votes, vote cancels) to survive longer. Last one standing wins.`,
+  pickme: () => `<a:kiss:1545098398565142601> **Pick Me Pit — How to Play**\nEach round, 2-4 random players get tagged with a ridiculous "pick me" accusation. Everyone votes who deserves The Pit — one elimination per round, no threshold. Collect powers (immunity, vote redirects, double votes, vote cancels) to survive longer. Last one standing wins.`,
 };
 
 async function sendHelpSlash(interaction) {
@@ -913,7 +913,7 @@ function buildHelpEmbeds() {
         '`/redflag [prize]` — *(Admin)* Accuse, defend, survive',
         '`!redflag stats` — Your red flag record',
       ].join('\n') },
-      { name: '💋 Pick Me Pit', value: [
+      { name: '<a:kiss:1545098398565142601> Pick Me Pit', value: [
         '`/pickme [prize]` — *(Admin)* Vote out the most pick me player',
         '`!pickme stats` — Your Pick Me Pit record',
       ].join('\n') },
