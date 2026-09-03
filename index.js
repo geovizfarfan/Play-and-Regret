@@ -348,6 +348,15 @@ const slashCommands = [
     .addStringOption(o => o.setName('rules').setDescription('View a specific game\'s rules').setRequired(false).addChoices(
       { name: 'Cuarenta', value: 'cuarenta' },
       { name: 'Lotería', value: 'loteria' },
+      { name: 'Rumble Slaughter', value: 'rumbleslaughter' },
+      { name: 'Blackjack', value: 'blackjack' },
+      { name: 'Memory', value: 'memory' },
+      { name: 'Find the Cuy', value: 'findthecuy' },
+      { name: 'Tic-Tac-Bruh', value: 'tictactoe' },
+      { name: 'Rigged Numbers', value: 'riggednumbers' },
+      { name: 'FAFO', value: 'fafo' },
+      { name: 'Walkin Red Flag', value: 'redflag' },
+      { name: 'Regret Games', value: 'regretgames' },
     )),
 ].map(cmd => cmd.toJSON());
 
@@ -801,6 +810,15 @@ client.on('messageCreate', async (message) => {
 const GAME_RULES = {
   cuarenta: () => cuarentaModule.getRulesText(),
   loteria: () => loteriaModule.getRulesText(),
+  rumbleslaughter: () => `<:sword_tbp:1532592707548090559> **Rumble Slaughter — How to Play**\nHost opens the arena, players join by wagering the entry fee. Once started, it's a randomized battle royale — every round, players are matched up in duels (weighted by power/rig/weapons), losers get eliminated, chaos events can strike at random. Last one standing wins the pot. Earn XP and level up your emoji, collect backpacks with weapon gear, and pick an era for flavor. Auto-scheduling and role-restricted matches available via \`/rsauto\` and \`role:\` options.`,
+  blackjack: () => `<a:cards:1511530261551124561> **Blackjack — How to Play**\nStandard blackjack rules. Everyone antes the entry fee, cards are dealt, hit or stand to get as close to 21 without going over. Beat the dealer's hand to win your bet back plus more. Solo mode plays just you vs the dealer; Multiplayer lets several people join the same table.`,
+  memory: () => `<a:brain:1511530555588612126> **Memory Game — How to Play**\nA grid of face-down emoji cards. Flip two at a time trying to find a matching pair. Solo mode races the clock; Multiplayer takes turns — whoever finds the most pairs by the end wins the pot.`,
+  findthecuy: () => `<a:GuineaPig_tbpbots:1544900084410490910> **Find the Cuy — How to Play**\nA cuy is hiding in one of the grid cells each round. Click the cell you think it's in — whoever finds it first that round scores a point. Most points across all rounds wins the pot.`,
+  tictactoe: () => `⚔️ **Tic-Tac-Bruh — How to Play**\nClassic tic-tac-toe, wagered. Challenge a specific player or open it up for anyone to accept. Get three in a row to win the bet — or play against the bot if nobody's around.`,
+  riggednumbers: () => `<a:guess:1542348901217075200> **Rigged Numbers — How to Play**\nHost sets a number range and privately picks a secret number nobody else sees. Once the host clicks Start, anyone can guess by typing a number in chat. Wrong guesses get a higher/lower hint reaction — first correct guess wins.`,
+  fafo: () => `<a:devil:1544848380805513266> **FAFO (Fuck Around & Find Out) — How to Play**\nWager your sins. Each round, decide to Cash Out (lock in your current pot safely) or Fuck Around (push your luck for a bigger pot, with a real chance of losing it all). The risk climbs every round. If you get caught, you lose your original wager and gain regret — but you keep whatever you already cashed out. Last player standing gets an optional Final FAFO for a bonus jackpot.`,
+  redflag: () => `<a:redflag:1545091812924858469> **Walkin Red Flag — How to Play**\nEach round, 2-4 random players get accused of a fictional red-flag scenario. Everyone else votes who to flag; the accused can defend themselves (or use a collected ability to fight back). Collect 3 red flags and you're eliminated. Last two players face a Final Background Check — come out looking less shady to win.`,
+  regretgames: () => `<:play_regret_bot:1521042618744700938> **Regret Games — How to Play**\nA multi-day survival season, staff-hosted. Everyone pays entry, then over several days the arena runs story beats, votes, and chaos events that eliminate players one at a time. Survive to the end to win the majority of the pot and the Regret Royalty title.`,
 };
 
 async function sendHelpSlash(interaction) {
