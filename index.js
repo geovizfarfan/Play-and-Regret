@@ -28,6 +28,7 @@ const autodropModule  = require('./src/economy/autodrop');
 const riggedNumbersModule = require('./src/games/riggednumbers');
 const entryFeeModule = require('./src/economy/entryfee');
 const fafoModule = require('./src/games/fafo');
+const redflagModule = require('./src/games/redflag');
 const rgModule        = require('./src/games/regretgames');
 const jackpotModule   = require('./src/economy/jackpot');
 
@@ -257,6 +258,8 @@ const slashCommands = [
       )))
     .addSubcommand(sc => sc.setName('status').setDescription('View entry fee status for every game')),
   new SlashCommandBuilder().setName('fafo').setDescription('Admin: open a FAFO lobby — Fuck Around & Find Out'),
+  new SlashCommandBuilder().setName('redflag').setDescription('Admin: open a Red Flag Rumble lobby')
+    .addIntegerOption(o => o.setName('prize').setDescription('Optional sins prize for the winner').setMinValue(1)),
   new SlashCommandBuilder().setName('openbackpack').setDescription('Open one of your backpacks')
     .addStringOption(o => o.setName('type').setDescription('Backpack type').setRequired(true).addChoices(
       {name:'Basic',value:'basic'},{name:'Royal',value:'royal'},{name:'Cursed',value:'cursed'},
@@ -510,6 +513,9 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.customId.startsWith('fafo_join:') || interaction.customId.startsWith('fafo_cancel:') || interaction.customId.startsWith('fafo_startearly:')) {
       return fafoModule.handleButton(interaction);
     }
+    if (interaction.customId.startsWith('rf_join:') || interaction.customId.startsWith('rf_viewmembers:') || interaction.customId.startsWith('rf_start:')) {
+      return redflagModule.handleButton(interaction);
+    }
     if (interaction.customId.startsWith('bet_resolve_') || interaction.customId.startsWith('bet_quick_') || interaction.customId.startsWith('bet_amt_') || interaction.customId.startsWith('bet_pick_') || interaction.customId.startsWith('bet_select_') || interaction.customId.startsWith('bet_cancel_')) {
       try {
         return await bettingModule.handleButton(interaction);
@@ -653,6 +659,9 @@ client.on('interactionCreate', async (interaction) => {
     if (commandName === 'fafo') {
       return await fafoModule.handleSlash(interaction, commandName);
     }
+    if (commandName === 'redflag') {
+      return await redflagModule.handleSlash(interaction, commandName);
+    }
     if (commandName === 'items') {
       await interaction.deferReply({ ephemeral: true });
       const fakeSource = { reply: (d) => interaction.editReply(d) };
@@ -733,6 +742,9 @@ client.on('messageCreate', async (message) => {
 
     if (command === 'fafo')
       return await fafoModule.handleCommand(message, args, command);
+
+    if (command === 'redflag')
+      return await redflagModule.handleCommand(message, args, command);
 
     if (['jackpot','richpot','lottery','enter','lotteryenter','jackpotdraw','jackpothistory',
          'jackpotstart','jackpotstop','jackpotentries','potentries'].includes(command))
@@ -865,6 +877,10 @@ function buildHelpEmbeds() {
       { name: '<a:brain:1511530555588612126> Memory', value: '`/memory` — Match emoji pairs (solo or multiplayer)' },
       { name: '🎲 Rigged Numbers', value: '`/riggednumbers min max` — Secretly pick a number, first correct guess wins' },
       { name: '🧨 Fuck Around & Find Out', value: '`/fafo` — *(Admin)* Push-your-luck wagering game' },
+      { name: '🚩 Red Flag Rumble', value: [
+        '`/redflag [prize]` — *(Admin)* Accuse, defend, survive',
+        '`!redflag stats` — Your red flag record',
+      ].join('\n') },
       { name: `${E.BB_COIN} Entry Fees`, value: '`/entryfee set game state` — *(Admin)* Turn a game\'s entry fee on/off\n`/entryfee status` — See what\'s free right now' },
       { name: '🗡️ Rumble Slaughter', value: [
         '`/rumbleslaughter bet [timestamp]` — Start the arena',
@@ -1082,6 +1098,23 @@ async function tryCancelAll(channel, userId, username, replyFn, guildId = null) 
       }
       if (result) {
         cancelMsg = `<:checkmark:1495666088417956002> FAFO session cancelled. **${result.refunded}** player(s) refunded.`;
+        cancelled = true;
+      }
+    }
+  } catch(e) {}
+
+  // Try Red Flag Rumble
+  try {
+    if (!cancelled && redflagModule.activeGames.has(channelId)) {
+      const member = channel.guild ? await channel.guild.members.fetch(userId).catch(() => null) : null;
+      const result = await redflagModule.cancelViaUniversal(channel, userId, member);
+      if (result?.blocked) {
+        return replyFn(result.reason === 'running'
+          ? '<:wrong:1495666083594502174> Red Flag Rumble already started — can\'t cancel mid-session.'
+          : '<:wrong:1495666083594502174> Only the host or admins can cancel.');
+      }
+      if (result) {
+        cancelMsg = `<:checkmark:1495666088417956002> Red Flag Rumble cancelled.`;
         cancelled = true;
       }
     }
