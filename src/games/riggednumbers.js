@@ -9,7 +9,6 @@ const {
   ModalBuilder, TextInputBuilder, TextInputStyle,
 } = require('discord.js');
 const E = require('../utils/emojis');
-const { economy } = require('../utils/database');
 
 const activeGames = new Map(); // channelId -> { hostId, hostName, min, max, secretNumber }
 
@@ -108,29 +107,83 @@ module.exports = {
 
     activeGames.set(channelId, {
       hostId: interaction.user.id, hostName: interaction.user.username,
-      min, max, secretNumber,
+      min, max, secretNumber, phase: 'lobby', members: new Map(),
     });
 
-    await interaction.reply({ content: `<:checkmark:1495666088417956002> Your secret number is locked in. Good luck to them.`, ephemeral: true });
+    await interaction.reply({ content: `<:checkmark:1495666088417956002> Your secret number is locked in. Click Start Game whenever you're ready to open guessing.`, ephemeral: true });
 
     const channel = interaction.channel;
-    await channel.send({ embeds: [
-      new EmbedBuilder().setColor('#C9B1FF')
-        .setTitle('<a:guess:1542348901217075200> RIGGED NUMBERS')
-        .setDescription(
-          `**${interaction.user.username}** is thinking of a number between **${min}** and **${max}**.\n\n` +
-          `Type your guess in chat — first person to nail it wins bragging rights (and eternal smugness).\n\n` +
-          `<:purp_caveira50:1495665632845369354> Winner also gets **10% of their regret wiped**.\n\n` +
-          `*Wrong guesses get a hint. No mercy otherwise. Good luck.*`
-        )
-        .setFooter({ text: 'Use !riggednumbers cancel to end this early' })
-    ] });
+    const lobbyEmbed = new EmbedBuilder()
+      .setColor('#C9B1FF')
+      .setTitle('<a:guess:1542348901217075200> RIGGED NUMBERS — LOBBY')
+      .setDescription(
+        `**${interaction.user.username}** is thinking of a number between **${min}** and **${max}**.\n\n` +
+        `Click Join if you're in, then wait for the host to start.`
+      )
+      .addFields({ name: '<:member:1495666085121491024> Joined', value: '**0** players' })
+      .setFooter({ text: 'Use !riggednumbers cancel to end this early' });
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`rn_join:${channelId}`).setLabel('Join').setEmoji('<a:guess:1542348901217075200>').setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId(`rn_viewmembers:${channelId}`).setLabel('View Members').setEmoji('<:member:1495666085121491024>').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`rn_start:${channelId}`).setLabel('Start Game').setEmoji('<a:cashout:1544848377009803274>').setStyle(ButtonStyle.Success),
+    );
+
+    const lobbyMsg = await channel.send({ embeds: [lobbyEmbed], components: [row] });
+    activeGames.get(channelId).lobbyMsg = lobbyMsg;
+  },
+
+  // ── Lobby buttons: join / view members / start ───────────────────────────
+  async handleLobbyButton(interaction) {
+    const [action, channelId] = interaction.customId.split(':');
+    const game = activeGames.get(channelId);
+    if (!game) return interaction.reply({ content: `${E.ERROR} This Rigged Numbers game isn't active anymore.`, ephemeral: true });
+
+    if (action === 'rn_join') {
+      if (game.phase !== 'lobby') return interaction.reply({ content: `${E.ERROR} This game already started.`, ephemeral: true });
+      if (game.members.has(interaction.user.id)) return interaction.reply({ content: `<a:Warning:1497476844860215366> You already joined.`, ephemeral: true });
+      game.members.set(interaction.user.id, interaction.user.username);
+      if (game.lobbyMsg?.embeds?.[0]) {
+        const updated = EmbedBuilder.from(game.lobbyMsg.embeds[0]).spliceFields(0, 1, {
+          name: '<:member:1495666085121491024> Joined', value: `**${game.members.size}** player${game.members.size !== 1 ? 's' : ''}`,
+        });
+        await game.lobbyMsg.edit({ embeds: [updated] }).catch(() => {});
+      }
+      return interaction.reply({ content: `<:checkmark:1495666088417956002> You're in! Wait for the host to start.`, ephemeral: true });
+    }
+
+    if (action === 'rn_viewmembers') {
+      const list = game.members.size ? [...game.members.values()].map((n, i) => `**${i + 1}.** ${n}`).join('\n') : 'Nobody yet.';
+      return interaction.reply({ embeds: [
+        new EmbedBuilder().setColor('#C9B1FF').setTitle('<:member:1495666085121491024> Joined').setDescription(list)
+      ], ephemeral: true });
+    }
+
+    if (action === 'rn_start') {
+      if (interaction.user.id !== game.hostId && !isHost(interaction.member)) {
+        return interaction.reply({ content: `${E.ERROR} Only the host or admins can start this.`, ephemeral: true });
+      }
+      if (game.phase !== 'lobby') return interaction.reply({ content: `${E.ERROR} Already started.`, ephemeral: true });
+      game.phase = 'active';
+      await interaction.reply({ content: `<:checkmark:1495666088417956002> Guessing is open!`, ephemeral: true });
+      await game.lobbyMsg?.edit({ components: [] }).catch(() => {});
+      await interaction.channel.send({ embeds: [
+        new EmbedBuilder().setColor('#C9B1FF')
+          .setTitle('<a:guess:1542348901217075200> RIGGED NUMBERS')
+          .setDescription(
+            `**${game.hostName}** is thinking of a number between **${game.min}** and **${game.max}**.\n\n` +
+            `Type your guess in chat — first person to nail it wins bragging rights (and eternal smugness).\n\n` +
+            `*Wrong guesses get a hint. No mercy otherwise. Good luck.*`
+          )
+          .setFooter({ text: 'Use !riggednumbers cancel to end this early' })
+      ] });
+    }
   },
 
   // ── The guessing listener — called from index.js on every message ───────
   async handleGuess(message) {
     const game = activeGames.get(message.channel.id);
-    if (!game) return;
+    if (!game || game.phase !== 'active') return;
     const content = message.content.trim();
     if (!/^-?\d+$/.test(content)) return;
 
@@ -140,18 +193,10 @@ module.exports = {
       await message.react('<:checkmark:1495666088417956002>').catch(() => {});
       await message.react('<a:congrats:1478999022072238222>').catch(() => {});
 
-      const currentRegret = await economy.getRegret(message.author.id).catch(() => 0);
-      const reduction = Math.floor(currentRegret * 0.1);
-      let regretLine = '';
-      if (reduction > 0) {
-        await economy.addRegret(message.author.id, -reduction).catch(() => {});
-        regretLine = `\n\n<:purp_caveira50:1495665632845369354> **-${reduction} regret** for the win. Feels a little lighter, doesn't it?`;
-      }
-
       await message.channel.send({ embeds: [
         new EmbedBuilder().setColor('#C9B1FF')
           .setTitle('<a:guess:1542348901217075200> RIGGED NUMBERS — SOLVED')
-          .setDescription(`**${message.author.username}** correctly guessed **${game.secretNumber}**!\n\n**${game.hostName}**'s number has been cracked. New champion crowned.${regretLine}`)
+          .setDescription(`**${message.author.username}** correctly guessed **${game.secretNumber}**!\n\n**${game.hostName}**'s number has been cracked. New champion crowned.`)
       ] });
     } else {
       await message.react(guess < game.secretNumber ? '<a:higher:1544885549662470165>' : '<a:lower:1544885551126155324>').catch(() => {});

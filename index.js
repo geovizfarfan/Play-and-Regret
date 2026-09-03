@@ -518,6 +518,9 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.customId.startsWith('rn_setup:')) {
       return riggedNumbersModule.handleButton(interaction);
     }
+    if (interaction.customId.startsWith('rn_join:') || interaction.customId.startsWith('rn_viewmembers:') || interaction.customId.startsWith('rn_start:')) {
+      return riggedNumbersModule.handleLobbyButton(interaction);
+    }
     if (interaction.customId.startsWith('fafo_join:') || interaction.customId.startsWith('fafo_cancel:') || interaction.customId.startsWith('fafo_startearly:')) {
       return fafoModule.handleButton(interaction);
     }
