@@ -262,9 +262,11 @@ const slashCommands = [
     .addSubcommand(sc => sc.setName('status').setDescription('View entry fee status for every game')),
   new SlashCommandBuilder().setName('fafo').setDescription('Admin: open a FAFO lobby — Fuck Around & Find Out'),
   new SlashCommandBuilder().setName('redflag').setDescription('Admin: open a Walkin Red Flag lobby')
-    .addIntegerOption(o => o.setName('prize').setDescription('Optional sins prize for the winner').setMinValue(1)),
+    .addIntegerOption(o => o.setName('prize').setDescription('Optional sins prize for the winner').setMinValue(1))
+    .addBooleanOption(o => o.setName('entryfee').setDescription('Charge an entry fee this session? (overrides /entryfee default)')),
   new SlashCommandBuilder().setName('pickme').setDescription('Admin: open a Pick Me Pit lobby')
-    .addIntegerOption(o => o.setName('prize').setDescription('Optional sins prize for the winner').setMinValue(1)),
+    .addIntegerOption(o => o.setName('prize').setDescription('Optional sins prize for the winner').setMinValue(1))
+    .addBooleanOption(o => o.setName('entryfee').setDescription('Charge an entry fee this session? (overrides /entryfee default)')),
   new SlashCommandBuilder().setName('openbackpack').setDescription('Open one of your backpacks')
     .addStringOption(o => o.setName('type').setDescription('Backpack type').setRequired(true).addChoices(
       {name:'Basic',value:'basic'},{name:'Royal',value:'royal'},{name:'Cursed',value:'cursed'},

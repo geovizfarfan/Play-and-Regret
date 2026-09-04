@@ -52,15 +52,16 @@ function activePlayers(game) {
 }
 
 // ── Lobby ───────────────────────────────────────────────────────────────────
-async function startLobby(channel, hostId, hostName, prize) {
+async function startLobby(channel, hostId, hostName, prize, feeOverride = null) {
   if (activeGames.has(channel.id)) return null;
 
   const feeConfig = await economy.getEntryFeeConfig('pickme');
-  const feeAmount = feeConfig.enabled ? feeConfig.defaultAmount : 0;
+  const feeEnabled = feeOverride !== null ? feeOverride : feeConfig.enabled;
+  const feeAmount = feeEnabled ? feeConfig.defaultAmount : 0;
 
   const game = {
     channelId: channel.id, hostId, hostName, prize: prize || 0,
-    feeEnabled: feeConfig.enabled, feeAmount, collectedFees: 0,
+    feeEnabled, feeAmount, collectedFees: 0,
     phase: 'lobby', round: 0,
     players: new Map(), lobbyMsg: null, lobbyTimer: null,
   };
@@ -72,8 +73,8 @@ async function startLobby(channel, hostId, hostName, prize) {
     .setDescription(
       `<@${hostId}> opened a Pick Me Pit.\n\n` +
       `Every round, someone gets exposed for the most "pick me" behavior imaginable. Vote who deserves The Pit.\n\n` +
-      (feeConfig.enabled ? `<a:SINS:1522338223613804724> Entry: **${feeAmount.toLocaleString()} sins**\n` : '') +
-      (game.prize > 0 ? `<a:SINS:1522338223613804724> Prize: **${game.prize.toLocaleString()} sins** to the winner${feeConfig.enabled ? ' (plus entry fees collected)' : ''}\n\n` : (feeConfig.enabled ? '\n' : 'Free to play — bragging rights only.\n\n'))
+      (feeEnabled ? `<a:SINS:1522338223613804724> Entry: **${feeAmount.toLocaleString()} sins**\n` : '') +
+      (game.prize > 0 ? `<a:SINS:1522338223613804724> Prize: **${game.prize.toLocaleString()} sins** to the winner${feeEnabled ? ' (plus entry fees collected)' : ''}\n\n` : (feeEnabled ? '\n' : 'Free to play — bragging rights only.\n\n'))
     )
     .addFields({ name: '<:member:1495666085121491024> Joined', value: '**0** players' })
     .setFooter({ text: 'Use !cancel to end this early' });
@@ -414,8 +415,11 @@ module.exports = {
     }
     if (!isHost(message.member)) return message.reply(`<:wrong:1495666083594502174> You need the **${process.env.EVENT_HOST_ROLE || 'Event Host'}** role to start Pick Me Pit.`);
     if (activeGames.has(message.channel.id)) return message.reply('<:wrong:1495666083594502174> Already running here.');
+    const rawArgs = args.join(' ');
+    const feeMatch = rawArgs.match(/fee:(on|off)/i);
+    const feeOverride = feeMatch ? feeMatch[1].toLowerCase() === 'on' : null;
     const prize = parseInt(args[0]) || 0;
-    await startLobby(message.channel, message.author.id, message.author.username, prize);
+    await startLobby(message.channel, message.author.id, message.author.username, prize, feeOverride);
   },
 
   async handleSlash(interaction, commandName) {
@@ -423,8 +427,9 @@ module.exports = {
     if (!isHost(interaction.member)) return interaction.reply({ content: `<:wrong:1495666083594502174> You need the **${process.env.EVENT_HOST_ROLE || 'Event Host'}** role to start Pick Me Pit.`, ephemeral: true });
     if (activeGames.has(interaction.channel.id)) return interaction.reply({ content: '<:wrong:1495666083594502174> Already running here.', ephemeral: true });
     const prize = interaction.options.getInteger('prize') || 0;
+    const feeOverride = interaction.options.getBoolean('entryfee');
     await interaction.reply({ content: '<:checkmark:1495666088417956002> Opening the pit...', ephemeral: true });
-    await startLobby(interaction.channel, interaction.user.id, interaction.user.username, prize);
+    await startLobby(interaction.channel, interaction.user.id, interaction.user.username, prize, feeOverride);
   },
 
   async handleButton(interaction) {
