@@ -16,6 +16,8 @@ const GAMES = [
   { name: 'findthecuy',      label: 'Find the Cuy' },
   { name: 'memory',          label: 'Memory' },
   { name: 'tictactoe',       label: 'Tic-Tac-Bruh' },
+  { name: 'redflag',         label: 'Walkin Red Flag' },
+  { name: 'pickme',          label: 'Pick Me Pit' },
 ];
 const GAME_NAMES = GAMES.map(g => g.name);
 const ALIASES = { rs: 'rumbleslaughter', ttb: 'tictactoe', ttt: 'tictactoe', tictacbruh: 'tictactoe', cuy: 'findthecuy' };

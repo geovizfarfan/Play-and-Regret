@@ -55,8 +55,12 @@ function activePlayers(game) {
 async function startLobby(channel, hostId, hostName, prize) {
   if (activeGames.has(channel.id)) return null;
 
+  const feeConfig = await economy.getEntryFeeConfig('pickme');
+  const feeAmount = feeConfig.enabled ? feeConfig.defaultAmount : 0;
+
   const game = {
     channelId: channel.id, hostId, hostName, prize: prize || 0,
+    feeEnabled: feeConfig.enabled, feeAmount, collectedFees: 0,
     phase: 'lobby', round: 0,
     players: new Map(), lobbyMsg: null, lobbyTimer: null,
   };
@@ -68,8 +72,8 @@ async function startLobby(channel, hostId, hostName, prize) {
     .setDescription(
       `<@${hostId}> opened a Pick Me Pit.\n\n` +
       `Every round, someone gets exposed for the most "pick me" behavior imaginable. Vote who deserves The Pit.\n\n` +
-      (game.prize > 0 ? `<a:SINS:1522338223613804724> Prize: **${game.prize.toLocaleString()} sins** to the winner\n\n` : 'Free to play — bragging rights only.\n\n') +
-      `<a:RojasClock:1511506715453947904> Lobby closes in **${Math.floor(CONFIG.lobbyDurationMs / 1000)}s**`
+      (feeConfig.enabled ? `<a:SINS:1522338223613804724> Entry: **${feeAmount.toLocaleString()} sins**\n` : '') +
+      (game.prize > 0 ? `<a:SINS:1522338223613804724> Prize: **${game.prize.toLocaleString()} sins** to the winner${feeConfig.enabled ? ' (plus entry fees collected)' : ''}\n\n` : (feeConfig.enabled ? '\n' : 'Free to play — bragging rights only.\n\n'))
     )
     .addFields({ name: '<:member:1495666085121491024> Joined', value: '**0** players' })
     .setFooter({ text: 'Use !cancel to end this early' });
@@ -82,7 +86,6 @@ async function startLobby(channel, hostId, hostName, prize) {
 
   const msg = await channel.send({ embeds: [embed], components: [row] });
   game.lobbyMsg = msg;
-  game.lobbyTimer = setTimeout(() => beginGame(channel).catch(() => {}), CONFIG.lobbyDurationMs);
   return game;
 }
 
@@ -104,10 +107,21 @@ async function handleLobbyButton(interaction) {
     if (game.phase !== 'lobby') return interaction.reply({ content: '<:wrong:1495666083594502174> This game already started.', ephemeral: true });
     if (game.players.has(interaction.user.id)) return interaction.reply({ content: '<a:Warning:1497476844860215366> You already joined.', ephemeral: true });
     if (game.players.size >= CONFIG.maxPlayers) return interaction.reply({ content: '<:wrong:1495666083594502174> Lobby\'s full.', ephemeral: true });
-    game.players.set(interaction.user.id, newPlayer(interaction.user.id, interaction.user.username));
+    if (game.feeEnabled) {
+      await economy.getUser(interaction.user.id, interaction.user.username);
+      const balance = await economy.getBalance(interaction.user.id);
+      if (balance < game.feeAmount) {
+        return interaction.reply({ content: `<:wrong:1495666083594502174> You need **${game.feeAmount.toLocaleString()} sins** to join. You have **${balance.toLocaleString()}**.`, ephemeral: true });
+      }
+      await economy.removeFunds(interaction.user.id, game.feeAmount, 'Pick Me Pit entry fee');
+      game.collectedFees += game.feeAmount;
+    }
+    const p = newPlayer(interaction.user.id, interaction.user.username);
+    p.paidFee = game.feeEnabled;
+    game.players.set(interaction.user.id, p);
     await ensureStats(interaction.user.id);
     await refreshLobbyEmbed(game);
-    return interaction.reply({ content: '<:checkmark:1495666088417956002> You\'re in. Try not to be the most pick me person here.', ephemeral: true });
+    return interaction.reply({ content: `<:checkmark:1495666088417956002> You're in${game.feeEnabled ? ` — **${game.feeAmount.toLocaleString()} sins** paid` : ''}. Try not to be the most pick me person here.`, ephemeral: true });
   }
 
   if (action === 'pm_viewmembers') {
@@ -344,9 +358,10 @@ async function endGame(channel, game, winner) {
       new EmbedBuilder().setColor('#FFD700').setTitle('<a:crowned:1544882007652438077> LEAST EMBARRASSING PERSON ALIVE')
         .setDescription(`**${winner.username}** wins Pick Me Pit.`)
     ]});
-    if (game.prize > 0) {
-      await economy.addFunds(winner.userId, game.prize, 'Pick Me Pit prize').catch(() => {});
-      await channel.send(`<a:SINS:1522338223613804724> **${winner.username}** takes home **${game.prize.toLocaleString()} sins**.`);
+    const totalPrize = game.prize + game.collectedFees;
+    if (totalPrize > 0) {
+      await economy.addFunds(winner.userId, totalPrize, 'Pick Me Pit prize').catch(() => {});
+      await channel.send(`<a:SINS:1522338223613804724> **${winner.username}** takes home **${totalPrize.toLocaleString()} sins**.`);
     }
   }
   for (const p of game.players.values()) await bumpStat(p.userId, 'games_played');
@@ -359,6 +374,11 @@ async function cancelViaUniversal(channel, userId, member) {
   if (!canCancel(member, game.hostId, userId)) return { blocked: true };
   if (game.phase !== 'lobby') return { blocked: true, reason: 'running' };
   clearTimeout(game.lobbyTimer);
+  if (game.feeEnabled) {
+    for (const p of game.players.values()) {
+      if (p.paidFee) await economy.addFunds(p.userId, game.feeAmount, 'Pick Me Pit cancelled — refund').catch(() => {});
+    }
+  }
   activeGames.delete(channel.id);
   await game.lobbyMsg?.edit({ components: [] }).catch(() => {});
   return { blocked: false };

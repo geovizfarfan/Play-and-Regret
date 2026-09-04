@@ -253,6 +253,8 @@ const slashCommands = [
         { name: 'Find the Cuy', value: 'findthecuy' },
         { name: 'Memory', value: 'memory' },
         { name: 'Tic-Tac-Bruh', value: 'tictactoe' },
+        { name: 'Walkin Red Flag', value: 'redflag' },
+        { name: 'Pick Me Pit', value: 'pickme' },
       ))
       .addStringOption(o => o.setName('state').setDescription('On (costs sins) or off (free)').setRequired(true).addChoices(
         { name: 'On', value: 'on' }, { name: 'Off', value: 'off' },

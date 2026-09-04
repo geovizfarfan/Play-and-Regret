@@ -50,8 +50,7 @@ async function startLobby(channel, hostId, hostName) {
       `*${M.pick(M.LOBBY_LINES)}*\n\n` +
       `<@${hostId}> opened a FAFO session.\n\n` +
       `Wager your real sins. Push your luck round by round. Cash out whenever — or don't.\n\n` +
-      `<a:SINS:1522338223613804724> Need at least **${CONFIG.minBalanceToPlay.toLocaleString()} sins** to play\n` +
-      `<a:RojasClock:1511506715453947904> Lobby closes in **${Math.floor(CONFIG.lobbyDurationMs / 1000)}s**`
+      `<a:SINS:1522338223613804724> Need at least **${CONFIG.minBalanceToPlay.toLocaleString()} sins** to play`
     )
     .addFields({ name: '<:member:1495666085121491024> Joined', value: '**0** players' })
     .setFooter({ text: 'Wagers are locked in privately — nobody else sees your amount' });
@@ -64,7 +63,6 @@ async function startLobby(channel, hostId, hostName) {
 
   const msg = await channel.send({ embeds: [embed], components: [row] });
   session.lobbyMsg = msg;
-  session.lobbyTimer = setTimeout(() => beginRounds(channel).catch(() => {}), CONFIG.lobbyDurationMs);
 
   return session;
 }
