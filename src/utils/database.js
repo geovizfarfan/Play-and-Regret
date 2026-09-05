@@ -130,21 +130,12 @@ const economy = {
     const bonus  = Math.min(streak - 1, 6) * 25;
     const amount = base + bonus;
 
-    // Regret increases with streak — you cannot escape
-    // Regret scaling — threatening but not absurd
-    // Stays below sins at healthy play, creeps up with long streaks
-    let regretGain;
-    if (streak <= 6)       regretGain = 30 + Math.floor(Math.random() * 20);       // 30–50
-    else if (streak <= 13) regretGain = 60 + Math.floor(Math.random() * 30);       // 60–90
-    else if (streak <= 29) regretGain = 100 + Math.floor(Math.random() * 50);      // 100–150
-    else                   regretGain = 180 + Math.floor(Math.random() * 70);      // 180–250
     await db.run(
       `UPDATE users
        SET balance = balance + ?, total_earned = total_earned + ?,
-           last_daily = NOW(), daily_streak = ?,
-           regret = regret + ?
+           last_daily = NOW(), daily_streak = ?
        WHERE user_id = ?`,
-      [amount, amount, streak, regretGain, userId]
+      [amount, amount, streak, userId]
     );
 
     // Weekly gift — every 7th consecutive day
@@ -160,7 +151,7 @@ const economy = {
       }
       await this.grantWeeklyItem(userId, weeklyItem, 1);
     }
-    return { success: true, amount, streak, regretGain, weeklyItem };
+    return { success: true, amount, streak, weeklyItem };
   },
 
   async getLeaderboard(limit = 10) {

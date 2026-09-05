@@ -19,131 +19,131 @@ const CONFESS_COOLDOWN_MS =  6 * 3_600_000;
 const STREAK_MESSAGES = {
   // Day 1
   1: [
-    (s, a, r) => `day 1. already making bad choices. welcome. <a:pepeclownwave84:1495665629649436672> **+${a} ${CURRENCY}** | **+${r} regret** <a:pray:1495665631775817778>`,
-    (s, a, r) => `you started something. congrats. it won't end well. **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `day one and you're already here. embarrassing. 😐 **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `day 1 already? who told you about this <a:pray:1495665631775817778> **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `you showed up. that's… something. **+${a} ${CURRENCY}** | **+${r} regret** the regret starts now.`,
-    (s, a, r) => `first day. fresh slate. you'll ruin it. **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `oh great. another one. <a:hmmdevil:1495665623219306647> **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `you really said "let me log into this" <a:pray:1495665631775817778> **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `welcome to your downfall. day 1. **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `the beginning of something deeply regrettable. **+${a} ${CURRENCY}** | **+${r} regret** <a:pray:1495665631775817778>`,
+    (s, a, r) => `day 1. already making bad choices. welcome. <a:pepeclownwave84:1495665629649436672> **+${a} ${CURRENCY}** <a:pray:1495665631775817778>`,
+    (s, a, r) => `you started something. congrats. it won't end well. **+${a} ${CURRENCY}**`,
+    (s, a, r) => `day one and you're already here. embarrassing. 😐 **+${a} ${CURRENCY}**`,
+    (s, a, r) => `day 1 already? who told you about this <a:pray:1495665631775817778> **+${a} ${CURRENCY}**`,
+    (s, a, r) => `you showed up. that's… something. **+${a} ${CURRENCY}** the regret starts now.`,
+    (s, a, r) => `first day. fresh slate. you'll ruin it. **+${a} ${CURRENCY}**`,
+    (s, a, r) => `oh great. another one. <a:hmmdevil:1495665623219306647> **+${a} ${CURRENCY}**`,
+    (s, a, r) => `you really said "let me log into this" <a:pray:1495665631775817778> **+${a} ${CURRENCY}**`,
+    (s, a, r) => `welcome to your downfall. day 1. **+${a} ${CURRENCY}**`,
+    (s, a, r) => `the beginning of something deeply regrettable. **+${a} ${CURRENCY}** <a:pray:1495665631775817778>`,
   ],
 
   // Days 2–4
   3: [
-    (s, a, r) => `day ${s}. you came back. interesting decision. **+${a} ${CURRENCY}** | **+${r} regret** 😐`,
-    (s, a, r) => `you're forming a habit. that's bad. **+${a} ${CURRENCY}** | **+${r} regret** <a:pepeclownwave84:1495665629649436672>`,
-    (s, a, r) => `day ${s}. you didn't learn from day 1. noted. **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `3 days in and already committed to the bit. <a:pray:1495665631775817778> **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `you returned. boldly. wrongly. **+${a} ${CURRENCY}** | **+${r} regret** <a:hmmdevil:1495665623219306647>`,
-    (s, a, r) => `day ${s}. the regret is compounding. **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `back again huh. who let you back in. **+${a} ${CURRENCY}** | **+${r} regret** <a:pray:1495665631775817778>`,
-    (s, a, r) => `day ${s} and already slightly too committed. **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `you didn't stop after day 1. your fault. **+${a} ${CURRENCY}** | **+${r} regret** <a:pepeclownwave84:1495665629649436672>`,
-    (s, a, r) => `okay you're consistent. unfortunately. **+${a} ${CURRENCY}** | **+${r} regret**`,
+    (s, a, r) => `day ${s}. you came back. interesting decision. **+${a} ${CURRENCY}** 😐`,
+    (s, a, r) => `you're forming a habit. that's bad. **+${a} ${CURRENCY}** <a:pepeclownwave84:1495665629649436672>`,
+    (s, a, r) => `day ${s}. you didn't learn from day 1. noted. **+${a} ${CURRENCY}**`,
+    (s, a, r) => `3 days in and already committed to the bit. <a:pray:1495665631775817778> **+${a} ${CURRENCY}**`,
+    (s, a, r) => `you returned. boldly. wrongly. **+${a} ${CURRENCY}** <a:hmmdevil:1495665623219306647>`,
+    (s, a, r) => `day ${s}. the regret is compounding. **+${a} ${CURRENCY}**`,
+    (s, a, r) => `back again huh. who let you back in. **+${a} ${CURRENCY}** <a:pray:1495665631775817778>`,
+    (s, a, r) => `day ${s} and already slightly too committed. **+${a} ${CURRENCY}**`,
+    (s, a, r) => `you didn't stop after day 1. your fault. **+${a} ${CURRENCY}** <a:pepeclownwave84:1495665629649436672>`,
+    (s, a, r) => `okay you're consistent. unfortunately. **+${a} ${CURRENCY}**`,
   ],
 
   // Days 5–6
   5: [
-    (s, a, r) => `day ${s}… you're consistent at making bad choices <a:hmmdevil:1495665623219306647> **+${a} ${CURRENCY}** | **+${r} regret** this is getting sad.`,
-    (s, a, r) => `5 days. you didn't stop. no one's surprised. **+${a} ${CURRENCY}** | **+${r} regret** <a:pray:1495665631775817778>`,
-    (s, a, r) => `day ${s}. the habit is locked in now. accept it. **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `you've been here every day this week. <a:pepeclownwave84:1495665629649436672> **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `5 days of bad decisions and counting. 😬 **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `day ${s}. we should talk. but we won't. **+${a} ${CURRENCY}** | **+${r} regret** <a:hmmdevil:1495665623219306647>`,
-    (s, a, r) => `you're really doing this every day huh. **+${a} ${CURRENCY}** | **+${r} regret** <a:pray:1495665631775817778>`,
-    (s, a, r) => `day ${s}. your regret is becoming a personality trait. **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `honestly… I'm proud of you. day ${s} 😌 just kidding. this is pathetic. **+${a} ${CURRENCY}** | **+${r} regret** <a:hmmdevil:1495665623219306647>`,
-    (s, a, r) => `5+ days in. it's a lifestyle now. a bad one. **+${a} ${CURRENCY}** | **+${r} regret**`,
+    (s, a, r) => `day ${s}… you're consistent at making bad choices <a:hmmdevil:1495665623219306647> **+${a} ${CURRENCY}** this is getting sad.`,
+    (s, a, r) => `5 days. you didn't stop. no one's surprised. **+${a} ${CURRENCY}** <a:pray:1495665631775817778>`,
+    (s, a, r) => `day ${s}. the habit is locked in now. accept it. **+${a} ${CURRENCY}**`,
+    (s, a, r) => `you've been here every day this week. <a:pepeclownwave84:1495665629649436672> **+${a} ${CURRENCY}**`,
+    (s, a, r) => `5 days of bad decisions and counting. 😬 **+${a} ${CURRENCY}**`,
+    (s, a, r) => `day ${s}. we should talk. but we won't. **+${a} ${CURRENCY}** <a:hmmdevil:1495665623219306647>`,
+    (s, a, r) => `you're really doing this every day huh. **+${a} ${CURRENCY}** <a:pray:1495665631775817778>`,
+    (s, a, r) => `day ${s}. your regret is becoming a personality trait. **+${a} ${CURRENCY}**`,
+    (s, a, r) => `honestly… I'm proud of you. day ${s} 😌 just kidding. this is pathetic. **+${a} ${CURRENCY}** <a:hmmdevil:1495665623219306647>`,
+    (s, a, r) => `5+ days in. it's a lifestyle now. a bad one. **+${a} ${CURRENCY}**`,
   ],
 
   // Days 7–13
   7: [
-    (s, a, r) => `day ${s}. weekly disappointment unlocked <a:1stplace:1487504691880263791><a:pray:1495665631775817778> **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `a whole week. of this. voluntary. **+${a} ${CURRENCY}** | **+${r} regret** 😐`,
-    (s, a, r) => `day ${s}. you've completed one full week of bad decisions. <a:confetti:1495667283870089307> (this isn't a good thing) **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `YOU CAME BACK??? DAY ${s}??? <a:pray:1495665631775817778> **+${a} ${CURRENCY}** | **+${r} regret** at this point I respect the delusion.`,
-    (s, a, r) => `day ${s}. seven days in and somehow not embarrassed. **+${a} ${CURRENCY}** | **+${r} regret** 🩸`,
-    (s, a, r) => `week one done. you need to go outside. **+${a} ${CURRENCY}** | **+${r} regret** <a:hmmdevil:1495665623219306647>`,
-    (s, a, r) => `day ${s}. this is your routine now. that says everything. **+${a} ${CURRENCY}** | **+${r} regret** <a:pray:1495665631775817778>`,
-    (s, a, r) => `7 days. 7 bad decisions. beautiful consistency. **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `day ${s}. blink twice if you need help. **+${a} ${CURRENCY}** | **+${r} regret** <a:pepeclownwave84:1495665629649436672>`,
-    (s, a, r) => `you hit a week. we're logging this. **+${a} ${CURRENCY}** | **+${r} regret** 😬`,
-    (s, a, r) => `day ${s}. your friends would be concerned. **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `one week of choosing regret over everything else. iconic. **+${a} ${CURRENCY}** | **+${r} regret** <a:hmmdevil:1495665623219306647>`,
+    (s, a, r) => `day ${s}. weekly disappointment unlocked <a:1stplace:1487504691880263791><a:pray:1495665631775817778> **+${a} ${CURRENCY}**`,
+    (s, a, r) => `a whole week. of this. voluntary. **+${a} ${CURRENCY}** 😐`,
+    (s, a, r) => `day ${s}. you've completed one full week of bad decisions. <a:confetti:1495667283870089307> (this isn't a good thing) **+${a} ${CURRENCY}**`,
+    (s, a, r) => `YOU CAME BACK??? DAY ${s}??? <a:pray:1495665631775817778> **+${a} ${CURRENCY}** at this point I respect the delusion.`,
+    (s, a, r) => `day ${s}. seven days in and somehow not embarrassed. **+${a} ${CURRENCY}** 🩸`,
+    (s, a, r) => `week one done. you need to go outside. **+${a} ${CURRENCY}** <a:hmmdevil:1495665623219306647>`,
+    (s, a, r) => `day ${s}. this is your routine now. that says everything. **+${a} ${CURRENCY}** <a:pray:1495665631775817778>`,
+    (s, a, r) => `7 days. 7 bad decisions. beautiful consistency. **+${a} ${CURRENCY}**`,
+    (s, a, r) => `day ${s}. blink twice if you need help. **+${a} ${CURRENCY}** <a:pepeclownwave84:1495665629649436672>`,
+    (s, a, r) => `you hit a week. we're logging this. **+${a} ${CURRENCY}** 😬`,
+    (s, a, r) => `day ${s}. your friends would be concerned. **+${a} ${CURRENCY}**`,
+    (s, a, r) => `one week of choosing regret over everything else. iconic. **+${a} ${CURRENCY}** <a:hmmdevil:1495665623219306647>`,
   ],
 
   // Days 14–29
   14: [
-    (s, a, r) => `day ${s} of logging in like this matters <a:pepeclownwave84:1495665629649436672> **+${a} ${CURRENCY}** | **+${r} regret** blink twice if you need help.`,
-    (s, a, r) => `two weeks. this is a lifestyle now. a terrible one. **+${a} ${CURRENCY}** | **+${r} regret** 🩸`,
-    (s, a, r) => `day ${s}. you should explain this to someone in person. **+${a} ${CURRENCY}** | **+${r} regret** <a:pray:1495665631775817778>`,
-    (s, a, r) => `14+ days. the regret isn't stopping you. <a:hmmdevil:1495665623219306647> **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `day ${s}. two weeks in and you're still here. unbelievable. **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `honestly I respect the commitment. I don't respect the decision. **+${a} ${CURRENCY}** | **+${r} regret** <a:pepeclownwave84:1495665629649436672>`,
-    (s, a, r) => `day ${s}. you woke up and chose this. again. **+${a} ${CURRENCY}** | **+${r} regret** 😐`,
-    (s, a, r) => `two weeks of voluntary bad decisions. <a:pray:1495665631775817778> **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `day ${s}. this isn't a game anymore. it's a pattern. **+${a} ${CURRENCY}** | **+${r} regret** <a:hmmdevil:1495665623219306647>`,
-    (s, a, r) => `you're too deep to stop now. we both know it. **+${a} ${CURRENCY}** | **+${r} regret** 🩸`,
-    (s, a, r) => `day ${s}. the audacity is actually impressive. **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `14 days in. your regret has a mortgage now. **+${a} ${CURRENCY}** | **+${r} regret** <a:pray:1495665631775817778>`,
+    (s, a, r) => `day ${s} of logging in like this matters <a:pepeclownwave84:1495665629649436672> **+${a} ${CURRENCY}** blink twice if you need help.`,
+    (s, a, r) => `two weeks. this is a lifestyle now. a terrible one. **+${a} ${CURRENCY}** 🩸`,
+    (s, a, r) => `day ${s}. you should explain this to someone in person. **+${a} ${CURRENCY}** <a:pray:1495665631775817778>`,
+    (s, a, r) => `14+ days. the regret isn't stopping you. <a:hmmdevil:1495665623219306647> **+${a} ${CURRENCY}**`,
+    (s, a, r) => `day ${s}. two weeks in and you're still here. unbelievable. **+${a} ${CURRENCY}**`,
+    (s, a, r) => `honestly I respect the commitment. I don't respect the decision. **+${a} ${CURRENCY}** <a:pepeclownwave84:1495665629649436672>`,
+    (s, a, r) => `day ${s}. you woke up and chose this. again. **+${a} ${CURRENCY}** 😐`,
+    (s, a, r) => `two weeks of voluntary bad decisions. <a:pray:1495665631775817778> **+${a} ${CURRENCY}**`,
+    (s, a, r) => `day ${s}. this isn't a game anymore. it's a pattern. **+${a} ${CURRENCY}** <a:hmmdevil:1495665623219306647>`,
+    (s, a, r) => `you're too deep to stop now. we both know it. **+${a} ${CURRENCY}** 🩸`,
+    (s, a, r) => `day ${s}. the audacity is actually impressive. **+${a} ${CURRENCY}**`,
+    (s, a, r) => `14 days in. your regret has a mortgage now. **+${a} ${CURRENCY}** <a:pray:1495665631775817778>`,
   ],
 
   // Days 30–49
   30: [
-    (s, a, r) => `day ${s}. this isn't a streak, it's a cry for help <a:purplefire:1479219348353716415> **+${a} ${CURRENCY}** | **+${r} regret** go outside. seriously.`,
-    (s, a, r) => `30 days. you need help. **+${a} ${CURRENCY}** | **+${r} regret** <a:pray:1495665631775817778>`,
-    (s, a, r) => `day ${s}. a full month of this. voluntary. <a:hmmdevil:1495665623219306647> **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `one month of bad decisions. you're committed to the bit. **+${a} ${CURRENCY}** | **+${r} regret** <a:pepeclownwave84:1495665629649436672>`,
-    (s, a, r) => `day ${s}. 30+ days and the regret just keeps growing. <a:pray:1495665631775817778> **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `you've been doing this for a month. I'm concerned. **+${a} ${CURRENCY}** | **+${r} regret** 🩸`,
-    (s, a, r) => `day ${s}. this is your personality now. not in a good way. **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `30 days in. who are you outside of this? 😐 **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `day ${s}. a whole month. we should notify someone. **+${a} ${CURRENCY}** | **+${r} regret** 😬`,
-    (s, a, r) => `month one complete. it only gets worse from here. **+${a} ${CURRENCY}** | **+${r} regret** <a:hmmdevil:1495665623219306647>`,
-    (s, a, r) => `day ${s}. you said "one more day" 30 times. **+${a} ${CURRENCY}** | **+${r} regret** <a:pray:1495665631775817778>`,
-    (s, a, r) => `30+ days. this is documented now. **+${a} ${CURRENCY}** | **+${r} regret**`,
+    (s, a, r) => `day ${s}. this isn't a streak, it's a cry for help <a:purplefire:1479219348353716415> **+${a} ${CURRENCY}** go outside. seriously.`,
+    (s, a, r) => `30 days. you need help. **+${a} ${CURRENCY}** <a:pray:1495665631775817778>`,
+    (s, a, r) => `day ${s}. a full month of this. voluntary. <a:hmmdevil:1495665623219306647> **+${a} ${CURRENCY}**`,
+    (s, a, r) => `one month of bad decisions. you're committed to the bit. **+${a} ${CURRENCY}** <a:pepeclownwave84:1495665629649436672>`,
+    (s, a, r) => `day ${s}. 30+ days and the regret just keeps growing. <a:pray:1495665631775817778> **+${a} ${CURRENCY}**`,
+    (s, a, r) => `you've been doing this for a month. I'm concerned. **+${a} ${CURRENCY}** 🩸`,
+    (s, a, r) => `day ${s}. this is your personality now. not in a good way. **+${a} ${CURRENCY}**`,
+    (s, a, r) => `30 days in. who are you outside of this? 😐 **+${a} ${CURRENCY}**`,
+    (s, a, r) => `day ${s}. a whole month. we should notify someone. **+${a} ${CURRENCY}** 😬`,
+    (s, a, r) => `month one complete. it only gets worse from here. **+${a} ${CURRENCY}** <a:hmmdevil:1495665623219306647>`,
+    (s, a, r) => `day ${s}. you said "one more day" 30 times. **+${a} ${CURRENCY}** <a:pray:1495665631775817778>`,
+    (s, a, r) => `30+ days. this is documented now. **+${a} ${CURRENCY}**`,
   ],
 
   // Days 50–99
   50: [
-    (s, a, r) => `day ${s}. we should notify someone. <a:pray:1495665631775817778> **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `50 days. FIFTY. <a:hmmdevil:1495665623219306647> **+${a} ${CURRENCY}** | **+${r} regret** this is not normal.`,
-    (s, a, r) => `day ${s}. you're not stopping are you. **+${a} ${CURRENCY}** | **+${r} regret** 🩸`,
-    (s, a, r) => `50 days of choosing regret every single morning. <a:pepeclownwave84:1495665629649436672> **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `day ${s}. I can't tell if you're okay. **+${a} ${CURRENCY}** | **+${r} regret** <a:pray:1495665631775817778>`,
-    (s, a, r) => `50+ days. you've passed the point of no return. **+${a} ${CURRENCY}** | **+${r} regret** <a:hmmdevil:1495665623219306647>`,
-    (s, a, r) => `day ${s}. we're logging this for research purposes. **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `fifty days. your regret has its own zip code now. <a:pray:1495665631775817778> **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `day ${s}. this says a lot about you. none of it good. **+${a} ${CURRENCY}** | **+${r} regret** 😐`,
-    (s, a, r) => `50 days in. you've become the warning label. **+${a} ${CURRENCY}** | **+${r} regret** <a:pepeclownwave84:1495665629649436672>`,
+    (s, a, r) => `day ${s}. we should notify someone. <a:pray:1495665631775817778> **+${a} ${CURRENCY}**`,
+    (s, a, r) => `50 days. FIFTY. <a:hmmdevil:1495665623219306647> **+${a} ${CURRENCY}** this is not normal.`,
+    (s, a, r) => `day ${s}. you're not stopping are you. **+${a} ${CURRENCY}** 🩸`,
+    (s, a, r) => `50 days of choosing regret every single morning. <a:pepeclownwave84:1495665629649436672> **+${a} ${CURRENCY}**`,
+    (s, a, r) => `day ${s}. I can't tell if you're okay. **+${a} ${CURRENCY}** <a:pray:1495665631775817778>`,
+    (s, a, r) => `50+ days. you've passed the point of no return. **+${a} ${CURRENCY}** <a:hmmdevil:1495665623219306647>`,
+    (s, a, r) => `day ${s}. we're logging this for research purposes. **+${a} ${CURRENCY}**`,
+    (s, a, r) => `fifty days. your regret has its own zip code now. <a:pray:1495665631775817778> **+${a} ${CURRENCY}**`,
+    (s, a, r) => `day ${s}. this says a lot about you. none of it good. **+${a} ${CURRENCY}** 😐`,
+    (s, a, r) => `50 days in. you've become the warning label. **+${a} ${CURRENCY}** <a:pepeclownwave84:1495665629649436672>`,
   ],
 
   // Days 100+
   100: [
-    (s, a, r) => `day ${s}. this is not a game anymore. <a:pray:1495665631775817778> **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `100 days. ONE HUNDRED. <a:hmmdevil:1495665623219306647>🩸 **+${a} ${CURRENCY}** | **+${r} regret** you need to talk to someone.`,
-    (s, a, r) => `day ${s}. you are the cautionary tale now. **+${a} ${CURRENCY}** | **+${r} regret** <a:pray:1495665631775817778>`,
-    (s, a, r) => `100 days of voluntary suffering. no notes. **+${a} ${CURRENCY}** | **+${r} regret** 😬`,
-    (s, a, r) => `day ${s}. we're genuinely concerned. actually. **+${a} ${CURRENCY}** | **+${r} regret** 🩸`,
-    (s, a, r) => `100+ days. your regret could fill a swimming pool. <a:hmmdevil:1495665623219306647> **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `day ${s}. you've transcended embarrassment. you ARE the embarrassment. **+${a} ${CURRENCY}** | **+${r} regret** <a:pray:1495665631775817778>`,
-    (s, a, r) => `hundred days in. this is your legacy now. unfortunately. **+${a} ${CURRENCY}** | **+${r} regret**`,
-    (s, a, r) => `day ${s}. I don't even have words. just. regret. **+${a} ${CURRENCY}** | **+${r} regret** 😐`,
-    (s, a, r) => `100 days. the system should've stopped you. it didn't. <a:pray:1495665631775817778> **+${a} ${CURRENCY}** | **+${r} regret**`,
+    (s, a, r) => `day ${s}. this is not a game anymore. <a:pray:1495665631775817778> **+${a} ${CURRENCY}**`,
+    (s, a, r) => `100 days. ONE HUNDRED. <a:hmmdevil:1495665623219306647>🩸 **+${a} ${CURRENCY}** you need to talk to someone.`,
+    (s, a, r) => `day ${s}. you are the cautionary tale now. **+${a} ${CURRENCY}** <a:pray:1495665631775817778>`,
+    (s, a, r) => `100 days of voluntary suffering. no notes. **+${a} ${CURRENCY}** 😬`,
+    (s, a, r) => `day ${s}. we're genuinely concerned. actually. **+${a} ${CURRENCY}** 🩸`,
+    (s, a, r) => `100+ days. your regret could fill a swimming pool. <a:hmmdevil:1495665623219306647> **+${a} ${CURRENCY}**`,
+    (s, a, r) => `day ${s}. you've transcended embarrassment. you ARE the embarrassment. **+${a} ${CURRENCY}** <a:pray:1495665631775817778>`,
+    (s, a, r) => `hundred days in. this is your legacy now. unfortunately. **+${a} ${CURRENCY}**`,
+    (s, a, r) => `day ${s}. I don't even have words. just. regret. **+${a} ${CURRENCY}** 😐`,
+    (s, a, r) => `100 days. the system should've stopped you. it didn't. <a:pray:1495665631775817778> **+${a} ${CURRENCY}**`,
   ],
 };
 
 // ─── RARE CHAOS EVENTS (1% chance) ──────────────────────────────────────────
 const RARE_EVENTS = [
-  (s, a, r) => ({ extra: 2000, regretExtra: 0,    msg: `🎰 **JACKPOT OF REGRET UNLOCKED** <a:pray:1495665631775817778> +2000 regret. no sins. just suffering. **+${r + 2000} regret total**` }),
-  (s, a, r) => ({ extra: 0,    regretExtra: 1000, msg: `<a:pray:1495665631775817778> you were supposed to get a bonus… we changed our mind. **+${r + 1000} regret** <a:hmmdevil:1495665623219306647>` }),
-  (s, a, r) => ({ extra: 500,  regretExtra: 500,  msg: `<a:hmmdevil:1495665623219306647> **CHAOS BONUS** the system glitched in your favor. temporarily. **+${a + 500} ${CURRENCY}** | **+${r + 500} regret**` }),
-  (s, a, r) => ({ extra: -100, regretExtra: 200,  msg: `<a:pray:1495665631775817778> **BETRAYAL EVENT** we took 100 sins back. you weren't using them wisely. **-100 ${CURRENCY}** | **+${r + 200} regret**` }),
-  (s, a, r) => ({ extra: 0,    regretExtra: 0,    msg: `<a:pepeclownwave84:1495665629649436672> **NULL EVENT** nothing happened. your regret grows anyway. somehow. **+${r} regret**` }),
-  (s, a, r) => ({ extra: 300,  regretExtra: 800,  msg: `🩸 **CURSED BONUS** you got sins. you also got way more regret. was it worth it? **+${a + 300} ${CURRENCY}** | **+${r + 800} regret**` }),
+  (s, a) => ({ extra: 2000, msg: `🎰 **JACKPOT UNLOCKED** <a:pray:1495665631775817778> the system glitched in your favor. **+2000 ${CURRENCY}**` }),
+  (s, a) => ({ extra: 750,  msg: `<a:pray:1495665631775817778> you were supposed to get nothing. we changed our mind. **+750 ${CURRENCY}**` }),
+  (s, a) => ({ extra: 500,  msg: `<a:hmmdevil:1495665623219306647> **CHAOS BONUS** the system glitched in your favor. temporarily. **+${a + 500} ${CURRENCY}**` }),
+  (s, a) => ({ extra: -100, msg: `<a:pray:1495665631775817778> **BETRAYAL EVENT** we took 100 sins back. you weren't using them wisely. **-100 ${CURRENCY}**` }),
+  (s, a) => ({ extra: 0,    msg: `<a:pepeclownwave84:1495665629649436672> **NULL EVENT** nothing happened. shocking, honestly.` }),
+  (s, a) => ({ extra: 300,  msg: `🩸 **CURSED BONUS** you got sins. it feels like it should cost something. it doesn't. **+${a + 300} ${CURRENCY}**` }),
 ];
 
 // ─── STREAK EMOJIS ────────────────────────────────────────────────────────────
@@ -158,12 +158,12 @@ function getStreakEmoji(streak) {
 }
 
 // ─── PICK MESSAGE FOR STREAK ──────────────────────────────────────────────────
-function pickDailyMessage(streak, amount, regretGain) {
+function pickDailyMessage(streak, amount) {
   const tiers  = [100, 50, 30, 14, 7, 5, 3, 1];
   const tier   = tiers.find(t => streak >= t) || 1;
   const pool   = STREAK_MESSAGES[tier] || STREAK_MESSAGES[1];
   const fn     = pool[Math.floor(Math.random() * pool.length)];
-  return fn(streak, amount, regretGain);
+  return fn(streak, amount);
 }
 
 // ─── CLEANSE RESPONSE POOLS ───────────────────────────────────────────────────
@@ -245,31 +245,28 @@ async function handleDaily(userId, username, replyFn) {
     return replyFn({
       embeds: [new EmbedBuilder()
         .setColor('#2B0057')
-        .setDescription(`<a:RojasClock:1511506715453947904> not yet. come back in **${result.hours}h ${result.minutes}m**.\nyou'll log the regret then. <a:pray:1495665631775817778>`)
+        .setDescription(`<a:RojasClock:1511506715453947904> not yet. come back in **${result.hours}h ${result.minutes}m**. <a:pray:1495665631775817778>`)
       ]
     });
   }
 
-  const { amount, streak, regretGain } = result;
+  const { amount, streak } = result;
   const emoji = getStreakEmoji(streak);
 
   // 1% rare chaos event
   const isRare = Math.random() < 0.01;
   let extraSins = 0;
-  let extraRegret = 0;
   let rareMsg = null;
 
   if (isRare) {
-    const event = pick(RARE_EVENTS)(streak, amount, regretGain);
+    const event = pick(RARE_EVENTS)(streak, amount);
     extraSins   = event.extra || 0;
-    extraRegret = event.regretExtra || 0;
     rareMsg     = event.msg;
 
     if (extraSins !== 0) await economy.addFunds(userId, extraSins, 'Daily rare event');
-    if (extraRegret !== 0) await economy.addRegret(userId, extraRegret);
   }
 
-  const mainMsg = pickDailyMessage(streak, amount + Math.max(0, extraSins), regretGain + Math.max(0, extraRegret));
+  const mainMsg = pickDailyMessage(streak, amount + Math.max(0, extraSins));
   const embed = new EmbedBuilder()
     .setColor('#D8B4FE')
     .setTitle(`${emoji} Daily Claimed — Day ${streak}`)

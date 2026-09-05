@@ -62,7 +62,6 @@ const RIG_IMMUNITY    = { none: 0, petty: 0,  favorite: 1,  maincharacter: 2  };
 
 // In-memory active game state per channel
 const activeGames  = new Map();
-const pendingEras  = new Map(); // channelId → eraKey set via /setera
 
 // ─── NARRATIVE POOLS ─────────────────────────────────────────────────────────
 const WIN_LINES = [
@@ -1186,7 +1185,7 @@ async function startAutoCycle(channel) {
 async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, matchConfig = {}) {
   if (activeGames.has(channel.id)) return null;
 
-  const eraKey = (matchConfig.era && matchConfig.era !== 'default') ? matchConfig.era : (pendingEras.get(channel.id) || matchConfig.era || 'default');
+  const eraKey = matchConfig.era || 'default';
   const era    = getEra(eraKey);
   const gameMode      = matchConfig.mode || null;
   const roleRestrict  = matchConfig.roleRestrict || null;
@@ -1452,29 +1451,6 @@ module.exports = {
       });
     });
 
-    // Handle era picker select menu
-    client.on('interactionCreate', async (interaction) => {
-      if (!interaction.isStringSelectMenu()) return;
-      if (!interaction.customId.startsWith('rs_era:')) return;
-
-      const [, userId, channelId] = interaction.customId.split(':');
-      if (interaction.user.id !== userId) {
-        return interaction.reply({ content: '<:wrong:1495666083594502174> This menu is not for you.', ephemeral: true });
-      }
-
-      await interaction.deferUpdate().catch(() => {});
-      const chosenEra = interaction.values[0];
-      const eraData   = getEra(chosenEra);
-
-      // Store the selected era for this channel (host can then start game)
-      pendingEras.set(channelId, chosenEra);
-
-      return interaction.followUp({
-        content: `<:checkmark:1495666088417956002> Era set to **${eraData.name}**!\nJust run \`!rumbleslaughter <bet>\` — the era will be applied automatically.`,
-        ephemeral: true,
-      });
-    });
-
     // Handle weapon equip select menu
     client.on('interactionCreate', async (interaction) => {
       if (!interaction.isStringSelectMenu()) return;
@@ -1625,7 +1601,6 @@ It will affect your duels in the next Rumble Slaughter match.`,
       fakeMsg.mentions = { users: { first: () => target || null } };
       return this.kickPlayer(fakeMsg, []);
     }
-    if (commandName === 'setera')         return this.setEraDropdown(interaction);
     if (commandName === 'rsmatchstats')    return this.handleCommand(fakeMsg, [], 'rsmatchstats');
     if (commandName === 'rshalloffame')    return this.handleCommand(fakeMsg, [], 'rshalloffame');
     if (commandName === 'startgame')       return this.handleCommand(fakeMsg, [], 'startgame');
@@ -1706,9 +1681,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
     const eraInput = eraMatch ? eraMatch[2]?.trim() || eraMatch[1]?.trim() : null;
     const resolvedEra = eraInput ? resolveEra(eraInput) : null;
     if (eraInput && !resolvedEra) return message.reply(`<:wrong:1495666083594502174> Unknown era **${eraInput}**. Use \`!eras\` to see available eras.`);
-    // Fall back to /setera selection for this channel, then default
-    const eraKey = resolvedEra || pendingEras.get(message.channel.id) || 'default';
-    if (pendingEras.has(message.channel.id)) pendingEras.delete(message.channel.id); // consume it
+    const eraKey = resolvedEra || 'default';
 
     // Parse mode: --mode staffvsmembers | --mode rolevroле
     const modeMatch = rawArgs.match(/--mode\s+(\S+)/i);
@@ -2473,40 +2446,6 @@ It will affect your duels in the next Rumble Slaughter match.`,
   },
 
   // ── Set Era Dropdown ──────────────────────────────────────────────────────────
-  async setEraDropdown(interaction) {
-    if (!isHost(interaction.member)) {
-      return interaction.reply({ content: '<:wrong:1495666083594502174> Only hosts can set the era.', ephemeral: true });
-    }
-    const { StringSelectMenuBuilder, ActionRowBuilder } = require('discord.js');
-
-    const eraEntries = Object.entries(ERAS).filter(([k]) => k !== 'default');
-    // Split into chunks of 25
-    const chunks = [];
-    for (let i = 0; i < eraEntries.length; i += 25) chunks.push(eraEntries.slice(i, i + 25));
-
-    const rows = chunks.map((chunk, idx) =>
-      new ActionRowBuilder().addComponents(
-        new StringSelectMenuBuilder()
-          .setCustomId(`rs_era:${interaction.user.id}:${interaction.channel.id}`)
-          .setPlaceholder(idx === 0 ? '✨ Pick an era...' : `✨ More eras (${idx * 25 + 1}-${Math.min((idx+1)*25, eraEntries.length)})...`)
-          .addOptions(chunk.map(([key, era]) => ({
-            label: era.name,
-            value: key,
-            description: era.intro ? era.intro[0].slice(0, 100) : key,
-          })))
-      )
-    );
-
-    return interaction.reply({
-      embeds: [new EmbedBuilder().setColor('#C9B1FF')
-        .setTitle('✨ Select an Era')
-        .setDescription('Pick the era for your next Rumble Slaughter match.\nAfter selecting, start with `!rumbleslaughter <bet>` — the era will auto-apply.')
-      ],
-      components: rows.slice(0, 5),
-      ephemeral: true,
-    });
-  },
-
   // ── List Eras ─────────────────────────────────────────────────────────────────
   async listErasCmd(message) {
     const eraList = Object.entries(ERAS)

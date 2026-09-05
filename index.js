@@ -312,7 +312,6 @@ const slashCommands = [
 
   new SlashCommandBuilder().setName('eras').setDescription('List all available Rumble Slaughter eras'),
   new SlashCommandBuilder().setName('shop').setDescription('Open the game shop'),
-  new SlashCommandBuilder().setName('setera').setDescription('Pick a Rumble Slaughter era from a dropdown menu'),
   new SlashCommandBuilder().setName('rsmatchstats').setDescription('See the last Rumble Slaughter match recap'),
   new SlashCommandBuilder().setName('rshalloffame').setDescription('Rumble Slaughter Hall of Fame — most wins, wall of shame'),
   new SlashCommandBuilder().setName('givebackpack').setDescription('Admin: give backpacks')
@@ -624,7 +623,7 @@ client.on('interactionCreate', async (interaction) => {
 
     // Rumble Slaughter
     if (['rumbleslaughter','openbackpack','rsinventory',
-         'rsjoin','rskick','eras','setera','rsmatchstats','rshalloffame','rsauto','rsautostop',
+         'rsjoin','rskick','eras','rsmatchstats','rshalloffame','rsauto','rsautostop',
          'setemoji','addemoji','pickemoji','rig','unrig','staffrole','riggedmode','rigrandom','givebackpack'].includes(commandName))
       return await rsModule.handleSlash(interaction, commandName);
 
