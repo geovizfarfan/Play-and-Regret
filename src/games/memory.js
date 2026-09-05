@@ -458,8 +458,9 @@ module.exports = {
 
   async handleSlash(interaction, commandName) {
     if (commandName === 'memory') {
-      const feeConfig = await economy.getEntryFeeConfig('memory');
-      const bet     = feeConfig.enabled ? (interaction.options.getInteger('bet') || 50) : 0;
+      const feeOpt = interaction.options.getBoolean('fee');
+      const feeEnabled = feeOpt !== null ? feeOpt : true;
+      const bet     = feeEnabled ? (interaction.options.getInteger('bet') || 50) : 0;
       const sizeKey = interaction.options.getString('size') || 'medium';
       const mode    = interaction.options.getString('mode') || 'solo';
       try {
@@ -491,10 +492,12 @@ module.exports = {
   },
 
   async handleCommand(message, args) {
-    const feeConfig = await economy.getEntryFeeConfig('memory');
-    const bet     = feeConfig.enabled ? (parseInt(args[0]) || 50) : 0;
-    const sizeKey = args[1] || 'medium';
-    const mode    = args[2] || 'solo';
+    const feeMatch = args.join(' ').match(/fee:(on|off)/i);
+    const feeEnabled = feeMatch ? feeMatch[1].toLowerCase() === 'on' : true;
+    const cleanArgs = args.filter(a => !/^fee:(on|off)$/i.test(a));
+    const bet     = feeEnabled ? (parseInt(cleanArgs[0]) || 50) : 0;
+    const sizeKey = cleanArgs[1] || 'medium';
+    const mode    = cleanArgs[2] || 'solo';
     await launchMemory(message.channel, bet, sizeKey, mode, message.author.username, message.author.id, message.guild);
   },
 };

@@ -1582,6 +1582,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
       const roleRestrict = opts.getRole('rolerestrict');
       const roleA        = opts.getRole('rolea');
       const roleB        = opts.getRole('roleb');
+      const feeOpt       = opts.getBoolean('fee');
 
       const extraArgs = [
         ts,
@@ -1589,6 +1590,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
         modeOpt  ? `--mode ${modeOpt}` : '',
         roleRestrict ? `role:<@&${roleRestrict.id}>` : '',
         (roleA && roleB) ? `<@&${roleA.id}> vs <@&${roleB.id}>` : '',
+        feeOpt !== null ? `fee:${feeOpt ? 'on' : 'off'}` : '',
       ].filter(Boolean);
 
       return this.handleCommand(fakeMsg, [String(bet), ...extraArgs], 'rumbleslaughter');
@@ -1599,11 +1601,13 @@ It will affect your duels in the next Rumble Slaughter match.`,
       const intervalUnit = opts.getString('interval_unit');
       const threshold    = opts.getInteger('player_threshold');
       const eraOpt       = opts.getString('era') || '';
+      const feeOpt       = opts.getBoolean('fee');
 
       const parts = [String(bet)];
       if (intervalVal && intervalUnit) parts.push(`every${intervalVal}${intervalUnit === 'days' ? 'd' : 'h'}`);
       if (threshold) parts.push(`at${threshold}players`);
       if (eraOpt) parts.push(`era:${eraOpt}`);
+      if (feeOpt !== null) parts.push(`fee:${feeOpt ? 'on' : 'off'}`);
 
       return this.autoSetup(fakeMsg, parts);
     }
@@ -1690,14 +1694,15 @@ It will affect your duels in the next Rumble Slaughter match.`,
     if (!isHost(message.member)) return message.reply(`<:wrong:1495666083594502174> You need the **${process.env.EVENT_HOST_ROLE || 'Event Host'}** role to start Rumble Slaughter.`);
     if (activeGames.has(message.channel.id)) return message.reply('<:wrong:1495666083594502174> There\'s already a game open here. Use `!cancelevent` first.');
 
-    const feeConfig = await economy.getEntryFeeConfig('rumbleslaughter');
-    const bet = feeConfig.enabled ? (parseInt(args[0]) || feeConfig.defaultAmount) : 0;
-    if (feeConfig.enabled && bet < 10) return message.reply('<:wrong:1495666083594502174> Minimum bet is 10 sins.');
+    const feeMatch = args.join(' ').match(/fee:(on|off)/i);
+    const feeEnabled = feeMatch ? feeMatch[1].toLowerCase() === 'on' : true;
+    const bet = feeEnabled ? (parseInt(args[0]) || 50) : 0;
+    if (feeEnabled && bet < 10) return message.reply('<:wrong:1495666083594502174> Minimum bet is 10 sins.');
 
     const rawArgs = args.slice(1).join(' ');
 
     // Parse era
-    const eraMatch = rawArgs.match(/(?:--era\s+|era:)(['"]?)([^'"<]+?)\1(?:\s+--|\s+role:|$)/i) || rawArgs.match(/(?:--era\s+|era:)(.+?)(?:\s+--|\s+role:|$)/i);
+    const eraMatch = rawArgs.match(/(?:--era\s+|era:)(['"]?)([^'"<]+?)\1(?:\s+--|\s+role:|\s+fee:|$)/i) || rawArgs.match(/(?:--era\s+|era:)(.+?)(?:\s+--|\s+role:|\s+fee:|$)/i);
     const eraInput = eraMatch ? eraMatch[2]?.trim() || eraMatch[1]?.trim() : null;
     const resolvedEra = eraInput ? resolveEra(eraInput) : null;
     if (eraInput && !resolvedEra) return message.reply(`<:wrong:1495666083594502174> Unknown era **${eraInput}**. Use \`!eras\` to see available eras.`);
@@ -1726,10 +1731,11 @@ It will affect your duels in the next Rumble Slaughter match.`,
 
     // Parse timestamp (strip all other args first)
     let tsRaw = rawArgs
-      .replace(/(?:--era|era:)\s*['"]?[^'"<\s][^'"<]*?(?=\s+role:|\s+--|<|$)/gi, '')
+      .replace(/(?:--era|era:)\s*['"]?[^'"<\s][^'"<]*?(?=\s+role:|\s+fee:|\s+--|<|$)/gi, '')
       .replace(/--mode\s+\S+/gi, '')
       .replace(/(?:^|\s)role:<@&\d+>/gi, '')
       .replace(/<@&\d+>\s+vs\s+<@&\d+>/gi, '')
+      .replace(/(?:^|\s)fee:(on|off)/gi, '')
       .trim();
     const fireAt = parseTimestamp(tsRaw);
     if (tsRaw && !fireAt) return message.reply('<:wrong:1495666083594502174> Invalid timestamp! Use a Discord timestamp like `<t:1776177600:F>`.');
@@ -1768,9 +1774,10 @@ It will affect your duels in the next Rumble Slaughter match.`,
   async autoSetup(message, args) {
     if (!isHost(message.member)) return message.reply(`<:wrong:1495666083594502174> You need the **${process.env.EVENT_HOST_ROLE || 'Event Host'}** role to set up auto-scheduling.`);
 
-    const feeConfig = await economy.getEntryFeeConfig('rumbleslaughter');
-    const bet = feeConfig.enabled ? (parseInt(args[0]) || feeConfig.defaultAmount) : 0;
-    if (feeConfig.enabled && bet < 10) return message.reply('<:wrong:1495666083594502174> Minimum bet is 10 sins.');
+    const feeMatch = args.join(' ').match(/fee:(on|off)/i);
+    const feeEnabled = feeMatch ? feeMatch[1].toLowerCase() === 'on' : true;
+    const bet = feeEnabled ? (parseInt(args[0]) || 50) : 0;
+    if (feeEnabled && bet < 10) return message.reply('<:wrong:1495666083594502174> Minimum bet is 10 sins.');
 
     const rawArgs = args.slice(1).join(' ');
 
@@ -1795,7 +1802,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
       return message.reply(`<:wrong:1495666083594502174> Player threshold needs to be at least ${MIN_PLAYERS}.`);
     }
 
-    const eraMatch = rawArgs.match(/era:(.+)$/i);
+    const eraMatch = rawArgs.match(/era:(.+?)(?:\s+fee:|$)/i);
     const eraInput = eraMatch ? eraMatch[1].trim() : null;
     const resolvedEra = eraInput ? resolveEra(eraInput) : null;
     if (eraInput && !resolvedEra) return message.reply(`<:wrong:1495666083594502174> Unknown era **${eraInput}**. Use \`!eras\` to see available eras.`);

@@ -361,8 +361,9 @@ module.exports = {
 
   async handleSlash(interaction, commandName) {
     if (commandName === 'findthecuy') {
-      const feeConfig = await economy.getEntryFeeConfig('findthecuy');
-      const bet    = feeConfig.enabled ? (interaction.options.getInteger('bet') || 50) : 0;
+      const feeOpt = interaction.options.getBoolean('fee');
+      const feeEnabled = feeOpt !== null ? feeOpt : true;
+      const bet    = feeEnabled ? (interaction.options.getInteger('bet') || 50) : 0;
       const rounds = interaction.options.getInteger('rounds') || 5;
       try {
         await interaction.deferReply({ ephemeral: true });
@@ -376,10 +377,11 @@ module.exports = {
   },
 
   async handleCommand(message, args) {
-    const feeConfig = await economy.getEntryFeeConfig('findthecuy');
-    const bet    = feeConfig.enabled ? (parseInt(args[0]) || 50) : 0;
+    const feeMatch = args.join(' ').match(/fee:(on|off)/i);
+    const feeEnabled = feeMatch ? feeMatch[1].toLowerCase() === 'on' : true;
+    const bet    = feeEnabled ? (parseInt(args[0]) || 50) : 0;
     const rounds = parseInt(args[1]) || 5;
-    if (feeConfig.enabled && bet < 10) return message.reply('<:wrong:1495666083594502174> Minimum bet is 10 sins!');
+    if (feeEnabled && bet < 10) return message.reply('<:wrong:1495666083594502174> Minimum bet is 10 sins!');
     await launchCuy(message.channel, bet, rounds, message.author.username, message.author.id);
   },
 };

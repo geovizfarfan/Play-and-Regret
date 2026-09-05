@@ -244,9 +244,10 @@ module.exports = {
     if (activeGames.has(channelId))
       return message.reply(`${E.ERROR} A Lotería game is already running here!`);
 
-    const feeConfig = await economy.getEntryFeeConfig('loteria');
-    const bet = feeConfig.enabled ? (parseInt(args[0]) || 50) : 0;
-    if (feeConfig.enabled && bet < 10) return message.reply(`${E.ERROR} Minimum bet is 10 Sins!`);
+    const feeMatch = args.join(' ').match(/fee:(on|off)/i);
+    const feeEnabled = feeMatch ? feeMatch[1].toLowerCase() === 'on' : true;
+    const bet = feeEnabled ? (parseInt(args[0]) || 50) : 0;
+    if (feeEnabled && bet < 10) return message.reply(`${E.ERROR} Minimum bet is 10 Sins!`);
 
     // Parse speed from args e.g. !loteria 100 <t:...> 10
     const rawArgs = message.content.split(' ').slice(1).join(' ');
@@ -626,6 +627,7 @@ module.exports = {
     const tsRaw     = interaction.options.getString('timestamp') || '';
     const mode      = interaction.options.getString('mode') || 'auto';
     const speedSec  = interaction.options.getInteger('speed') || 10;
+    const feeOpt    = interaction.options.getBoolean('fee');
 
     await interaction.reply({ content: `<:checkmark:1495666088417956002> Starting ${mode === 'manual' ? 'Manual' : 'Auto'} Lotería! (${speedSec}s per card)`, ephemeral: true });
 
@@ -635,7 +637,9 @@ module.exports = {
       content: `/loteria ${bet} ${tsRaw} ${speedSec}s`,
       reply:   async (data) => interaction.channel.send(typeof data === 'string' ? { content: data } : data),
     };
-    return this.startGame(fakeMsg, [String(bet), tsRaw], mode, speedSec);
+    const args = [String(bet), tsRaw];
+    if (feeOpt !== null) args.push(`fee:${feeOpt ? 'on' : 'off'}`);
+    return this.startGame(fakeMsg, args, mode, speedSec);
   },
 
   getRulesText() {

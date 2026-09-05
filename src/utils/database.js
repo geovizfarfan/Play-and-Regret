@@ -206,25 +206,6 @@ const economy = {
     return true;
   },
 
-  // ── Per-game entry fee toggle ──────────────────────────────────────────────
-  // Default is enabled=true with a fallback amount of 50 whenever a table doesn't exist yet.
-  async getEntryFeeConfig(gameName) {
-    const row = await db.get('SELECT * FROM game_entry_fee WHERE game_name = ?', [gameName]);
-    return { enabled: row ? !!row.enabled : true, defaultAmount: 50 };
-  },
-  async setEntryFeeEnabled(gameName, enabled, updatedBy) {
-    await db.run(
-      `INSERT INTO game_entry_fee (game_name, enabled, updated_by) VALUES (?, ?, ?)
-       ON CONFLICT (game_name) DO UPDATE SET enabled = EXCLUDED.enabled, updated_by = EXCLUDED.updated_by, updated_at = NOW()`,
-      [gameName, enabled, updatedBy]
-    );
-  },
-  async getAllEntryFeeConfigs(gameNames) {
-    const rows = await db.all('SELECT * FROM game_entry_fee').catch(() => []);
-    const map = new Map(rows.map(r => [r.game_name, !!r.enabled]));
-    return gameNames.map(name => ({ name, enabled: map.has(name) ? map.get(name) : true }));
-  },
-
   // ── Active effects (shield, detonator) ────────────────────────────────────
   async setEffect(userId, effectType, guildId, channelId, durationMs) {
     const expiresAt = durationMs ? new Date(Date.now() + durationMs) : null;

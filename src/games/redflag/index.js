@@ -60,9 +60,8 @@ function newPlayer(userId, username) {
 async function startLobby(channel, hostId, hostName, prize, feeOverride = null) {
   if (activeGames.has(channel.id)) return null;
 
-  const feeConfig = await economy.getEntryFeeConfig('redflag');
-  const feeEnabled = feeOverride !== null ? feeOverride : feeConfig.enabled;
-  const feeAmount = feeEnabled ? feeConfig.defaultAmount : 0;
+  const feeEnabled = feeOverride !== null ? feeOverride : false;
+  const feeAmount = feeEnabled ? 50 : 0;
 
   const game = {
     channelId: channel.id, hostId, hostName, prize: prize || 0,
@@ -580,7 +579,7 @@ module.exports = {
     if (!isHost(interaction.member)) return interaction.reply({ content: `<:wrong:1495666083594502174> You need the **${process.env.EVENT_HOST_ROLE || 'Event Host'}** role to start Walkin Red Flag.`, ephemeral: true });
     if (activeGames.has(interaction.channel.id)) return interaction.reply({ content: '<:wrong:1495666083594502174> Already running here.', ephemeral: true });
     const prize = interaction.options.getInteger('prize') || 0;
-    const feeOverride = interaction.options.getBoolean('entryfee');
+    const feeOverride = interaction.options.getBoolean('fee');
     await interaction.reply({ content: '<:checkmark:1495666088417956002> Opening the rumble...', ephemeral: true });
     await startLobby(interaction.channel, interaction.user.id, interaction.user.username, prize, feeOverride);
   },

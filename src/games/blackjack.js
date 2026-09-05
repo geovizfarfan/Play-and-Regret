@@ -422,8 +422,9 @@ module.exports = {
 
   async handleSlash(interaction, commandName) {
     if (commandName === 'blackjack') {
-      const feeConfig  = await economy.getEntryFeeConfig('blackjack');
-      const bet        = feeConfig.enabled ? (interaction.options.getInteger('bet') || 50) : 0;
+      const feeOpt      = interaction.options.getBoolean('fee');
+      const feeEnabled  = feeOpt !== null ? feeOpt : true;
+      const bet         = feeEnabled ? (interaction.options.getInteger('bet') || 50) : 0;
       const mode       = interaction.options.getString('mode') || 'multi';
       const durationKey = interaction.options.getString('duration') || '30s';
       const customSecs = interaction.options.getInteger('timer');
@@ -446,10 +447,11 @@ module.exports = {
 
   async handleCommand(message, args, command) {
     if (command === 'blackjack' || command === 'bj') {
-      const feeConfig = await economy.getEntryFeeConfig('blackjack');
-      const bet  = feeConfig.enabled ? (parseInt(args[0]) || 50) : 0;
+      const feeMatch = args.join(' ').match(/fee:(on|off)/i);
+      const feeEnabled = feeMatch ? feeMatch[1].toLowerCase() === 'on' : true;
+      const bet  = feeEnabled ? (parseInt(args[0]) || 50) : 0;
       const mode = args[1] === 'solo' ? 'solo' : 'multi';
-      if (feeConfig.enabled && bet < 10) return message.reply(`<:wrong:1495666083594502174> Minimum bet is 10 sins!`);
+      if (feeEnabled && bet < 10) return message.reply(`<:wrong:1495666083594502174> Minimum bet is 10 sins!`);
       await launchBlackjack(message.channel, bet, message.author.username, message.author.id, mode, 30);
     } else if (command === 'cancelblackjack' || command === 'cancelbj') {
       const g = activeGames.get(message.channel.id);

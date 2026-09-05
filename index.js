@@ -26,7 +26,6 @@ const gambleModule    = require('./src/economy/gamble');
 const dropsModule     = require('./src/economy/drops');
 const autodropModule  = require('./src/economy/autodrop');
 const riggedNumbersModule = require('./src/games/riggednumbers');
-const entryFeeModule = require('./src/economy/entryfee');
 const fafoModule = require('./src/games/fafo');
 const redflagModule = require('./src/games/redflag');
 const pickmeModule = require('./src/games/pickme');
@@ -125,7 +124,8 @@ const slashCommands = [
   new SlashCommandBuilder().setName('tictacbruh').setDescription('Play Tic-Tac-Bruh!')
     .addIntegerOption(o => o.setName('bet').setDescription('Bet in sins').setRequired(true).setMinValue(10))
     .addUserOption(o => o.setName('opponent').setDescription('Challenge a specific player'))
-    .addBooleanOption(o => o.setName('vsbot').setDescription('Play against the bot')),
+    .addBooleanOption(o => o.setName('vsbot').setDescription('Play against the bot'))
+    .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: on')),
   new SlashCommandBuilder().setName('buy').setDescription('Buy a token')
     .addStringOption(o => o.setName('token').setDescription('Token ID (leave blank to browse)').setRequired(false)),
   new SlashCommandBuilder().setName('inventory').setDescription('View and equip your tokens'),
@@ -141,7 +141,8 @@ const slashCommands = [
       {name:'30 seconds',value:'30s'},{name:'1 minute',value:'1m'},
       {name:'2 minutes',value:'2m'},{name:'5 minutes',value:'5m'},
     ))
-    .addIntegerOption(o => o.setName('timer').setDescription('Custom signup time in seconds').setMinValue(10).setMaxValue(600)),
+    .addIntegerOption(o => o.setName('timer').setDescription('Custom signup time in seconds').setMinValue(10).setMaxValue(600))
+    .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: on')),
 
   // Lotería
   new SlashCommandBuilder().setName('loteria').setDescription('Start a Lotería game')
@@ -151,19 +152,22 @@ const slashCommands = [
       {name:'Manual (you click to mark your board)',value:'manual'},
     ))
     .addStringOption(o => o.setName('timestamp').setDescription('Optional: Discord timestamp to auto-start <t:...:F>').setRequired(false))
-    .addIntegerOption(o => o.setName('speed').setDescription('Seconds between cards (5-60, default 10)').setMinValue(5).setMaxValue(60)),
+    .addIntegerOption(o => o.setName('speed').setDescription('Seconds between cards (5-60, default 10)').setMinValue(5).setMaxValue(60))
+    .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: on')),
 
   // Cuarenta
   new SlashCommandBuilder().setName('cuarenta').setDescription('Start a Cuarenta game')
     .addStringOption(o => o.setName('mode').setDescription('Game mode').addChoices({name:'1v1',value:'1v1'},{name:'2v2',value:'2v2'}))
     .addIntegerOption(o => o.setName('bet').setDescription('Entry fee in sins').setMinValue(10))
-    .addBooleanOption(o => o.setName('vsbot').setDescription('Play against the bot')),
+    .addBooleanOption(o => o.setName('vsbot').setDescription('Play against the bot'))
+    .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: on')),
 
   // Find the Cuy
   new SlashCommandBuilder().setName('findthecuy').setDescription('Find the hidden cuy to win!')
     .addIntegerOption(o => o.setName('bet').setDescription('Entry fee in sins (default 50)').setMinValue(10))
     .addIntegerOption(o => o.setName('rounds').setDescription('Number of rounds (default 5)').setMinValue(1).setMaxValue(15))
-    .addIntegerOption(o => o.setName('points').setDescription('Points per find (default 1)').setMinValue(1).setMaxValue(100)),
+    .addIntegerOption(o => o.setName('points').setDescription('Points per find (default 1)').setMinValue(1).setMaxValue(100))
+    .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: on')),
 
   // Memory Game
   new SlashCommandBuilder().setName('memory').setDescription('Play the Memory Game!')
@@ -176,7 +180,8 @@ const slashCommands = [
       {name:'3×4 Small (6 pairs)',value:'small'},
       {name:'4×4 Medium (8 pairs)',value:'medium'},
       {name:'4×5 Large (10 pairs)',value:'large'},
-    )),
+    ))
+    .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: on')),
 
   // Rumble Slaughter
   new SlashCommandBuilder().setName('rumbleslaughter').setDescription('Start Rumble Slaughter: You Thought You Ate')
@@ -203,7 +208,8 @@ const slashCommands = [
     ))
     .addRoleOption(o => o.setName('rolerestrict').setDescription('Restrict to this role only').setRequired(false))
     .addRoleOption(o => o.setName('rolea').setDescription('Team A role (Role vs Role mode)').setRequired(false))
-    .addRoleOption(o => o.setName('roleb').setDescription('Team B role (Role vs Role mode)').setRequired(false)),
+    .addRoleOption(o => o.setName('roleb').setDescription('Team B role (Role vs Role mode)').setRequired(false))
+    .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: on').setRequired(false)),
   new SlashCommandBuilder().setName('rsauto').setDescription('Set up recurring Rumble Slaughter matches for this channel')
     .addIntegerOption(o => o.setName('bet').setDescription('Entry fee in sins').setRequired(true).setMinValue(10))
     .addIntegerOption(o => o.setName('interval_value').setDescription('Recurring interval — pair with interval_unit').setRequired(false))
@@ -225,7 +231,8 @@ const slashCommands = [
       { name: 'Delulu Destroyer', value: 'delulu destroyer' },
       { name: 'Eat Dirt Era', value: 'eat dirt era' },
       { name: 'Cat Fight Era', value: 'cat fight era' },
-    )),
+    ))
+    .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: on').setRequired(false)),
   new SlashCommandBuilder().setName('rsautostop').setDescription('Turn off recurring Rumble Slaughter matches for this channel'),
   new SlashCommandBuilder().setName('autodrop').setDescription('Guild-wide automatic random sins drops')
     .addSubcommand(sc => sc.setName('setup').setDescription('Enable and configure auto-drops')
@@ -243,30 +250,13 @@ const slashCommands = [
   new SlashCommandBuilder().setName('riggednumbers').setDescription('Pick a secret number, first correct guess wins')
     .addIntegerOption(o => o.setName('min').setDescription('Lowest possible number').setRequired(true))
     .addIntegerOption(o => o.setName('max').setDescription('Highest possible number').setRequired(true)),
-  new SlashCommandBuilder().setName('entryfee').setDescription('Admin: turn a game\'s entry fee on or off')
-    .addSubcommand(sc => sc.setName('set').setDescription('Enable or disable a game\'s entry fee')
-      .addStringOption(o => o.setName('game').setDescription('Which game').setRequired(true).addChoices(
-        { name: 'Rumble Slaughter', value: 'rumbleslaughter' },
-        { name: 'Cuarenta', value: 'cuarenta' },
-        { name: 'Blackjack', value: 'blackjack' },
-        { name: 'Lotería', value: 'loteria' },
-        { name: 'Find the Cuy', value: 'findthecuy' },
-        { name: 'Memory', value: 'memory' },
-        { name: 'Tic-Tac-Bruh', value: 'tictactoe' },
-        { name: 'Walkin Red Flag', value: 'redflag' },
-        { name: 'Pick Me Pit', value: 'pickme' },
-      ))
-      .addStringOption(o => o.setName('state').setDescription('On (costs sins) or off (free)').setRequired(true).addChoices(
-        { name: 'On', value: 'on' }, { name: 'Off', value: 'off' },
-      )))
-    .addSubcommand(sc => sc.setName('status').setDescription('View entry fee status for every game')),
   new SlashCommandBuilder().setName('fafo').setDescription('Admin: open a FAFO lobby — Fuck Around & Find Out'),
   new SlashCommandBuilder().setName('redflag').setDescription('Admin: open a Walkin Red Flag lobby')
     .addIntegerOption(o => o.setName('prize').setDescription('Optional sins prize for the winner').setMinValue(1))
-    .addBooleanOption(o => o.setName('entryfee').setDescription('Charge an entry fee this session? (overrides /entryfee default)')),
+    .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: off').setRequired(false)),
   new SlashCommandBuilder().setName('pickme').setDescription('Admin: open a Pick Me Pit lobby')
     .addIntegerOption(o => o.setName('prize').setDescription('Optional sins prize for the winner').setMinValue(1))
-    .addBooleanOption(o => o.setName('entryfee').setDescription('Charge an entry fee this session? (overrides /entryfee default)')),
+    .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: off').setRequired(false)),
   new SlashCommandBuilder().setName('openbackpack').setDescription('Open one of your backpacks')
     .addStringOption(o => o.setName('type').setDescription('Backpack type').setRequired(true).addChoices(
       {name:'Basic',value:'basic'},{name:'Royal',value:'royal'},{name:'Cursed',value:'cursed'},
@@ -673,9 +663,6 @@ client.on('interactionCreate', async (interaction) => {
     if (commandName === 'riggednumbers') {
       return await riggedNumbersModule.handleSlash(interaction, commandName);
     }
-    if (commandName === 'entryfee') {
-      return await entryFeeModule.handleSlash(interaction);
-    }
     if (commandName === 'fafo') {
       return await fafoModule.handleSlash(interaction, commandName);
     }
@@ -759,9 +746,6 @@ client.on('messageCreate', async (message) => {
 
     if (['riggednumbers','rignum'].includes(command))
       return await riggedNumbersModule.handleCommand(message, args, command);
-
-    if (command === 'entryfee')
-      return await entryFeeModule.handleCommand(message, args, command);
 
     if (command === 'fafo')
       return await fafoModule.handleCommand(message, args, command);
@@ -858,7 +842,7 @@ function buildHelpEmbeds() {
   const main = new EmbedBuilder()
     .setColor('#FFE4A0')
     .setTitle(`${E.BB_COIN} Play & Regret — Commands`)
-    .setDescription('Use `/command` or `!command` — both work!\n\u200b')
+    .setDescription('Use `/command` or `!command` — both work!\nMost games take `fee:true/false` right on the start command to charge sins or play free.\n\u200b')
     .addFields(
       { name: `${E.BB_COIN} Economy`, value: [
         '`/balance` `!bal` — Check your sins balance',
@@ -921,7 +905,6 @@ function buildHelpEmbeds() {
         '`/pickme [prize]` — *(Admin)* Vote out the most pick me player',
         '`!pickme stats` — Your Pick Me Pit record',
       ].join('\n') },
-      { name: `${E.BB_COIN} Entry Fees`, value: '`/entryfee set game state` — *(Admin)* Turn a game\'s entry fee on/off\n`/entryfee status` — See what\'s free right now' },
       { name: '🗡️ Rumble Slaughter', value: [
         '`/rumbleslaughter bet [timestamp]` — Start the arena',
         '`!rsjoin` or click Join — Enter',

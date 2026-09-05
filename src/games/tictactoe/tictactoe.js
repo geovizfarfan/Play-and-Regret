@@ -194,23 +194,27 @@ module.exports = {
   async handleSlash(interaction) {
     if (interaction.commandName === 'cancelttb' || interaction.commandName === 'cancelttt' || interaction.commandName === 'canceltictacbruh') return this.cancelGame(interaction);
     const opponent = interaction.options.getUser('opponent');
-    const feeConfig = await economy.getEntryFeeConfig('tictactoe');
-    const bet      = feeConfig.enabled ? (interaction.options.getInteger('bet') || 10) : 0;
-    const vsBot    = interaction.options.getBoolean('vsbot') || false;
+    const betOpt    = interaction.options.getInteger('bet');
+    const feeOpt    = interaction.options.getBoolean('fee');
+    const feeToken  = feeOpt !== null ? `fee:${feeOpt ? 'on' : 'off'}` : '';
+    const vsBot     = interaction.options.getBoolean('vsbot') || false;
 
     if (vsBot) {
+      // No redirect downstream — resolve once, directly, here.
+      const feeEnabled = feeOpt !== null ? feeOpt : true;
+      const bet = feeEnabled ? (betOpt || 10) : 0;
       await interaction.reply({ content: `<a:robot:1479201564672397463> Starting Tic-Tac-Bruh vs Bot for **${bet} sins**!`, ephemeral: true });
       return this.startBotGame({ author: interaction.user, channel: interaction.channel }, bet);
     }
 
     if (!opponent) {
       // Acknowledge slash, then run open challenge in the channel
-      await interaction.reply({ content: `<a:tictac:1479198394638667897> Opening challenge for **${bet} sins**...`, ephemeral: true });
+      await interaction.reply({ content: `<a:tictac:1479198394638667897> Opening challenge...`, ephemeral: true });
       return this.openChallenge({
         author:  interaction.user,
         channel: interaction.channel,
         reply:   async (d) => interaction.followUp(typeof d === 'string' ? { content: d, ephemeral: true } : { ...d, ephemeral: true }),
-      }, [String(bet)]);
+      }, [betOpt ? String(betOpt) : '', feeToken].filter(Boolean));
     }
 
     // Direct challenge — acknowledge slash first, then post challenge in channel
@@ -223,7 +227,7 @@ module.exports = {
       mentions: { users: { first: () => opponent } },
       reply:    async (d) => interaction.followUp(typeof d === 'string' ? { content: d, ephemeral: true } : { ...d, ephemeral: true }),
     };
-    await this.challenge(fakeMessage, [opponent ? `<@${opponent.id}>` : '', String(bet)]);
+    await this.challenge(fakeMessage, [opponent ? `<@${opponent.id}>` : '', betOpt ? String(betOpt) : '', feeToken].filter(Boolean));
   },
 
   // ── Cancel ─────────────────────────────────────────────────────────────────
@@ -331,8 +335,10 @@ module.exports = {
 
   // ── Open challenge — anyone can join ──────────────────────────────────────
   async openChallenge(message, args) {
-    const feeConfig = await economy.getEntryFeeConfig('tictactoe');
-    const bet     = feeConfig.enabled ? (parseInt(args[0]) || 10) : 0;
+    const feeMatch = args.join(' ').match(/fee:(on|off)/i);
+    const feeEnabled = feeMatch ? feeMatch[1].toLowerCase() === 'on' : true;
+    const cleanArgs = args.filter(a => !/^fee:(on|off)$/i.test(a));
+    const bet     = feeEnabled ? (parseInt(cleanArgs[0]) || 10) : 0;
     const gameKey = message.channel.id;
     if (activeGames.has(gameKey))
       return message.reply(`${E.ERROR} There\'s already a game in this channel!`);
@@ -463,8 +469,10 @@ module.exports = {
     if (opponent.id === message.author.id) return message.reply(`${E.ERROR} You can't play yourself!`);
     if (opponent.bot) return message.reply(`${E.ERROR} Use \`/ttt vsbot:True\` to play against the bot!`);
 
-    const feeConfig = await economy.getEntryFeeConfig('tictactoe');
-    const bet     = feeConfig.enabled ? (parseInt(args[1]) || 10) : 0;
+    const feeMatch = args.join(' ').match(/fee:(on|off)/i);
+    const feeEnabled = feeMatch ? feeMatch[1].toLowerCase() === 'on' : true;
+    const cleanArgs = args.filter(a => !/^fee:(on|off)$/i.test(a));
+    const bet     = feeEnabled ? (parseInt(cleanArgs[1]) || 10) : 0;
     const gameKey = message.channel.id;
     if (activeGames.has(gameKey)) return message.reply(`${E.ERROR} There's already a game in this channel!`);
 
