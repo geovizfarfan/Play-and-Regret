@@ -710,6 +710,23 @@ async function initDB() {
       regrets_earned     INT DEFAULT 0
     )`,
 
+    // ── Confession Box ────────────────────────────────────────────────────────
+    `CREATE TABLE IF NOT EXISTS confession_config (
+      guild_id     TEXT PRIMARY KEY,
+      channel_id   TEXT NOT NULL,
+      next_number  INT DEFAULT 1
+    )`,
+    `CREATE TABLE IF NOT EXISTS confessions (
+      id           SERIAL PRIMARY KEY,
+      guild_id     TEXT NOT NULL,
+      number       INT NOT NULL,
+      user_id      TEXT NOT NULL,
+      message_id   TEXT,
+      channel_id   TEXT,
+      content      TEXT NOT NULL,
+      created_at   TIMESTAMP DEFAULT NOW()
+    )`,
+
     // ── Regret Games ───────────────────────────────────────────────────────────
     'CREATE TABLE IF NOT EXISTS rg_seasons (id SERIAL PRIMARY KEY, guild_id TEXT NOT NULL UNIQUE, arena_channel_id TEXT, votes_channel_id TEXT, entry_fee INTEGER DEFAULT 500, status TEXT DEFAULT \'setup\', current_day INTEGER DEFAULT 0, pot INTEGER DEFAULT 0, prize_pot INTEGER DEFAULT 0, vote_open INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())',
     'CREATE TABLE IF NOT EXISTS rg_players (id SERIAL PRIMARY KEY, season_id INTEGER NOT NULL, user_id TEXT NOT NULL, username TEXT, status TEXT DEFAULT \'alive\', regret INTEGER DEFAULT 0, sins_earned INTEGER DEFAULT 0, food INTEGER DEFAULT 1, has_shield INTEGER DEFAULT 0, title TEXT, elim_cause TEXT, elim_day INTEGER, UNIQUE(season_id, user_id))',

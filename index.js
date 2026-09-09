@@ -29,6 +29,7 @@ const riggedNumbersModule = require('./src/games/riggednumbers');
 const fafoModule = require('./src/games/fafo');
 const redflagModule = require('./src/games/redflag');
 const pickmeModule = require('./src/games/pickme');
+const confessModule = require('./src/economy/confess');
 const rgModule        = require('./src/games/regretgames');
 const jackpotModule   = require('./src/economy/jackpot');
 
@@ -257,6 +258,12 @@ const slashCommands = [
   new SlashCommandBuilder().setName('pickme').setDescription('Admin: open a Pick Me Pit lobby')
     .addIntegerOption(o => o.setName('prize').setDescription('Optional sins prize for the winner').setMinValue(1))
     .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: off').setRequired(false)),
+  new SlashCommandBuilder().setName('confession').setDescription('Anonymously confess something — nobody will know it was you')
+    .addStringOption(o => o.setName('text').setDescription('Your confession').setRequired(true).setMaxLength(1000)),
+  new SlashCommandBuilder().setName('confessionchannel').setDescription('Admin: set where anonymous confessions get posted')
+    .addChannelOption(o => o.setName('channel').setDescription('Channel for confessions').setRequired(true)),
+  new SlashCommandBuilder().setName('confessiondelete').setDescription('Admin: delete a confession by number')
+    .addIntegerOption(o => o.setName('number').setDescription('Confession number to delete').setRequired(true)),
   new SlashCommandBuilder().setName('openbackpack').setDescription('Open one of your backpacks')
     .addStringOption(o => o.setName('type').setDescription('Backpack type').setRequired(true).addChoices(
       {name:'Basic',value:'basic'},{name:'Royal',value:'royal'},{name:'Cursed',value:'cursed'},
@@ -671,6 +678,9 @@ client.on('interactionCreate', async (interaction) => {
     if (commandName === 'pickme') {
       return await pickmeModule.handleSlash(interaction, commandName);
     }
+    if (['confession','confessionchannel','confessiondelete'].includes(commandName)) {
+      return await confessModule.handleSlash(interaction, commandName);
+    }
     if (commandName === 'items') {
       await interaction.deferReply({ ephemeral: true });
       const fakeSource = { reply: (d) => interaction.editReply(d) };
@@ -754,6 +764,9 @@ client.on('messageCreate', async (message) => {
 
     if (command === 'pickme')
       return await pickmeModule.handleCommand(message, args, command);
+
+    if (['confession','confessionchannel','confessiondelete'].includes(command))
+      return await confessModule.handleCommand(message, args, command);
 
     if (['jackpot','richpot','lottery','enter','lotteryenter','jackpotdraw','jackpothistory',
          'jackpotstart','jackpotstop','jackpotentries','potentries'].includes(command))
@@ -903,6 +916,11 @@ function buildHelpEmbeds() {
       { name: '<a:kiss:1545098398565142601> Pick Me Pit', value: [
         '`/pickme [prize]` — *(Admin)* Vote out the most pick me player',
         '`!pickme stats` — Your Pick Me Pit record',
+      ].join('\n') },
+      { name: '<a:pray:1495665631775817778> Confession Box', value: [
+        '`/confession text` — Confess something anonymously',
+        '`/confessionchannel #channel` — *(Admin)* Set where confessions post',
+        '`/confessiondelete number` — *(Admin)* Remove a confession',
       ].join('\n') },
       { name: '🗡️ Rumble Slaughter', value: [
         '`/rumbleslaughter bet [timestamp]` — Start the arena',
