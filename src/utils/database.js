@@ -727,6 +727,60 @@ async function initDB() {
       created_at   TIMESTAMP DEFAULT NOW()
     )`,
 
+    // ── Drop It Like It's Hot ────────────────────────────────────────────────────
+    `CREATE TABLE IF NOT EXISTS dropzone_config (
+      guild_id            TEXT PRIMARY KEY,
+      enabled             BOOLEAN DEFAULT true,
+      current_season      INT DEFAULT 1,
+      exchange_channel_id TEXT
+    )`,
+    `CREATE TABLE IF NOT EXISTS dropzone_spawn_channels (
+      guild_id    TEXT NOT NULL,
+      channel_id  TEXT NOT NULL,
+      UNIQUE(guild_id, channel_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS dropzone_collections (
+      user_id         TEXT NOT NULL,
+      monster_id      TEXT NOT NULL,
+      season          INT NOT NULL,
+      quantity        INT DEFAULT 0,
+      first_caught_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(user_id, monster_id, season)
+    )`,
+    `CREATE TABLE IF NOT EXISTS dropzone_spawns (
+      id           SERIAL PRIMARY KEY,
+      guild_id     TEXT NOT NULL,
+      channel_id   TEXT NOT NULL,
+      message_id   TEXT,
+      monster_id   TEXT NOT NULL,
+      season       INT NOT NULL,
+      status       TEXT DEFAULT 'ACTIVE',
+      spawn_type   TEXT DEFAULT 'NATURAL',
+      expires_at   TIMESTAMP,
+      caught_by    TEXT,
+      created_at   TIMESTAMP DEFAULT NOW(),
+      resolved_at  TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS dropzone_trades (
+      id                SERIAL PRIMARY KEY,
+      guild_id          TEXT NOT NULL,
+      from_user         TEXT NOT NULL,
+      to_user           TEXT NOT NULL,
+      offer_monster_id  TEXT NOT NULL,
+      offer_season      INT NOT NULL,
+      request_monster_id TEXT NOT NULL,
+      request_season    INT NOT NULL,
+      status            TEXT DEFAULT 'PENDING',
+      message_id        TEXT,
+      channel_id        TEXT,
+      created_at        TIMESTAMP DEFAULT NOW(),
+      resolved_at       TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS dropzone_monster_overrides (
+      monster_id  TEXT PRIMARY KEY,
+      enabled     BOOLEAN NOT NULL
+    )`,
+
     // ── Regret Games ───────────────────────────────────────────────────────────
     'CREATE TABLE IF NOT EXISTS rg_seasons (id SERIAL PRIMARY KEY, guild_id TEXT NOT NULL UNIQUE, arena_channel_id TEXT, votes_channel_id TEXT, entry_fee INTEGER DEFAULT 500, status TEXT DEFAULT \'setup\', current_day INTEGER DEFAULT 0, pot INTEGER DEFAULT 0, prize_pot INTEGER DEFAULT 0, vote_open INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())',
     'CREATE TABLE IF NOT EXISTS rg_players (id SERIAL PRIMARY KEY, season_id INTEGER NOT NULL, user_id TEXT NOT NULL, username TEXT, status TEXT DEFAULT \'alive\', regret INTEGER DEFAULT 0, sins_earned INTEGER DEFAULT 0, food INTEGER DEFAULT 1, has_shield INTEGER DEFAULT 0, title TEXT, elim_cause TEXT, elim_day INTEGER, UNIQUE(season_id, user_id))',

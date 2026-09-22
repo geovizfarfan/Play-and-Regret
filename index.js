@@ -30,6 +30,7 @@ const fafoModule = require('./src/games/fafo');
 const redflagModule = require('./src/games/redflag');
 const pickmeModule = require('./src/games/pickme');
 const confessModule = require('./src/economy/confess');
+const dropzoneModule = require('./src/games/dropzone');
 const rgModule        = require('./src/games/regretgames');
 const jackpotModule   = require('./src/economy/jackpot');
 
@@ -264,6 +265,51 @@ const slashCommands = [
     .addChannelOption(o => o.setName('channel').setDescription('Channel for confessions').setRequired(true)),
   new SlashCommandBuilder().setName('confessiondelete').setDescription('Admin: delete a confession by number')
     .addIntegerOption(o => o.setName('number').setDescription('Confession number to delete').setRequired(true)),
+  new SlashCommandBuilder().setName('stickers').setDescription('Drop It Like It\'s Hot — your sticker collection')
+    .addSubcommand(sc => sc.setName('book').setDescription('View a sticker book')
+      .addUserOption(o => o.setName('user').setDescription('Whose book to view')))
+    .addSubcommand(sc => sc.setName('missing').setDescription('See what you\'re missing this season'))
+    .addSubcommand(sc => sc.setName('view').setDescription('Inspect a sticker you own')
+      .addStringOption(o => o.setName('sticker').setDescription('Which sticker').setRequired(true).setAutocomplete(true)))
+    .addSubcommand(sc => sc.setName('trade').setDescription('Propose a 1-for-1 trade with another member')
+      .addUserOption(o => o.setName('user').setDescription('Who to trade with').setRequired(true))
+      .addStringOption(o => o.setName('offer').setDescription('Sticker you\'re offering').setRequired(true).setAutocomplete(true))
+      .addStringOption(o => o.setName('request').setDescription('Sticker you want from them').setRequired(true).setAutocomplete(true)))
+    .addSubcommand(sc => sc.setName('exchange').setDescription('Trade all your duplicates for sins'))
+    .addSubcommand(sc => sc.setName('leaderboard').setDescription('Top collectors this season')
+      .addStringOption(o => o.setName('mode').setDescription('Ranking type').addChoices(
+        { name: 'Unique Stickers', value: 'unique' },
+        { name: 'Total Catches', value: 'catches' },
+        { name: 'Legendary+ Catches', value: 'rare' },
+      ))),
+  new SlashCommandBuilder().setName('stickers-admin').setDescription('Admin: Drop It Like It\'s Hot controls')
+    .addSubcommand(sc => sc.setName('gift').setDescription('Gift a sticker to a member — any season')
+      .addUserOption(o => o.setName('user').setDescription('Who to gift').setRequired(true))
+      .addStringOption(o => o.setName('sticker').setDescription('Which sticker').setRequired(true).setAutocomplete(true))
+      .addIntegerOption(o => o.setName('quantity').setDescription('How many (default 1)').setMinValue(1)))
+    .addSubcommand(sc => sc.setName('remove').setDescription('Remove sticker copies from a member')
+      .addUserOption(o => o.setName('user').setDescription('Who to remove from').setRequired(true))
+      .addStringOption(o => o.setName('sticker').setDescription('Which sticker').setRequired(true).setAutocomplete(true))
+      .addIntegerOption(o => o.setName('quantity').setDescription('How many (default 1)').setMinValue(1)))
+    .addSubcommand(sc => sc.setName('spawn').setDescription('Force a manual spawn')
+      .addStringOption(o => o.setName('sticker').setDescription('Specific sticker (leave blank for random)').setAutocomplete(true))
+      .addChannelOption(o => o.setName('channel').setDescription('Where to spawn it (default: here)')))
+    .addSubcommand(sc => sc.setName('enable').setDescription('Enable a sticker for natural drops')
+      .addStringOption(o => o.setName('sticker').setDescription('Which sticker').setRequired(true).setAutocomplete(true)))
+    .addSubcommand(sc => sc.setName('disable').setDescription('Disable a sticker from natural drops')
+      .addStringOption(o => o.setName('sticker').setDescription('Which sticker').setRequired(true).setAutocomplete(true)))
+    .addSubcommand(sc => sc.setName('spawnchannel').setDescription('Allow or disallow natural spawns in a channel')
+      .addChannelOption(o => o.setName('channel').setDescription('Channel').setRequired(true))
+      .addStringOption(o => o.setName('state').setDescription('Allow or remove').setRequired(true).addChoices(
+        { name: 'Allow', value: 'on' }, { name: 'Remove', value: 'off' },
+      )))
+    .addSubcommand(sc => sc.setName('exchangechannel').setDescription('Set where member trades get posted')
+      .addChannelOption(o => o.setName('channel').setDescription('Channel').setRequired(true)))
+    .addSubcommand(sc => sc.setName('toggle').setDescription('Turn Drop It Like It\'s Hot on or off for this server')
+      .addStringOption(o => o.setName('state').setDescription('On or off').setRequired(true).addChoices(
+        { name: 'On', value: 'on' }, { name: 'Off', value: 'off' },
+      )))
+    .addSubcommand(sc => sc.setName('stats').setDescription('View season stats')),
   new SlashCommandBuilder().setName('openbackpack').setDescription('Open one of your backpacks')
     .addStringOption(o => o.setName('type').setDescription('Backpack type').setRequired(true).addChoices(
       {name:'Basic',value:'basic'},{name:'Royal',value:'royal'},{name:'Cursed',value:'cursed'},
@@ -361,6 +407,7 @@ const slashCommands = [
       { name: 'Walkin Red Flag', value: 'redflag' },
       { name: 'Regret Games', value: 'regretgames' },
       { name: 'Pick Me Pit', value: 'pickme' },
+      { name: 'Drop It Like It\'s Hot', value: 'stickers' },
     )),
 ].map(cmd => cmd.toJSON());
 
@@ -371,6 +418,13 @@ client.once('clientReady', async () => {
 
   rsModule.init(client);
   autodropModule.init(client);
+
+  // ── Drop It Like It's Hot — load enable/disable overrides, resolve any spawns left mid-flight ──
+  try {
+    const { db: dzDb } = require('./src/utils/database');
+    await dropzoneModule.loadOverrides(dzDb);
+    await dropzoneModule.reconcileOnStartup(client);
+  } catch (e) { console.error('[Drop It Like It\'s Hot] startup reconciliation failed', e); }
 
   // ── Startup refund — refund any players stuck in games from before restart ──
   try {
@@ -493,6 +547,13 @@ client.once('clientReady', async () => {
 
 // ── Slash handler ─────────────────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
+  if (interaction.isAutocomplete()) {
+    try {
+      if (interaction.commandName === 'stickers') return await dropzoneModule.handleAutocomplete(interaction);
+      if (interaction.commandName === 'stickers-admin') return await dropzoneModule.handleAdminAutocomplete(interaction);
+    } catch (e) { console.error('[autocomplete error]', e); }
+    return;
+  }
   if (interaction.isModalSubmit()) {
     if (interaction.customId.startsWith('oops_rich_modal:') ||
         interaction.customId.startsWith('sins_rich_modal:')) {
@@ -531,6 +592,9 @@ client.on('interactionCreate', async (interaction) => {
     }
     if (interaction.customId.startsWith('pm_join:') || interaction.customId.startsWith('pm_viewmembers:') || interaction.customId.startsWith('pm_start:')) {
       return pickmeModule.handleButton(interaction);
+    }
+    if (interaction.customId.startsWith('dz_catch:') || interaction.customId.startsWith('dz_trade_accept:') || interaction.customId.startsWith('dz_trade_decline:')) {
+      return dropzoneModule.handleButton(interaction);
     }
     if (interaction.customId.startsWith('bet_resolve_') || interaction.customId.startsWith('bet_quick_') || interaction.customId.startsWith('bet_amt_') || interaction.customId.startsWith('bet_pick_') || interaction.customId.startsWith('bet_select_') || interaction.customId.startsWith('bet_cancel_')) {
       try {
@@ -681,6 +745,9 @@ client.on('interactionCreate', async (interaction) => {
     if (['confession','confessionchannel','confessiondelete'].includes(commandName)) {
       return await confessModule.handleSlash(interaction, commandName);
     }
+    if (commandName === 'stickers' || commandName === 'stickers-admin') {
+      return await dropzoneModule.handleSlash(interaction, commandName);
+    }
     if (commandName === 'items') {
       await interaction.deferReply({ ephemeral: true });
       const fakeSource = { reply: (d) => interaction.editReply(d) };
@@ -723,6 +790,13 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (!riggedNumbersModule.activeGames.has(message.channel.id)) return;
   await riggedNumbersModule.handleGuess(message).catch(() => {});
+});
+
+// ── Drop It Like It's Hot — passive activity tracking toward natural spawns ──
+client.on('messageCreate', async (message) => {
+  if (message.author.bot || message.webhookId) return;
+  if (!message.guild) return;
+  await dropzoneModule.handleActivityMessage(message).catch(err => console.error('[Drop It Like It\'s Hot] activity error', err));
 });
 
 client.on('messageCreate', async (message) => {
@@ -833,6 +907,7 @@ const GAME_RULES = {
   redflag: () => `<a:redflag:1545091812924858469> **Walkin Red Flag — How to Play**\nEach round, 2-4 random players get accused of a fictional red-flag scenario. Everyone else votes who to flag; the accused can defend themselves (or use a collected ability to fight back). Collect 3 red flags and you're eliminated. Last two players face a Final Background Check — come out looking less shady to win.`,
   regretgames: () => `<:play_regret_bot:1521042618744700938> **Regret Games — How to Play**\nA multi-day survival season, staff-hosted. Everyone pays entry, then over several days the arena runs story beats, votes, and chaos events that eliminate players one at a time. Survive to the end to win the majority of the pot and the Regret Royalty title.`,
   pickme: () => `<a:kiss:1545098398565142601> **Pick Me Pit — How to Play**\nEach round, 2-4 random players get tagged with a ridiculous "pick me" accusation. Everyone votes who deserves The Pit — one elimination per round, no threshold. Collect powers (immunity, vote redirects, double votes, vote cancels) to survive longer. Last one standing wins.`,
+  stickers: () => `👻 **Drop It Like It's Hot — How to Play**\nJust chat! Enough real conversation in an allowed channel randomly spawns a collectible sticker with a CATCH button. First click opens a 3-second window — anyone can jump in, then one random winner takes it. Higher rarities are rarer and stick around longer before escaping.\n\nUse \`/stickers book\` to see your collection, \`/stickers missing\` for what you don't have, \`/stickers trade\` to swap 1-for-1 with someone, and \`/stickers exchange\` to turn duplicates into sins.`,
 };
 
 async function sendHelpSlash(interaction) {
