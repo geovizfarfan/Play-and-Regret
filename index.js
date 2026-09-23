@@ -428,12 +428,17 @@ client.once('clientReady', async () => {
   autodropModule.init(client);
 
   // ── Drop It Like It's Hot — load enable/disable overrides, resolve any spawns left mid-flight ──
+  const { db: dzDb } = require('./src/utils/database');
   try {
-    const { db: dzDb } = require('./src/utils/database');
     await dropzoneModule.loadOverrides(dzDb);
+  } catch (e) { console.error('[Drop It Like It\'s Hot] loadOverrides failed', e); }
+  try {
     await dropzoneModule.reconcileOnStartup(client);
+  } catch (e) { console.error('[Drop It Like It\'s Hot] reconcileOnStartup failed', e); }
+  try {
     await dropzoneModule.initTimer(client);
-  } catch (e) { console.error('[Drop It Like It\'s Hot] startup reconciliation failed', e); }
+    console.log('[Drop It Like It\'s Hot] initTimer completed');
+  } catch (e) { console.error('[Drop It Like It\'s Hot] initTimer failed', e); }
 
   // ── Startup refund — refund any players stuck in games from before restart ──
   try {
