@@ -6,7 +6,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder } = require('discord.js');
 const path = require('path');
 const { db } = require('../../utils/database');
-const { RARITY_META } = require('./config');
+const { RARITY_META, CONFIG } = require('./config');
 const { getMonster } = require('./monsters');
 const M = require('./messages');
 
@@ -34,7 +34,7 @@ function buildSpawnEmbed(monster, headline) {
       `${meta.emoji} **${monster.name.toUpperCase()}**\n${meta.emoji} ${meta.label} • #${String(monster.number).padStart(3, '0')}\n\n*"${monster.flavorText}"*`
     )
     .setImage(`attachment://${String(monster.number).padStart(3, '0')}.png`)
-    .setFooter({ text: 'First click starts a 3-second window — anyone can jump in' });
+    .setFooter({ text: `First click starts a ${CONFIG.catchWindowSeconds}-second window — anyone can jump in` });
 }
 
 async function loadImageAttachment(monster) {

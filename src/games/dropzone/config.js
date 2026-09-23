@@ -30,7 +30,7 @@ const CONFIG = {
   maxSpawnCooldownMinutes: 15,
 
   // Catch window — how long after the FIRST click others can still join in
-  catchWindowSeconds: 3,
+  catchWindowSeconds: 5,
 
   // Duplicate → sins exchange value, per rarity
   dupeSinsValue: {
