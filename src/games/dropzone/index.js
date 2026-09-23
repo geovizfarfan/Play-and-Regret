@@ -166,7 +166,7 @@ async function handleActivityMessage(message) {
   markSpawned(message.channel.id);
   const monster = rollMonster(cfg.current_season);
   if (!monster) return; // nothing enabled anywhere — nothing to spawn
-  await postSpawn(message.channel, message.guild.id, monster, 'NATURAL').catch(err => console.error('[Drop It Like It\'s Hot] spawn error', err));
+  await postSpawn(message.channel, message.guild.id, monster, 'NATURAL', cfg.ping_role_id).catch(err => console.error('[Drop It Like It\'s Hot] spawn error', err));
 }
 
 // ── Button router (called from index.js's interactionCreate) ────────────
@@ -232,6 +232,13 @@ async function handleSlash(interaction, commandName) {
       const channel = interaction.options.getChannel('channel');
       await A.setExchangeChannel(interaction.guild.id, channel.id);
       return interaction.reply(`<:checkmark:1495666088417956002> Trades will now post in ${channel}.`);
+    }
+    if (sub === 'pingrole') {
+      const role = interaction.options.getRole('role');
+      await A.setPingRole(interaction.guild.id, role ? role.id : null);
+      return interaction.reply(role
+        ? `<:checkmark:1495666088417956002> ${role} will be pinged on every drop.`
+        : `<:checkmark:1495666088417956002> Ping role cleared — drops will no longer ping anyone.`);
     }
     if (sub === 'toggle') {
       const state = interaction.options.getString('state') === 'on';

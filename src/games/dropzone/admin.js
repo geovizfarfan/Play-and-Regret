@@ -45,6 +45,13 @@ async function setExchangeChannel(guildId, channelId) {
   );
 }
 
+async function setPingRole(guildId, roleId) {
+  await db.run(
+    `INSERT INTO dropzone_config (guild_id, ping_role_id) VALUES (?, ?) ON CONFLICT (guild_id) DO UPDATE SET ping_role_id = EXCLUDED.ping_role_id`,
+    [guildId, roleId]
+  );
+}
+
 /** Gift a specific sticker (any season, any enabled state) to a user. */
 async function giftSticker(targetUserId, monsterId, quantity = 1) {
   const monster = getMonster(monsterId);
@@ -78,7 +85,8 @@ async function removeSticker(targetUserId, monsterId, quantity = 1) {
 async function manualSpawn(channel, guildId, season, monsterId) {
   const monster = monsterId ? getMonster(monsterId) : rollMonster(season);
   if (!monster) return { error: 'no_monster_available' };
-  const spawnId = await postSpawn(channel, guildId, monster, 'ADMIN');
+  const cfg = await getConfig(guildId);
+  const spawnId = await postSpawn(channel, guildId, monster, 'ADMIN', cfg.ping_role_id);
   return { success: true, spawnId, monster };
 }
 
@@ -111,5 +119,5 @@ async function getStats(guildId, season) {
 
 module.exports = {
   getConfig, setGuildEnabled, setSpawnChannel, getSpawnChannels, isSpawnChannelAllowed,
-  setExchangeChannel, giftSticker, removeSticker, manualSpawn, setMonsterEnabled, getStats,
+  setExchangeChannel, setPingRole, giftSticker, removeSticker, manualSpawn, setMonsterEnabled, getStats,
 };

@@ -305,6 +305,8 @@ const slashCommands = [
       )))
     .addSubcommand(sc => sc.setName('exchangechannel').setDescription('Set where member trades get posted')
       .addChannelOption(o => o.setName('channel').setDescription('Channel').setRequired(true)))
+    .addSubcommand(sc => sc.setName('pingrole').setDescription('Role to ping on every drop (leave blank to clear)')
+      .addRoleOption(o => o.setName('role').setDescription('Role to ping')))
     .addSubcommand(sc => sc.setName('toggle').setDescription('Turn Drop It Like It\'s Hot on or off for this server')
       .addStringOption(o => o.setName('state').setDescription('On or off').setRequired(true).addChoices(
         { name: 'On', value: 'on' }, { name: 'Off', value: 'off' },

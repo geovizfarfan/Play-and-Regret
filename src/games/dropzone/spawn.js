@@ -46,7 +46,7 @@ async function loadImageAttachment(monster) {
   return new AttachmentBuilder(filePath, { name: `${String(monster.number).padStart(3, '0')}.png` });
 }
 
-async function postSpawn(channel, guildId, monster, spawnType = 'NATURAL') {
+async function postSpawn(channel, guildId, monster, spawnType = 'NATURAL', pingRoleId = null) {
   if (!botClient && channel.client) setClient(channel.client);
   const meta = RARITY_META[monster.rarity];
   const expiresAt = new Date(Date.now() + meta.expireMinutes * 60 * 1000);
@@ -66,9 +66,11 @@ async function postSpawn(channel, guildId, monster, spawnType = 'NATURAL') {
   );
 
   const msg = await channel.send({
+    content: pingRoleId ? `<@&${pingRoleId}>` : undefined,
     embeds: [embed],
     components: [row1],
     files: attachment ? [attachment] : [],
+    allowedMentions: { roles: pingRoleId ? [pingRoleId] : [] },
   });
 
   await db.run('UPDATE dropzone_spawns SET message_id = ? WHERE id = ?', [msg.id, spawnId]);

@@ -732,8 +732,10 @@ async function initDB() {
       guild_id            TEXT PRIMARY KEY,
       enabled             BOOLEAN DEFAULT true,
       current_season      INT DEFAULT 1,
-      exchange_channel_id TEXT
+      exchange_channel_id TEXT,
+      ping_role_id        TEXT
     )`,
+    'ALTER TABLE dropzone_config ADD COLUMN IF NOT EXISTS ping_role_id TEXT',
     `CREATE TABLE IF NOT EXISTS dropzone_spawn_channels (
       guild_id    TEXT NOT NULL,
       channel_id  TEXT NOT NULL,
