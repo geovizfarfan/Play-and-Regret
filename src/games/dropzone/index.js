@@ -14,6 +14,7 @@ const { handleCatchButton } = require('./catch');
 const { proposeTrade, resolveTradeButton } = require('./trade');
 const { buildCollectionSummary, getMissing, getLeaderboard, exchangeDuplicates } = require('./collection');
 const A = require('./admin');
+const T = require('./timer');
 
 function isAdmin(member) {
   if (!member) return false;
@@ -240,6 +241,20 @@ async function handleSlash(interaction, commandName) {
         ? `<:checkmark:1495666088417956002> ${role} will be pinged on every drop.`
         : `<:checkmark:1495666088417956002> Ping role cleared — drops will no longer ping anyone.`);
     }
+    if (sub === 'timer') {
+      const state = interaction.options.getString('state');
+      if (state === 'off') {
+        await T.setTimerConfig(interaction.client, interaction.guild.id, false, 60, 180);
+        return interaction.reply(`<:checkmark:1495666088417956002> Time-based spawns turned off — back to chat-activity only.`);
+      }
+      const minMin = interaction.options.getInteger('min_minutes');
+      const maxMin = interaction.options.getInteger('max_minutes');
+      if (!minMin || !maxMin || minMin > maxMin) {
+        return interaction.reply({ content: `<:wrong:1495666083594502174> Give both \`min_minutes\` and \`max_minutes\`, with min ≤ max.`, ephemeral: true });
+      }
+      await T.setTimerConfig(interaction.client, interaction.guild.id, true, minMin, maxMin);
+      return interaction.reply(`<:checkmark:1495666088417956002> Time-based spawns are on — a sticker will drop every **${minMin}-${maxMin} minutes** regardless of chat activity, in a random allowed spawn channel.`);
+    }
     if (sub === 'toggle') {
       const state = interaction.options.getString('state') === 'on';
       await A.setGuildEnabled(interaction.guild.id, state);
@@ -267,4 +282,5 @@ module.exports = {
   handleSlash, handleButton, handleActivityMessage,
   handleAutocomplete, handleAdminAutocomplete,
   reconcileOnStartup, loadOverrides,
+  initTimer: T.init,
 };

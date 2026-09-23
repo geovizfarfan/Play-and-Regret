@@ -307,6 +307,12 @@ const slashCommands = [
       .addChannelOption(o => o.setName('channel').setDescription('Channel').setRequired(true)))
     .addSubcommand(sc => sc.setName('pingrole').setDescription('Role to ping on every drop (leave blank to clear)')
       .addRoleOption(o => o.setName('role').setDescription('Role to ping')))
+    .addSubcommand(sc => sc.setName('timer').setDescription('Time-based spawns — fires on a schedule even with no chat activity')
+      .addStringOption(o => o.setName('state').setDescription('On or off').setRequired(true).addChoices(
+        { name: 'On', value: 'on' }, { name: 'Off', value: 'off' },
+      ))
+      .addIntegerOption(o => o.setName('min_minutes').setDescription('Minimum minutes between spawns').setMinValue(1))
+      .addIntegerOption(o => o.setName('max_minutes').setDescription('Maximum minutes between spawns').setMinValue(1)))
     .addSubcommand(sc => sc.setName('toggle').setDescription('Turn Drop It Like It\'s Hot on or off for this server')
       .addStringOption(o => o.setName('state').setDescription('On or off').setRequired(true).addChoices(
         { name: 'On', value: 'on' }, { name: 'Off', value: 'off' },
@@ -426,6 +432,7 @@ client.once('clientReady', async () => {
     const { db: dzDb } = require('./src/utils/database');
     await dropzoneModule.loadOverrides(dzDb);
     await dropzoneModule.reconcileOnStartup(client);
+    await dropzoneModule.initTimer(client);
   } catch (e) { console.error('[Drop It Like It\'s Hot] startup reconciliation failed', e); }
 
   // ── Startup refund — refund any players stuck in games from before restart ──

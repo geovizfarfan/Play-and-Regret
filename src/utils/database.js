@@ -729,13 +729,21 @@ async function initDB() {
 
     // ── Drop It Like It's Hot ────────────────────────────────────────────────────
     `CREATE TABLE IF NOT EXISTS dropzone_config (
-      guild_id            TEXT PRIMARY KEY,
-      enabled             BOOLEAN DEFAULT true,
-      current_season      INT DEFAULT 1,
-      exchange_channel_id TEXT,
-      ping_role_id        TEXT
+      guild_id             TEXT PRIMARY KEY,
+      enabled              BOOLEAN DEFAULT true,
+      current_season       INT DEFAULT 1,
+      exchange_channel_id  TEXT,
+      ping_role_id         TEXT,
+      timer_enabled        BOOLEAN DEFAULT false,
+      min_spawn_minutes    INT DEFAULT 60,
+      max_spawn_minutes    INT DEFAULT 180,
+      next_timed_spawn_at  TIMESTAMPTZ
     )`,
     'ALTER TABLE dropzone_config ADD COLUMN IF NOT EXISTS ping_role_id TEXT',
+    'ALTER TABLE dropzone_config ADD COLUMN IF NOT EXISTS timer_enabled BOOLEAN DEFAULT false',
+    'ALTER TABLE dropzone_config ADD COLUMN IF NOT EXISTS min_spawn_minutes INT DEFAULT 60',
+    'ALTER TABLE dropzone_config ADD COLUMN IF NOT EXISTS max_spawn_minutes INT DEFAULT 180',
+    'ALTER TABLE dropzone_config ADD COLUMN IF NOT EXISTS next_timed_spawn_at TIMESTAMPTZ',
     `CREATE TABLE IF NOT EXISTS dropzone_spawn_channels (
       guild_id    TEXT NOT NULL,
       channel_id  TEXT NOT NULL,
