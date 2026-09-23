@@ -12,7 +12,7 @@ async function getConfig(guildId) {
   const row = await db.get('SELECT * FROM dropzone_config WHERE guild_id = ?', [guildId]);
   if (row) return row;
   await db.run('INSERT INTO dropzone_config (guild_id, enabled, current_season) VALUES (?, true, ?) ON CONFLICT (guild_id) DO NOTHING', [guildId, CONFIG.currentSeason]);
-  return { guild_id: guildId, enabled: true, current_season: CONFIG.currentSeason, exchange_channel_id: null };
+  return db.get('SELECT * FROM dropzone_config WHERE guild_id = ?', [guildId]);
 }
 
 async function setGuildEnabled(guildId, enabled) {
@@ -34,7 +34,7 @@ async function getSpawnChannels(guildId) {
 }
 async function isSpawnChannelAllowed(guildId, channelId) {
   const rows = await getSpawnChannels(guildId);
-  if (!rows.length) return true; // no allow-list configured yet — allow everywhere by default
+  if (!rows.length) return false; // nothing configured yet — don't spawn anywhere until a channel is explicitly allowed
   return rows.some(r => r.channel_id === channelId);
 }
 

@@ -12,7 +12,7 @@ const { rollMonster } = require('./rarity');
 const { postSpawn, reconcileOnStartup } = require('./spawn');
 const { handleCatchButton } = require('./catch');
 const { proposeTrade, resolveTradeButton } = require('./trade');
-const { buildCollectionSummary, getMissing, getLeaderboard, exchangeDuplicates } = require('./collection');
+const { buildCollectionSummary, getMissing, getLeaderboard, exchangeDuplicates, getUserCollection } = require('./collection');
 const A = require('./admin');
 const T = require('./timer');
 
@@ -22,6 +22,8 @@ function isAdmin(member) {
   const hostRole = process.env.EVENT_HOST_ROLE || 'Event Host';
   return member.roles.cache.some(r => r.name === hostRole);
 }
+
+const LAVENDER = '#C9B1FF';
 
 function rarityBar(owned, total) {
   return `${owned}/${total}`;
@@ -36,7 +38,7 @@ async function cmdBook(interaction, targetUser) {
   const lines = RARITY_ORDER.map(r => `${RARITY_META[r].emoji} ${RARITY_META[r].label}: ${rarityBar(summary.byRarity[r].owned, summary.byRarity[r].total)}`);
 
   const embed = new EmbedBuilder()
-    .setColor('#8B0000')
+    .setColor(LAVENDER)
     .setTitle(`<a:catch:1552115280342421555> ${targetUser.username}'s Sticker Book — Season ${season}`)
     .addFields(
       { name: 'Unique', value: `${summary.uniqueOwned} / ${summary.totalMonsters}`, inline: true },
@@ -46,7 +48,60 @@ async function cmdBook(interaction, targetUser) {
       { name: 'By Rarity', value: lines.join('\n') },
     );
 
-  return interaction.reply({ embeds: [embed] });
+  if (!summary.uniqueOwned) {
+    return interaction.reply({ embeds: [embed] });
+  }
+
+  const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`dz_book_page:${targetUser.id}:${season}:0`).setLabel('Browse Stickers').setEmoji('📖').setStyle(ButtonStyle.Primary)
+  );
+  return interaction.reply({ embeds: [embed], components: [row] });
+}
+
+// ── Sticker book image pager ─────────────────────────────────────────────
+async function buildBookPage(targetUserId, season, index) {
+  const collection = await getUserCollection(targetUserId, season);
+  const owned = [...collection.entries()]
+    .map(([monsterId, row]) => ({ monster: getMonster(monsterId), qty: row.quantity }))
+    .filter(o => o.monster)
+    .sort((a, b) => a.monster.number - b.monster.number);
+
+  if (!owned.length) return null;
+  const safeIndex = ((index % owned.length) + owned.length) % owned.length;
+  const { monster, qty } = owned[safeIndex];
+  const meta = RARITY_META[monster.rarity];
+
+  const embed = new EmbedBuilder()
+    .setColor(meta.color)
+    .setTitle(`#${String(monster.number).padStart(3, '0')} — ${monster.name.toUpperCase()}`)
+    .setDescription(`${meta.emoji} ${meta.label}\n\nOwned: **×${qty}**\n\n*"${monster.flavorText}"*`)
+    .setFooter({ text: `Sticker ${safeIndex + 1} of ${owned.length}` });
+
+  const fs = require('fs');
+  const path = require('path');
+  const filePath = path.join(__dirname, monster.image);
+  let attachment = null;
+  if (fs.existsSync(filePath)) {
+    const { AttachmentBuilder } = require('discord.js');
+    attachment = new AttachmentBuilder(filePath, { name: `${String(monster.number).padStart(3, '0')}.png` });
+    embed.setImage(`attachment://${String(monster.number).padStart(3, '0')}.png`);
+  }
+
+  const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`dz_book_page:${targetUserId}:${season}:${safeIndex - 1}`).setLabel('◀ Previous').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`dz_book_page:${targetUserId}:${season}:${safeIndex + 1}`).setLabel('Next ▶').setStyle(ButtonStyle.Secondary),
+  );
+
+  return { embeds: [embed], components: [row], files: attachment ? [attachment] : [] };
+}
+
+async function handleBookPageButton(interaction) {
+  const [, targetUserId, seasonStr, indexStr] = interaction.customId.split(':');
+  const page = await buildBookPage(targetUserId, parseInt(seasonStr), parseInt(indexStr));
+  if (!page) return interaction.reply({ content: '<:wrong:1495666083594502174> Nothing to show.', ephemeral: true });
+  return interaction.update(page);
 }
 
 // ── /stickers missing ────────────────────────────────────────────────────
@@ -65,7 +120,7 @@ async function cmdMissing(interaction) {
   }).filter(Boolean);
 
   const embed = new EmbedBuilder()
-    .setColor('#8B0000')
+    .setColor(LAVENDER)
     .setTitle(`<a:guess:1542348901217075200> Missing — ${missing.length} sticker${missing.length !== 1 ? 's' : ''}`)
     .setDescription(grouped.join('\n\n').slice(0, 4000));
 
@@ -139,7 +194,7 @@ async function cmdLeaderboard(interaction, mode) {
   const label = { unique: 'Unique Stickers', catches: 'Total Catches', rare: 'Legendary+ Catches' }[mode || 'unique'];
   const lines = rows.map((r, i) => `**${i + 1}.** <@${r.user_id}> — ${r.score}`);
 
-  return interaction.reply({ embeds: [new EmbedBuilder().setColor('#8B0000').setTitle(`<:member:1495666085121491024> ${label} — Season ${cfg.current_season}`).setDescription(lines.join('\n'))] });
+  return interaction.reply({ embeds: [new EmbedBuilder().setColor(LAVENDER).setTitle(`<:member:1495666085121491024> ${label} — Season ${cfg.current_season}`).setDescription(lines.join('\n'))] });
 }
 
 // ── Autocomplete ──────────────────────────────────────────────────────────
@@ -174,6 +229,7 @@ async function handleActivityMessage(message) {
 async function handleButton(interaction) {
   if (interaction.customId.startsWith('dz_catch:')) return handleCatchButton(interaction);
   if (interaction.customId.startsWith('dz_trade_accept:') || interaction.customId.startsWith('dz_trade_decline:')) return resolveTradeButton(interaction);
+  if (interaction.customId.startsWith('dz_book_page:')) return handleBookPageButton(interaction);
 }
 
 // ── Slash command dispatch ────────────────────────────────────────────────
@@ -258,12 +314,22 @@ async function handleSlash(interaction, commandName) {
     if (sub === 'toggle') {
       const state = interaction.options.getString('state') === 'on';
       await A.setGuildEnabled(interaction.guild.id, state);
-      return interaction.reply(`<:checkmark:1495666088417956002> Drop It Like It's Hot is now **${state ? 'ON' : 'OFF'}**.`);
+
+      let extra = '';
+      if (state) {
+        const cfg = await A.getConfig(interaction.guild.id);
+        if (!cfg.timer_enabled) {
+          // First time turning this on — auto-enable random background drops so nothing needs manual setup.
+          await T.setTimerConfig(interaction.client, interaction.guild.id, true, 30, 90);
+          extra = `\nRandom drops are on too — a sticker will drop roughly every 30-90 minutes on its own, no setup needed. (Adjust anytime with \`/stickers-admin timer\`.)`;
+        }
+      }
+      return interaction.reply(`<:checkmark:1495666088417956002> Drop It Like It's Hot is now **${state ? 'ON' : 'OFF'}**.${extra}`);
     }
     if (sub === 'stats') {
       const cfg = await A.getConfig(interaction.guild.id);
       const stats = await A.getStats(interaction.guild.id, cfg.current_season);
-      const embed = new EmbedBuilder().setColor('#8B0000').setTitle(`<a:leaderboard:1552119707518238740> Drop It Like It's Hot — Season ${cfg.current_season} Stats`)
+      const embed = new EmbedBuilder().setColor(LAVENDER).setTitle(`<a:leaderboard:1552119707518238740> Drop It Like It's Hot — Season ${cfg.current_season} Stats`)
         .addFields(
           { name: 'Total Caught', value: `${stats.totalCaught}`, inline: true },
           { name: 'Natural Spawns', value: `${stats.naturalSpawns}`, inline: true },

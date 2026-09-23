@@ -41,7 +41,7 @@ async function proposeTrade(guild, channel, fromUser, toUser, offerMonsterId, re
   const requestMeta = RARITY_META[requestMonster.rarity];
 
   const embed = new EmbedBuilder()
-    .setColor('#8B0000')
+    .setColor('#C9B1FF')
     .setTitle('<a:exchange:1552116423478870046> TRADE PROPOSAL')
     .setDescription(
       `<@${fromUser.id}> wants to trade with <@${toUser.id}>\n\n` +
