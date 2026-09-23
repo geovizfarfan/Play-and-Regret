@@ -45,4 +45,11 @@ const CONFIG = {
   debug: false,
 };
 
-module.exports = { RARITY_ORDER, RARITY_META, CONFIG };
+const SEASON_NAMES = {
+  1: 'Monster Drops',
+};
+function getSeasonName(season) {
+  return SEASON_NAMES[season] || `Season ${season}`;
+}
+
+module.exports = { RARITY_ORDER, RARITY_META, CONFIG, SEASON_NAMES, getSeasonName };

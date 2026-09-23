@@ -5,7 +5,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 const { EmbedBuilder } = require('discord.js');
 const { db, economy } = require('../../utils/database');
-const { CONFIG, RARITY_ORDER, RARITY_META } = require('./config');
+const { CONFIG, RARITY_ORDER, RARITY_META, getSeasonName } = require('./config');
+const { renderBookImage } = require('./bookImage');
 const { MONSTERS, getMonster, isEnabled, loadOverrides } = require('./monsters');
 const { recordActivity, markSpawned } = require('./activity');
 const { rollMonster } = require('./rarity');
@@ -31,15 +32,17 @@ function rarityBar(owned, total) {
 
 // ── /stickers book ───────────────────────────────────────────────────────
 async function cmdBook(interaction, targetUser) {
+  await interaction.deferReply();
   const cfg = await A.getConfig(interaction.guild.id);
   const season = cfg.current_season;
+  const seasonName = getSeasonName(season);
   const summary = await buildCollectionSummary(targetUser.id, season);
 
   const lines = RARITY_ORDER.map(r => `${RARITY_META[r].emoji} ${RARITY_META[r].label}: ${rarityBar(summary.byRarity[r].owned, summary.byRarity[r].total)}`);
 
   const embed = new EmbedBuilder()
     .setColor(LAVENDER)
-    .setTitle(`<a:catch:1552115280342421555> ${targetUser.username}'s Sticker Book — Season ${season}`)
+    .setTitle(`<a:catch:1552115280342421555> ${targetUser.username}'s Sticker Book — ${seasonName}`)
     .addFields(
       { name: 'Unique', value: `${summary.uniqueOwned} / ${summary.totalMonsters}`, inline: true },
       { name: 'Completion', value: `${summary.completionPct.toFixed(1)}%`, inline: true },
@@ -48,15 +51,21 @@ async function cmdBook(interaction, targetUser) {
       { name: 'By Rarity', value: lines.join('\n') },
     );
 
+  const ownedIds = new Set(summary.collection.keys());
+  const imgBuffer = await renderBookImage(MONSTERS, ownedIds, `${targetUser.username}'s Sticker Book`);
+  const { AttachmentBuilder } = require('discord.js');
+  const attachment = imgBuffer ? new AttachmentBuilder(imgBuffer, { name: 'book.png' }) : null;
+  if (attachment) embed.setImage('attachment://book.png');
+
   if (!summary.uniqueOwned) {
-    return interaction.reply({ embeds: [embed] });
+    return interaction.editReply({ embeds: [embed], files: attachment ? [attachment] : [] });
   }
 
   const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`dz_book_page:${targetUser.id}:${season}:0`).setLabel('Browse Stickers').setEmoji('📖').setStyle(ButtonStyle.Primary)
+    new ButtonBuilder().setCustomId(`dz_book_page:${targetUser.id}:${season}:0`).setLabel('Inspect a Sticker').setEmoji('📖').setStyle(ButtonStyle.Primary)
   );
-  return interaction.reply({ embeds: [embed], components: [row] });
+  return interaction.editReply({ embeds: [embed], components: [row], files: attachment ? [attachment] : [] });
 }
 
 // ── Sticker book image pager ─────────────────────────────────────────────
@@ -107,24 +116,22 @@ async function handleBookPageButton(interaction) {
 // ── /stickers missing ────────────────────────────────────────────────────
 async function cmdMissing(interaction) {
   const cfg = await A.getConfig(interaction.guild.id);
+  const seasonName = getSeasonName(cfg.current_season);
   const missing = await getMissing(interaction.user.id, cfg.current_season);
 
   if (!missing.length) {
-    return interaction.reply({ content: `<:checkmark:1495666088417956002> You have every sticker available this season. Impressive.`, ephemeral: true });
+    return interaction.reply(`<:checkmark:1495666088417956002> You have every sticker available in **${seasonName}**. Impressive.`);
   }
 
-  const grouped = RARITY_ORDER.map(r => {
-    const items = missing.filter(m => m.rarity === r);
-    if (!items.length) return null;
-    return `${RARITY_META[r].emoji} **${RARITY_META[r].label}**\n${items.map(m => `#${String(m.number).padStart(3, '0')} ${m.name}`).join('\n')}`;
-  }).filter(Boolean);
+  const sorted = [...missing].sort((a, b) => a.number - b.number);
+  const list = sorted.map(m => `${RARITY_META[m.rarity].emoji} #${String(m.number).padStart(3, '0')} ${m.name}`).join('\n');
 
   const embed = new EmbedBuilder()
     .setColor(LAVENDER)
-    .setTitle(`<a:guess:1542348901217075200> Missing — ${missing.length} sticker${missing.length !== 1 ? 's' : ''}`)
-    .setDescription(grouped.join('\n\n').slice(0, 4000));
+    .setTitle(`<a:guess:1542348901217075200> Missing — ${seasonName} (${missing.length} sticker${missing.length !== 1 ? 's' : ''})`)
+    .setDescription(list.slice(0, 4000));
 
-  return interaction.reply({ embeds: [embed], ephemeral: true });
+  return interaction.reply({ embeds: [embed] });
 }
 
 // ── /stickers view ───────────────────────────────────────────────────────
@@ -194,7 +201,7 @@ async function cmdLeaderboard(interaction, mode) {
   const label = { unique: 'Unique Stickers', catches: 'Total Catches', rare: 'Legendary+ Catches' }[mode || 'unique'];
   const lines = rows.map((r, i) => `**${i + 1}.** <@${r.user_id}> — ${r.score}`);
 
-  return interaction.reply({ embeds: [new EmbedBuilder().setColor(LAVENDER).setTitle(`<:member:1495666085121491024> ${label} — Season ${cfg.current_season}`).setDescription(lines.join('\n'))] });
+  return interaction.reply({ embeds: [new EmbedBuilder().setColor(LAVENDER).setTitle(`<:member:1495666085121491024> ${label} — ${getSeasonName(cfg.current_season)}`).setDescription(lines.join('\n'))] });
 }
 
 // ── Autocomplete ──────────────────────────────────────────────────────────
@@ -329,7 +336,7 @@ async function handleSlash(interaction, commandName) {
     if (sub === 'stats') {
       const cfg = await A.getConfig(interaction.guild.id);
       const stats = await A.getStats(interaction.guild.id, cfg.current_season);
-      const embed = new EmbedBuilder().setColor(LAVENDER).setTitle(`<a:leaderboard:1552119707518238740> Drop It Like It's Hot — Season ${cfg.current_season} Stats`)
+      const embed = new EmbedBuilder().setColor(LAVENDER).setTitle(`<a:leaderboard:1552119707518238740> Drop It Like It's Hot — ${getSeasonName(cfg.current_season)} Stats`)
         .addFields(
           { name: 'Total Caught', value: `${stats.totalCaught}`, inline: true },
           { name: 'Natural Spawns', value: `${stats.naturalSpawns}`, inline: true },
