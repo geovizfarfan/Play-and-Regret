@@ -23,9 +23,13 @@ function monsterImagePath(monster) {
 
 function buildSpawnEmbed(monster, headline) {
   const meta = RARITY_META[monster.rarity];
+  // Discord hard-caps embed titles at 256 chars — a headline with several custom
+  // emoji codes stacked together can exceed that and crash postSpawn entirely.
+  // Truncate defensively so a spawn never silently fails to post over this again.
+  const safeTitle = headline.length > 256 ? headline.slice(0, 253) + '...' : headline;
   return new EmbedBuilder()
     .setColor(meta.color)
-    .setTitle(headline)
+    .setTitle(safeTitle)
     .setDescription(
       `${meta.emoji} **${monster.name.toUpperCase()}**\n${meta.emoji} ${meta.label} • #${String(monster.number).padStart(3, '0')}\n\n*"${monster.flavorText}"*`
     )
