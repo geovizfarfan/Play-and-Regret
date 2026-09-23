@@ -106,6 +106,8 @@ async function getStats(guildId, season) {
   const mostCaught = await db.get(
     `SELECT monster_id, SUM(quantity) AS n FROM dropzone_collections WHERE season = ? GROUP BY monster_id ORDER BY n DESC LIMIT 1`, [season]
   );
+  const spawnChannels = await getSpawnChannels(guildId);
+  const config = await getConfig(guildId);
 
   return {
     totalCaught: totalCaught?.n || 0,
@@ -114,6 +116,9 @@ async function getStats(guildId, season) {
     escaped: escaped?.n || 0,
     activeCollectors: activeCollectors?.n || 0,
     mostCaught: mostCaught ? { monster: getMonster(mostCaught.monster_id), count: mostCaught.n } : null,
+    spawnChannelIds: spawnChannels.map(c => c.channel_id),
+    timerEnabled: !!config.timer_enabled,
+    timerRange: config.timer_enabled ? `${config.min_spawn_minutes}-${config.max_spawn_minutes} min` : null,
   };
 }
 

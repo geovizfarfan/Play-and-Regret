@@ -367,6 +367,8 @@ async function handleSlash(interaction, commandName) {
           { name: 'Escaped', value: `${stats.escaped}`, inline: true },
           { name: 'Active Collectors', value: `${stats.activeCollectors}`, inline: true },
           { name: 'Most Caught', value: stats.mostCaught ? `${stats.mostCaught.monster?.name} (${stats.mostCaught.count})` : 'N/A', inline: true },
+          { name: 'Spawn Channels', value: stats.spawnChannelIds.length ? stats.spawnChannelIds.map(id => `<#${id}>`).join(', ') : '⚠️ None configured', inline: false },
+          { name: 'Random Timer', value: stats.timerEnabled ? `On — every ${stats.timerRange}` : 'Off', inline: true },
         );
       return interaction.reply({ embeds: [embed] });
     }
