@@ -22,7 +22,10 @@ async function handleCatchButton(interaction) {
   const spawn = await db.get('SELECT * FROM dropzone_spawns WHERE id = ?', [spawnId]);
   if (!spawn) return interaction.reply({ content: '<:wrong:1495666083594502174> This one\'s gone.', ephemeral: true });
 
-  if (spawn.status === 'CAUGHT') return interaction.reply({ content: '<:wrong:1495666083594502174> Already caught.', ephemeral: true });
+  if (spawn.status === 'CAUGHT') {
+    const winnerLine = spawn.caught_by ? `<@${spawn.caught_by}> already caught this one.` : 'Someone already caught this one.';
+    return interaction.reply({ content: `<:wrong:1495666083594502174> ${winnerLine}`, ephemeral: true });
+  }
   if (spawn.status === 'ESCAPED' || spawn.status === 'CANCELLED') return interaction.reply({ content: '<a:escape:1552118083777208420> Too slow — it got away.', ephemeral: true });
 
   const monster = getMonster(spawn.monster_id);
