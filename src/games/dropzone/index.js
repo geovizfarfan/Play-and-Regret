@@ -248,7 +248,7 @@ async function handleSlash(interaction, commandName) {
     if (sub === 'stats') {
       const cfg = await A.getConfig(interaction.guild.id);
       const stats = await A.getStats(interaction.guild.id, cfg.current_season);
-      const embed = new EmbedBuilder().setColor('#8B0000').setTitle(`📊 Drop It Like It's Hot — Season ${cfg.current_season} Stats`)
+      const embed = new EmbedBuilder().setColor('#8B0000').setTitle(`<a:leaderboard:1552119707518238740> Drop It Like It's Hot — Season ${cfg.current_season} Stats`)
         .addFields(
           { name: 'Total Caught', value: `${stats.totalCaught}`, inline: true },
           { name: 'Natural Spawns', value: `${stats.naturalSpawns}`, inline: true },
