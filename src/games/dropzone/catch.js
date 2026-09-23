@@ -23,7 +23,7 @@ async function handleCatchButton(interaction) {
   if (!spawn) return interaction.reply({ content: '<:wrong:1495666083594502174> This one\'s gone.', ephemeral: true });
 
   if (spawn.status === 'CAUGHT') return interaction.reply({ content: '<:wrong:1495666083594502174> Already caught.', ephemeral: true });
-  if (spawn.status === 'ESCAPED' || spawn.status === 'CANCELLED') return interaction.reply({ content: '💨 Too slow — it got away.', ephemeral: true });
+  if (spawn.status === 'ESCAPED' || spawn.status === 'CANCELLED') return interaction.reply({ content: '<a:escape:1552118083777208420> Too slow — it got away.', ephemeral: true });
 
   const monster = getMonster(spawn.monster_id);
   if (!monster) return interaction.reply({ content: '<:wrong:1495666083594502174> Something went wrong on this one.', ephemeral: true });
@@ -88,7 +88,7 @@ async function resolveCatch(spawnId, spawn, monster) {
     .setDescription(
       `<@${winnerId}> captured **${monster.name.toUpperCase()}**!\n\n` +
       `${meta.emoji} ${meta.label} • #${String(monster.number).padStart(3, '0')}\n\n` +
-      (isNew ? `✨ **NEW STICKER!**` : `👀 **DUPLICATE!** ${monster.name} ×${result.quantity}`) +
+      (isNew ? `<a:fire:1544848389781459085> **NEW STICKER!**` : `👀 **DUPLICATE!** ${monster.name} ×${result.quantity}`) +
       (participants.length > 1 ? `\n\n*${participants.length} people went for it — random draw picked <@${winnerId}>.*` : '')
     );
 

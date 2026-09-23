@@ -62,7 +62,7 @@ async function postSpawn(channel, guildId, monster, spawnType = 'NATURAL', pingR
   const embed = buildSpawnEmbed(monster, headline);
   const attachment = await loadImageAttachment(monster);
   const row1 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`dz_catch:${spawnId}`).setLabel('CATCH').setEmoji('👻').setStyle(ButtonStyle.Danger)
+    new ButtonBuilder().setCustomId(`dz_catch:${spawnId}`).setLabel('CATCH').setEmoji('<a:catch:1552115280342421555>').setStyle(ButtonStyle.Danger)
   );
 
   const msg = await channel.send({
@@ -129,7 +129,7 @@ async function reconcileOnStartup(client) {
       // can't fairly pick a winner, so resolve as escaped rather than guess.
       await db.run(`UPDATE dropzone_spawns SET status = 'ESCAPED', resolved_at = NOW() WHERE id = ?`, [row.id]);
       const meta = RARITY_META[monster.rarity];
-      const embed = new EmbedBuilder().setColor('#555555').setTitle('💨 The catch got interrupted — nobody wins this one.')
+      const embed = new EmbedBuilder().setColor('#555555').setTitle('<a:escape:1552118083777208420> The catch got interrupted — nobody wins this one.')
         .setDescription(`${meta.emoji} **${monster.name.toUpperCase()}** • #${String(monster.number).padStart(3, '0')}`);
       await editSpawnMessage(row.guild_id, row.channel_id, row.message_id, embed);
       continue;

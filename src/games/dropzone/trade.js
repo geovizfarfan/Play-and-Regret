@@ -42,7 +42,7 @@ async function proposeTrade(guild, channel, fromUser, toUser, offerMonsterId, re
 
   const embed = new EmbedBuilder()
     .setColor('#8B0000')
-    .setTitle('🔄 TRADE PROPOSAL')
+    .setTitle('<a:exchange:1552116423478870046> TRADE PROPOSAL')
     .setDescription(
       `<@${fromUser.id}> wants to trade with <@${toUser.id}>\n\n` +
       `**Offering:** ${offerMeta.emoji} ${offerMonster.name}\n` +
@@ -71,7 +71,7 @@ async function resolveTradeButton(interaction) {
 
   if (action === 'dz_trade_decline') {
     await db.run(`UPDATE dropzone_trades SET status = 'DECLINED', resolved_at = NOW() WHERE id = ? AND status = 'PENDING'`, [tradeId]);
-    await interaction.update({ content: null, embeds: [new EmbedBuilder().setColor('#555555').setTitle('🔄 Trade declined.')], components: [] });
+    await interaction.update({ content: null, embeds: [new EmbedBuilder().setColor('#555555').setTitle('<a:exchange:1552116423478870046> Trade declined.')], components: [] });
     return;
   }
 
@@ -96,7 +96,7 @@ async function resolveTradeButton(interaction) {
 
   await interaction.update({
     content: null,
-    embeds: [new EmbedBuilder().setColor('#3ba55d').setTitle('🔄 TRADE COMPLETE')
+    embeds: [new EmbedBuilder().setColor('#3ba55d').setTitle('<a:exchange:1552116423478870046> TRADE COMPLETE')
       .setDescription(`<@${trade.from_user}> ↔ <@${trade.to_user}>\n\n${offerMonster?.name} traded for ${requestMonster?.name}.`)],
     components: [],
   });

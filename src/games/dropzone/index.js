@@ -36,7 +36,7 @@ async function cmdBook(interaction, targetUser) {
 
   const embed = new EmbedBuilder()
     .setColor('#8B0000')
-    .setTitle(`👻 ${targetUser.username}'s Sticker Book — Season ${season}`)
+    .setTitle(`<a:catch:1552115280342421555> ${targetUser.username}'s Sticker Book — Season ${season}`)
     .addFields(
       { name: 'Unique', value: `${summary.uniqueOwned} / ${summary.totalMonsters}`, inline: true },
       { name: 'Completion', value: `${summary.completionPct.toFixed(1)}%`, inline: true },
@@ -65,7 +65,7 @@ async function cmdMissing(interaction) {
 
   const embed = new EmbedBuilder()
     .setColor('#8B0000')
-    .setTitle(`❓ Missing — ${missing.length} sticker${missing.length !== 1 ? 's' : ''}`)
+    .setTitle(`<a:guess:1542348901217075200> Missing — ${missing.length} sticker${missing.length !== 1 ? 's' : ''}`)
     .setDescription(grouped.join('\n\n').slice(0, 4000));
 
   return interaction.reply({ embeds: [embed], ephemeral: true });
@@ -138,7 +138,7 @@ async function cmdLeaderboard(interaction, mode) {
   const label = { unique: 'Unique Stickers', catches: 'Total Catches', rare: 'Legendary+ Catches' }[mode || 'unique'];
   const lines = rows.map((r, i) => `**${i + 1}.** <@${r.user_id}> — ${r.score}`);
 
-  return interaction.reply({ embeds: [new EmbedBuilder().setColor('#8B0000').setTitle(`🏆 ${label} — Season ${cfg.current_season}`).setDescription(lines.join('\n'))] });
+  return interaction.reply({ embeds: [new EmbedBuilder().setColor('#8B0000').setTitle(`<:member:1495666085121491024> ${label} — Season ${cfg.current_season}`).setDescription(lines.join('\n'))] });
 }
 
 // ── Autocomplete ──────────────────────────────────────────────────────────
