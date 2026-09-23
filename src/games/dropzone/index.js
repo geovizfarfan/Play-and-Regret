@@ -31,13 +31,8 @@ function rarityBar(owned, total) {
 }
 
 // ── /stickers book ───────────────────────────────────────────────────────
-async function cmdBook(interaction, targetUser) {
-  await interaction.deferReply();
-  const cfg = await A.getConfig(interaction.guild.id);
-  const season = cfg.current_season;
-  const seasonName = getSeasonName(season);
+async function buildBookSummaryPayload(runnerId, targetUser, season, seasonName) {
   const summary = await buildCollectionSummary(targetUser.id, season);
-
   const lines = RARITY_ORDER.map(r => `${RARITY_META[r].emoji} ${RARITY_META[r].label}: ${rarityBar(summary.byRarity[r].owned, summary.byRarity[r].total)}`);
 
   const embed = new EmbedBuilder()
@@ -58,18 +53,27 @@ async function cmdBook(interaction, targetUser) {
   if (attachment) embed.setImage('attachment://book.png');
 
   if (!summary.uniqueOwned) {
-    return interaction.editReply({ embeds: [embed], files: attachment ? [attachment] : [] });
+    return { embeds: [embed], components: [], files: attachment ? [attachment] : [] };
   }
 
   const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`dz_book_page:${targetUser.id}:${season}:0`).setLabel('Inspect a Sticker').setEmoji('📖').setStyle(ButtonStyle.Primary)
+    new ButtonBuilder().setCustomId(`dz_book_page:${runnerId}:${targetUser.id}:${season}:0`).setLabel('Inspect a Sticker').setEmoji('📖').setStyle(ButtonStyle.Primary)
   );
-  return interaction.editReply({ embeds: [embed], components: [row], files: attachment ? [attachment] : [] });
+  return { embeds: [embed], components: [row], files: attachment ? [attachment] : [] };
+}
+
+async function cmdBook(interaction, targetUser) {
+  await interaction.deferReply();
+  const cfg = await A.getConfig(interaction.guild.id);
+  const season = cfg.current_season;
+  const seasonName = getSeasonName(season);
+  const payload = await buildBookSummaryPayload(interaction.user.id, targetUser, season, seasonName);
+  return interaction.editReply(payload);
 }
 
 // ── Sticker book image pager ─────────────────────────────────────────────
-async function buildBookPage(targetUserId, season, index) {
+async function buildBookPage(runnerId, targetUserId, season, index) {
   const collection = await getUserCollection(targetUserId, season);
   const owned = [...collection.entries()]
     .map(([monsterId, row]) => ({ monster: getMonster(monsterId), qty: row.quantity }))
@@ -99,18 +103,36 @@ async function buildBookPage(targetUserId, season, index) {
 
   const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`dz_book_page:${targetUserId}:${season}:${safeIndex - 1}`).setLabel('◀ Previous').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(`dz_book_page:${targetUserId}:${season}:${safeIndex + 1}`).setLabel('Next ▶').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`dz_book_back:${runnerId}:${targetUserId}:${season}`).setLabel('◀ Back').setEmoji('📕').setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId(`dz_book_page:${runnerId}:${targetUserId}:${season}:${safeIndex - 1}`).setLabel('◀ Previous').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`dz_book_page:${runnerId}:${targetUserId}:${season}:${safeIndex + 1}`).setLabel('Next ▶').setStyle(ButtonStyle.Secondary),
   );
 
   return { embeds: [embed], components: [row], files: attachment ? [attachment] : [] };
 }
 
 async function handleBookPageButton(interaction) {
-  const [, targetUserId, seasonStr, indexStr] = interaction.customId.split(':');
-  const page = await buildBookPage(targetUserId, parseInt(seasonStr), parseInt(indexStr));
+  const [, runnerId, targetUserId, seasonStr, indexStr] = interaction.customId.split(':');
+  if (interaction.user.id !== runnerId) {
+    return interaction.reply({ content: '<:wrong:1495666083594502174> Only the person who ran this command can use these buttons.', ephemeral: true });
+  }
+  const page = await buildBookPage(runnerId, targetUserId, parseInt(seasonStr), parseInt(indexStr));
   if (!page) return interaction.reply({ content: '<:wrong:1495666083594502174> Nothing to show.', ephemeral: true });
   return interaction.update(page);
+}
+
+async function handleBookBackButton(interaction) {
+  const [, runnerId, targetUserId, seasonStr] = interaction.customId.split(':');
+  if (interaction.user.id !== runnerId) {
+    return interaction.reply({ content: '<:wrong:1495666083594502174> Only the person who ran this command can use these buttons.', ephemeral: true });
+  }
+  await interaction.deferUpdate();
+  const season = parseInt(seasonStr);
+  const seasonName = getSeasonName(season);
+  const targetUser = await interaction.client.users.fetch(targetUserId).catch(() => null);
+  if (!targetUser) return;
+  const payload = await buildBookSummaryPayload(runnerId, targetUser, season, seasonName);
+  return interaction.editReply(payload);
 }
 
 // ── /stickers missing ────────────────────────────────────────────────────
@@ -237,6 +259,7 @@ async function handleButton(interaction) {
   if (interaction.customId.startsWith('dz_catch:')) return handleCatchButton(interaction);
   if (interaction.customId.startsWith('dz_trade_accept:') || interaction.customId.startsWith('dz_trade_decline:')) return resolveTradeButton(interaction);
   if (interaction.customId.startsWith('dz_book_page:')) return handleBookPageButton(interaction);
+  if (interaction.customId.startsWith('dz_book_back:')) return handleBookBackButton(interaction);
 }
 
 // ── Slash command dispatch ────────────────────────────────────────────────

@@ -602,7 +602,7 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.customId.startsWith('pm_join:') || interaction.customId.startsWith('pm_viewmembers:') || interaction.customId.startsWith('pm_start:')) {
       return pickmeModule.handleButton(interaction);
     }
-    if (interaction.customId.startsWith('dz_catch:') || interaction.customId.startsWith('dz_trade_accept:') || interaction.customId.startsWith('dz_trade_decline:') || interaction.customId.startsWith('dz_book_page:')) {
+    if (interaction.customId.startsWith('dz_catch:') || interaction.customId.startsWith('dz_trade_accept:') || interaction.customId.startsWith('dz_trade_decline:') || interaction.customId.startsWith('dz_book_page:') || interaction.customId.startsWith('dz_book_back:')) {
       return dropzoneModule.handleButton(interaction);
     }
     if (interaction.customId.startsWith('bet_resolve_') || interaction.customId.startsWith('bet_quick_') || interaction.customId.startsWith('bet_amt_') || interaction.customId.startsWith('bet_pick_') || interaction.customId.startsWith('bet_select_') || interaction.customId.startsWith('bet_cancel_')) {
