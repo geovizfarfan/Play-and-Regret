@@ -112,12 +112,26 @@ async function resolveEscape(spawnId, guildId, channelId, messageId, monster) {
 
 async function editSpawnMessage(guildId, channelId, messageId, embed) {
   try {
-    const c = botClient ? await botClient.channels.fetch(channelId).catch(() => null) : null;
+    if (!botClient) {
+      console.error(`[Drop It Like It's Hot] editSpawnMessage: botClient is null — can't edit message ${messageId} in channel ${channelId}`);
+      return;
+    }
+    const c = await botClient.channels.fetch(channelId).catch((err) => {
+      console.error(`[Drop It Like It's Hot] editSpawnMessage: couldn't fetch channel ${channelId}`, err.message);
+      return null;
+    });
     if (!c) return;
-    const msg = await c.messages.fetch(messageId).catch(() => null);
+    const msg = await c.messages.fetch(messageId).catch((err) => {
+      console.error(`[Drop It Like It's Hot] editSpawnMessage: couldn't fetch message ${messageId}`, err.message);
+      return null;
+    });
     if (!msg) return;
-    await msg.edit({ embeds: [embed], components: [] }).catch(() => {});
-  } catch (e) { /* channel/message gone — nothing to do */ }
+    await msg.edit({ embeds: [embed], components: [] }).catch((err) => {
+      console.error(`[Drop It Like It's Hot] editSpawnMessage: edit() failed for message ${messageId}`, err.message);
+    });
+  } catch (e) {
+    console.error(`[Drop It Like It's Hot] editSpawnMessage: unexpected error`, e);
+  }
 }
 
 /** Called once on bot startup to safely resolve spawns that were mid-flight when it last stopped. */
