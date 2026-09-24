@@ -203,7 +203,7 @@ async function cmdTrade(interaction, targetUser, offerId, requestId) {
   if (result.error === 'unknown_sticker') return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown sticker.', ephemeral: true });
   if (result.error === 'dont_own_offer') return interaction.reply({ content: '<:wrong:1495666083594502174> You don\'t own the sticker you\'re offering.', ephemeral: true });
   if (result.error === 'not_a_duplicate') return interaction.reply({ content: '<:wrong:1495666083594502174> That\'s your only copy — you can only trade away spares, not your only one.', ephemeral: true });
-  if (result.error === 'they_dont_own_request') return interaction.reply({ content: `<:wrong:1495666083594502174> ${targetUser.username} doesn't own that sticker.`, ephemeral: true });
+  if (result.error === 'they_dont_have_spare') return interaction.reply({ content: `<:wrong:1495666083594502174> ${targetUser.username} doesn't have a spare of that sticker to trade away.`, ephemeral: true });
 
   return interaction.reply({ content: `<:checkmark:1495666088417956002> Trade proposed in ${result.postedIn}.`, ephemeral: true });
 }
@@ -314,7 +314,8 @@ async function handleAutocomplete(interaction) {
   }
 
   // Trade's "request" field: once a trade partner is picked, only show stickers THEY
-  // actually own, with their quantity shown — so you can see if it's a spare for them too.
+  // have a spare of (quantity >= 2) — same rule as the offer side, so nobody ends up
+  // traded down to zero of something.
   if (sub === 'trade' && focused.name === 'request') {
     // Discord's autocomplete payload often omits resolved data for other options even
     // when they're already filled in on the modal, so interaction.options.getUser('user')
@@ -325,16 +326,16 @@ async function handleAutocomplete(interaction) {
       const targetUsername = interaction.client.users.cache.get(targetUserId)?.username || 'this user';
       const cfg = await A.getConfig(interaction.guild.id);
       const theirCollection = await getUserCollection(targetUserId, cfg.current_season);
-      const owned = [...theirCollection.entries()]
+      const spares = [...theirCollection.entries()]
         .map(([monsterId, row]) => ({ monster: getMonster(monsterId), quantity: row.quantity }))
-        .filter(o => o.monster && o.monster.name.toLowerCase().includes(query))
+        .filter(o => o.monster && o.quantity >= 2 && o.monster.name.toLowerCase().includes(query))
         .sort((a, b) => a.monster.number - b.monster.number)
         .slice(0, 25);
-      if (!owned.length) {
-        return interaction.respond([{ name: `${targetUsername} doesn't own any matching stickers`, value: 'none' }]);
+      if (!spares.length) {
+        return interaction.respond([{ name: `${targetUsername} has no spare stickers to request`, value: 'none' }]);
       }
-      return interaction.respond(owned.map(o => ({
-        name: `#${String(o.monster.number).padStart(3, '0')} ${o.monster.name} — ${targetUsername} owns ${o.quantity}${o.quantity > 1 ? ' (spare for them too)' : ''}`,
+      return interaction.respond(spares.map(o => ({
+        name: `#${String(o.monster.number).padStart(3, '0')} ${o.monster.name} — ${targetUsername} has ${o.quantity}, ${o.quantity - 1} spare${o.quantity - 1 !== 1 ? 's' : ''}`,
         value: o.monster.id,
       })));
     }

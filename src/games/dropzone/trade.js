@@ -27,7 +27,7 @@ async function proposeTrade(guild, channel, fromUser, toUser, offerMonsterId, re
   if (ownOffer.quantity < 2) return { error: 'not_a_duplicate' }; // must be a spare — can't trade your only copy
 
   const theyOwnRequest = await db.get('SELECT quantity FROM dropzone_collections WHERE user_id = ? AND monster_id = ? AND season = ?', [toUser.id, requestMonsterId, season]);
-  if (!theyOwnRequest || theyOwnRequest.quantity < 1) return { error: 'they_dont_own_request' };
+  if (!theyOwnRequest || theyOwnRequest.quantity < 2) return { error: 'they_dont_have_spare' }; // must be a spare for them too — nobody trades down to zero
 
   const exchangeChannel = await getExchangeChannel(guild);
   const postChannel = exchangeChannel || channel;
@@ -81,7 +81,7 @@ async function resolveTradeButton(interaction) {
   const offerOwned = await db.get('SELECT quantity FROM dropzone_collections WHERE user_id = ? AND monster_id = ? AND season = ?', [trade.from_user, trade.offer_monster_id, trade.offer_season]);
   const requestOwned = await db.get('SELECT quantity FROM dropzone_collections WHERE user_id = ? AND monster_id = ? AND season = ?', [trade.to_user, trade.request_monster_id, trade.request_season]);
 
-  if (!offerOwned?.quantity || offerOwned.quantity < 2 || !requestOwned?.quantity) {
+  if (!offerOwned?.quantity || offerOwned.quantity < 2 || !requestOwned?.quantity || requestOwned.quantity < 2) {
     await db.run(`UPDATE dropzone_trades SET status = 'CANCELLED', resolved_at = NOW() WHERE id = ? AND status = 'PENDING'`, [tradeId]);
     return interaction.update({ content: null, embeds: [new EmbedBuilder().setColor('#555555').setTitle('<:wrong:1495666083594502174> Trade fell through — one side no longer has a spare to offer.')], components: [] });
   }
