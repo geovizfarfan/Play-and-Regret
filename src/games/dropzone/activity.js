@@ -1,13 +1,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Drop It Like It's Hot — activity tracker.
 // Purely in-memory (per the perf rules: don't hit the DB on every message).
-// Tracks qualifying activity per channel and decides when a natural spawn
-// becomes eligible. Cleans up idle channel state so nothing leaks forever.
+// Tracks qualifying activity per GUILD (not per channel — activity anywhere
+// in the server counts) and decides when a natural spawn becomes eligible.
+// The spawn itself still only ever posts into an allowed spawn channel —
+// this only decides WHEN one is due, not where.
 // ─────────────────────────────────────────────────────────────────────────────
 const { CONFIG } = require('./config');
 
-// channelId -> { count, uniqueUsers: Set, recent: [{userId, content, at}], threshold, cooldownUntil, lastActivityAt }
-const channelState = new Map();
+// guildId -> { count, uniqueUsers: Set, recent: [{userId, content, at}], threshold, cooldownUntil, lastActivityAt }
+const guildState = new Map();
 
 function randomThreshold() {
   const { minQualifyingMessages, maxQualifyingMessages } = CONFIG;
@@ -19,11 +21,11 @@ function randomCooldownMs() {
   return mins * 60 * 1000;
 }
 
-function getState(channelId) {
-  let s = channelState.get(channelId);
+function getState(guildId) {
+  let s = guildState.get(guildId);
   if (!s) {
     s = { count: 0, uniqueUsers: new Set(), recent: [], threshold: randomThreshold(), cooldownUntil: 0, lastActivityAt: Date.now() };
-    channelState.set(channelId, s);
+    guildState.set(guildId, s);
   }
   return s;
 }
@@ -38,13 +40,13 @@ function looksLikeFarming(state, userId, content) {
 }
 
 /**
- * Call on every non-bot message in an eligible channel. Returns true if this
- * message just pushed the channel over the threshold and a spawn should fire
+ * Call on every non-bot message anywhere in the guild. Returns true if this
+ * message just pushed the server over the threshold and a spawn should fire
  * (caller is responsible for actually spawning and then calling markSpawned).
  */
-function recordActivity(channelId, userId, content) {
+function recordActivity(guildId, userId, content) {
   if (!CONFIG.enabled) return false;
-  const state = getState(channelId);
+  const state = getState(guildId);
   state.lastActivityAt = Date.now();
 
   if (Date.now() < state.cooldownUntil) return false; // still cooling down from the last natural spawn
@@ -66,20 +68,20 @@ function recordActivity(channelId, userId, content) {
   return false;
 }
 
-/** Call right after a natural spawn fires for this channel — resets counters and starts the cooldown. */
-function markSpawned(channelId) {
-  const state = getState(channelId);
+/** Call right after a natural spawn fires for this guild — resets counters and starts the cooldown. */
+function markSpawned(guildId) {
+  const state = getState(guildId);
   state.count = 0;
   state.uniqueUsers = new Set();
   state.threshold = randomThreshold();
   state.cooldownUntil = Date.now() + randomCooldownMs();
 }
 
-/** Periodic cleanup — drop state for channels that have been silent a long while. */
+/** Periodic cleanup — drop state for guilds that have been silent a long while. */
 function cleanupIdleChannels(idleMs = 6 * 60 * 60 * 1000) {
   const now = Date.now();
-  for (const [channelId, state] of channelState.entries()) {
-    if (now - state.lastActivityAt > idleMs) channelState.delete(channelId);
+  for (const [guildId, state] of guildState.entries()) {
+    if (now - state.lastActivityAt > idleMs) guildState.delete(guildId);
   }
 }
 

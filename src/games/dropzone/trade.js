@@ -1,8 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Drop It Like It's Hot — trading.
-// One sticker for one sticker. Proposer offers a sticker they own for a
-// sticker the other person owns; the other person accepts or declines via
-// buttons. Posted to the configured exchange channel if one is set.
+// One duplicate sticker for one sticker the other person owns. The offer side
+// MUST be a spare (quantity > 1) — you can never trade away your only copy.
+// The other person accepts or declines via buttons. Posted to the configured
+// exchange channel if one is set.
 // ─────────────────────────────────────────────────────────────────────────────
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { db } = require('../../utils/database');
@@ -23,6 +24,7 @@ async function proposeTrade(guild, channel, fromUser, toUser, offerMonsterId, re
 
   const ownOffer = await db.get('SELECT quantity FROM dropzone_collections WHERE user_id = ? AND monster_id = ? AND season = ?', [fromUser.id, offerMonsterId, season]);
   if (!ownOffer || ownOffer.quantity < 1) return { error: 'dont_own_offer' };
+  if (ownOffer.quantity < 2) return { error: 'not_a_duplicate' }; // must be a spare — can't trade your only copy
 
   const theyOwnRequest = await db.get('SELECT quantity FROM dropzone_collections WHERE user_id = ? AND monster_id = ? AND season = ?', [toUser.id, requestMonsterId, season]);
   if (!theyOwnRequest || theyOwnRequest.quantity < 1) return { error: 'they_dont_own_request' };
@@ -45,7 +47,7 @@ async function proposeTrade(guild, channel, fromUser, toUser, offerMonsterId, re
     .setTitle('<a:exchange:1552116423478870046> TRADE PROPOSAL')
     .setDescription(
       `<@${fromUser.id}> wants to trade with <@${toUser.id}>\n\n` +
-      `**Offering:** ${offerMeta.emoji} ${offerMonster.name}\n` +
+      `**Offering (spare copy):** ${offerMeta.emoji} ${offerMonster.name} — had ${ownOffer.quantity}, offering 1 spare\n` +
       `**For:** ${requestMeta.emoji} ${requestMonster.name}\n\n` +
       `<@${toUser.id}>, accept or decline below.`
     );
@@ -75,13 +77,13 @@ async function resolveTradeButton(interaction) {
     return;
   }
 
-  // Accept — re-verify both sides still actually own what's being swapped (things change over 3 seconds of button-staring).
+  // Accept — re-verify both sides still actually own what's being swapped, AND that the offer is still a spare.
   const offerOwned = await db.get('SELECT quantity FROM dropzone_collections WHERE user_id = ? AND monster_id = ? AND season = ?', [trade.from_user, trade.offer_monster_id, trade.offer_season]);
   const requestOwned = await db.get('SELECT quantity FROM dropzone_collections WHERE user_id = ? AND monster_id = ? AND season = ?', [trade.to_user, trade.request_monster_id, trade.request_season]);
 
-  if (!offerOwned?.quantity || !requestOwned?.quantity) {
+  if (!offerOwned?.quantity || offerOwned.quantity < 2 || !requestOwned?.quantity) {
     await db.run(`UPDATE dropzone_trades SET status = 'CANCELLED', resolved_at = NOW() WHERE id = ? AND status = 'PENDING'`, [tradeId]);
-    return interaction.update({ content: null, embeds: [new EmbedBuilder().setColor('#555555').setTitle('<:wrong:1495666083594502174> Trade fell through — one side no longer has the sticker.')], components: [] });
+    return interaction.update({ content: null, embeds: [new EmbedBuilder().setColor('#555555').setTitle('<:wrong:1495666083594502174> Trade fell through — one side no longer has a spare to offer.')], components: [] });
   }
 
   // Atomic claim so this can't double-resolve if somehow clicked twice.

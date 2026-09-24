@@ -790,6 +790,11 @@ async function initDB() {
       monster_id  TEXT PRIMARY KEY,
       enabled     BOOLEAN NOT NULL
     )`,
+    `CREATE TABLE IF NOT EXISTS dropzone_gift_permissions (
+      guild_id  TEXT NOT NULL,
+      user_id   TEXT NOT NULL,
+      UNIQUE(guild_id, user_id)
+    )`,
 
     // ── Regret Games ───────────────────────────────────────────────────────────
     'CREATE TABLE IF NOT EXISTS rg_seasons (id SERIAL PRIMARY KEY, guild_id TEXT NOT NULL UNIQUE, arena_channel_id TEXT, votes_channel_id TEXT, entry_fee INTEGER DEFAULT 500, status TEXT DEFAULT \'setup\', current_day INTEGER DEFAULT 0, pot INTEGER DEFAULT 0, prize_pot INTEGER DEFAULT 0, vote_open INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())',

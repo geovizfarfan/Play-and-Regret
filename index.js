@@ -275,7 +275,13 @@ const slashCommands = [
       .addUserOption(o => o.setName('user').setDescription('Who to trade with').setRequired(true))
       .addStringOption(o => o.setName('offer').setDescription('Sticker you\'re offering').setRequired(true).setAutocomplete(true))
       .addStringOption(o => o.setName('request').setDescription('Sticker you want from them').setRequired(true).setAutocomplete(true)))
-    .addSubcommand(sc => sc.setName('exchange').setDescription('Trade all your duplicates for sins'))
+    .addSubcommand(sc => sc.setName('exchange').setDescription('Trade duplicates for sins — all of them, or just one sticker')
+      .addStringOption(o => o.setName('sticker').setDescription('Exchange just this sticker\'s spares (leave blank for all duplicates)').setAutocomplete(true))
+      .addIntegerOption(o => o.setName('amount').setDescription('How many spares to exchange (only used with sticker, default: all spares)').setMinValue(1)))
+    .addSubcommand(sc => sc.setName('duplicates').setDescription('See your duplicates and how many spares of each'))
+    .addSubcommand(sc => sc.setName('gift').setDescription('Gift one of your spare duplicates to another member')
+      .addUserOption(o => o.setName('user').setDescription('Who to gift it to').setRequired(true))
+      .addStringOption(o => o.setName('sticker').setDescription('Which spare sticker to give').setRequired(true).setAutocomplete(true)))
     .addSubcommand(sc => sc.setName('leaderboard').setDescription('Top collectors this season')
       .addStringOption(o => o.setName('mode').setDescription('Ranking type').addChoices(
         { name: 'Unique Stickers', value: 'unique' },
@@ -307,6 +313,11 @@ const slashCommands = [
       .addChannelOption(o => o.setName('channel').setDescription('Channel').setRequired(true)))
     .addSubcommand(sc => sc.setName('pingrole').setDescription('Role to ping on every drop (leave blank to clear)')
       .addRoleOption(o => o.setName('role').setDescription('Role to ping')))
+    .addSubcommand(sc => sc.setName('giftpermission').setDescription('Allow or remove a member\'s ability to gift their own duplicates')
+      .addUserOption(o => o.setName('user').setDescription('Which member').setRequired(true))
+      .addStringOption(o => o.setName('state').setDescription('Grant or revoke').setRequired(true).addChoices(
+        { name: 'Grant', value: 'on' }, { name: 'Revoke', value: 'off' },
+      )))
     .addSubcommand(sc => sc.setName('timer').setDescription('Time-based spawns — fires on a schedule even with no chat activity')
       .addStringOption(o => o.setName('state').setDescription('On or off').setRequired(true).addChoices(
         { name: 'On', value: 'on' }, { name: 'Off', value: 'off' },

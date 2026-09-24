@@ -3,7 +3,9 @@
 // the two things index.js needs to wire in: the activity listener and the
 // catch/trade button router.
 // ─────────────────────────────────────────────────────────────────────────────
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder } = require('discord.js');
+const path = require('path');
+const fs = require('fs');
 const { db, economy } = require('../../utils/database');
 const { CONFIG, RARITY_ORDER, RARITY_META, getSeasonName } = require('./config');
 const { renderBookImage } = require('./bookImage');
@@ -13,7 +15,7 @@ const { rollMonster } = require('./rarity');
 const { postSpawn, reconcileOnStartup } = require('./spawn');
 const { handleCatchButton } = require('./catch');
 const { proposeTrade, resolveTradeButton } = require('./trade');
-const { buildCollectionSummary, getMissing, getLeaderboard, exchangeDuplicates, getUserCollection } = require('./collection');
+const { buildCollectionSummary, getMissing, getLeaderboard, exchangeDuplicates, exchangeSpecificSticker, getUserCollection, getDuplicates, getSpareCount } = require('./collection');
 const A = require('./admin');
 const T = require('./timer');
 
@@ -28,6 +30,31 @@ const LAVENDER = '#C9B1FF';
 
 function rarityBar(owned, total) {
   return `${owned}/${total}`;
+}
+
+function buildMonsterAttachment(monster) {
+  const filePath = path.join(__dirname, monster.image);
+  if (!fs.existsSync(filePath)) return null;
+  return new AttachmentBuilder(filePath, { name: `${String(monster.number).padStart(3, '0')}.png` });
+}
+
+function buildGiftEmbed(monster, recipient, giver, extraFields) {
+  const meta = RARITY_META[monster.rarity];
+  const embed = new EmbedBuilder()
+    .setColor(LAVENDER)
+    .setTitle('🎁 Sticker Given')
+    .setDescription(
+      `Successfully added **${monster.name}** \`#${String(monster.number).padStart(3, '0')}\` to <@${recipient.id}>'s collection.\n\n` +
+      `${meta.emoji} ${meta.label}`
+    )
+    .addFields(
+      { name: 'Recipient', value: `<@${recipient.id}>`, inline: true },
+      { name: 'Given By', value: giver ? `<@${giver.id}>` : 'Staff', inline: true },
+      ...(extraFields || []),
+    );
+  const attachment = buildMonsterAttachment(monster);
+  if (attachment) embed.setThumbnail(`attachment://${String(monster.number).padStart(3, '0')}.png`);
+  return { embed, attachment };
 }
 
 // ── /stickers book ───────────────────────────────────────────────────────
@@ -48,7 +75,6 @@ async function buildBookSummaryPayload(runnerId, targetUser, season, seasonName)
 
   const ownedIds = new Set(summary.collection.keys());
   const imgBuffer = await renderBookImage(MONSTERS, ownedIds, `${targetUser.username}'s Sticker Book`);
-  const { AttachmentBuilder } = require('discord.js');
   const attachment = imgBuffer ? new AttachmentBuilder(imgBuffer, { name: 'book.png' }) : null;
   if (attachment) embed.setImage('attachment://book.png');
 
@@ -56,7 +82,6 @@ async function buildBookSummaryPayload(runnerId, targetUser, season, seasonName)
     return { embeds: [embed], components: [], files: attachment ? [attachment] : [] };
   }
 
-  const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`dz_book_page:${runnerId}:${targetUser.id}:${season}:0`).setLabel('Inspect a Sticker').setEmoji('📖').setStyle(ButtonStyle.Primary)
   );
@@ -72,7 +97,6 @@ async function cmdBook(interaction, targetUser) {
   return interaction.editReply(payload);
 }
 
-// ── Sticker book image pager ─────────────────────────────────────────────
 async function buildBookPage(runnerId, targetUserId, season, index) {
   const collection = await getUserCollection(targetUserId, season);
   const owned = [...collection.entries()]
@@ -91,17 +115,9 @@ async function buildBookPage(runnerId, targetUserId, season, index) {
     .setDescription(`${meta.emoji} ${meta.label}\n\nOwned: **×${qty}**\n\n*"${monster.flavorText}"*`)
     .setFooter({ text: `Sticker ${safeIndex + 1} of ${owned.length}` });
 
-  const fs = require('fs');
-  const path = require('path');
-  const filePath = path.join(__dirname, monster.image);
-  let attachment = null;
-  if (fs.existsSync(filePath)) {
-    const { AttachmentBuilder } = require('discord.js');
-    attachment = new AttachmentBuilder(filePath, { name: `${String(monster.number).padStart(3, '0')}.png` });
-    embed.setImage(`attachment://${String(monster.number).padStart(3, '0')}.png`);
-  }
+  const attachment = buildMonsterAttachment(monster);
+  if (attachment) embed.setImage(`attachment://${String(monster.number).padStart(3, '0')}.png`);
 
-  const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`dz_book_back:${runnerId}:${targetUserId}:${season}`).setLabel('◀ Back').setEmoji('📕').setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId(`dz_book_page:${runnerId}:${targetUserId}:${season}:${safeIndex - 1}`).setLabel('◀ Previous').setStyle(ButtonStyle.Secondary),
@@ -170,12 +186,8 @@ async function cmdView(interaction, monsterId) {
     .setTitle(`#${String(monster.number).padStart(3, '0')} — ${monster.name.toUpperCase()}`)
     .setDescription(`${meta.emoji} ${meta.label}\n\nOwned: **×${owned?.quantity || 0}**\n\n*"${monster.flavorText}"*`);
 
-  const fs = require('fs');
-  const path = require('path');
-  const filePath = path.join(__dirname, monster.image);
-  if (fs.existsSync(filePath)) {
-    const { AttachmentBuilder } = require('discord.js');
-    const attachment = new AttachmentBuilder(filePath, { name: `${String(monster.number).padStart(3, '0')}.png` });
+  const attachment = buildMonsterAttachment(monster);
+  if (attachment) {
     embed.setImage(`attachment://${String(monster.number).padStart(3, '0')}.png`);
     return interaction.reply({ embeds: [embed], files: [attachment], ephemeral: true });
   }
@@ -190,6 +202,7 @@ async function cmdTrade(interaction, targetUser, offerId, requestId) {
   if (result.error === 'self') return interaction.reply({ content: '<:wrong:1495666083594502174> Can\'t trade with yourself.', ephemeral: true });
   if (result.error === 'unknown_sticker') return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown sticker.', ephemeral: true });
   if (result.error === 'dont_own_offer') return interaction.reply({ content: '<:wrong:1495666083594502174> You don\'t own the sticker you\'re offering.', ephemeral: true });
+  if (result.error === 'not_a_duplicate') return interaction.reply({ content: '<:wrong:1495666083594502174> That\'s your only copy — you can only trade away spares, not your only one.', ephemeral: true });
   if (result.error === 'they_dont_own_request') return interaction.reply({ content: `<:wrong:1495666083594502174> ${targetUser.username} doesn't own that sticker.`, ephemeral: true });
 
   return interaction.reply({ content: `<:checkmark:1495666088417956002> Trade proposed in ${result.postedIn}.`, ephemeral: true });
@@ -198,12 +211,25 @@ async function cmdTrade(interaction, targetUser, offerId, requestId) {
 // ── /stickers exchange ───────────────────────────────────────────────────
 async function cmdExchange(interaction) {
   const cfg = await A.getConfig(interaction.guild.id);
-  const result = await exchangeDuplicates(interaction.user.id, cfg.current_season);
+  const monsterId = interaction.options.getString('sticker');
+  const amount = interaction.options.getInteger('amount');
 
+  if (monsterId) {
+    const result = await exchangeSpecificSticker(interaction.user.id, monsterId, cfg.current_season, amount);
+    if (result.error === 'unknown_sticker') return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown sticker.', ephemeral: true });
+    if (result.error === 'no_duplicates') return interaction.reply({ content: `<a:Warning:1497476844860215366> You don't have any spare copies of that one.`, ephemeral: true });
+
+    await economy.addFunds(interaction.user.id, result.sinsEarned, `Drop It Like It's Hot — exchanged ${result.monster.name}`);
+    return interaction.reply({
+      content: `<:checkmark:1495666088417956002> Exchanged **${result.itemsExchanged}×** ${result.monster.name} for **${result.sinsEarned.toLocaleString()} sins**. (${result.remainingSpares} spare${result.remainingSpares !== 1 ? 's' : ''} left)`,
+      ephemeral: true,
+    });
+  }
+
+  const result = await exchangeDuplicates(interaction.user.id, cfg.current_season);
   if (!result.itemsExchanged) {
     return interaction.reply({ content: `<a:Warning:1497476844860215366> No duplicates to exchange right now.`, ephemeral: true });
   }
-
   await economy.addFunds(interaction.user.id, result.sinsEarned, 'Drop It Like It\'s Hot — duplicate exchange');
   const breakdown = RARITY_ORDER.filter(r => result.breakdown[r]).map(r => `${RARITY_META[r].emoji} ${result.breakdown[r]}× ${RARITY_META[r].label}`).join('\n');
 
@@ -211,6 +237,45 @@ async function cmdExchange(interaction) {
     content: `<:checkmark:1495666088417956002> Exchanged **${result.itemsExchanged}** duplicates for **${result.sinsEarned.toLocaleString()} sins**.\n\n${breakdown}`,
     ephemeral: true,
   });
+}
+
+// ── /stickers duplicates ─────────────────────────────────────────────────
+async function cmdDuplicates(interaction) {
+  const cfg = await A.getConfig(interaction.guild.id);
+  const dupes = await getDuplicates(interaction.user.id, cfg.current_season);
+  if (!dupes.length) return interaction.reply({ content: `<a:Warning:1497476844860215366> You don't have any duplicates right now.`, ephemeral: true });
+
+  const lines = dupes.map(d => `${RARITY_META[d.monster.rarity].emoji} #${String(d.monster.number).padStart(3, '0')} ${d.monster.name} — **${d.spareCount}** spare${d.spareCount !== 1 ? 's' : ''}`);
+  const embed = new EmbedBuilder().setColor(LAVENDER).setTitle('👀 Your Duplicates').setDescription(lines.join('\n').slice(0, 4000));
+  return interaction.reply({ embeds: [embed], ephemeral: true });
+}
+
+// ── /stickers gift — member-to-member, own duplicates only ──────────────
+async function cmdMemberGift(interaction, targetUser, monsterId) {
+  const guildId = interaction.guild.id;
+  const permitted = await A.hasGiftPermission(guildId, interaction.user.id);
+  if (!isAdmin(interaction.member) && !permitted) {
+    return interaction.reply({ content: `<:wrong:1495666083594502174> You don't have permission to gift stickers. Ask an admin to grant it with /stickers-admin giftpermission.`, ephemeral: true });
+  }
+  if (targetUser.id === interaction.user.id) return interaction.reply({ content: `<:wrong:1495666083594502174> Can't gift yourself.`, ephemeral: true });
+
+  const cfg = await A.getConfig(guildId);
+  const monster = getMonster(monsterId);
+  if (!monster) return interaction.reply({ content: `<:wrong:1495666083594502174> Unknown sticker.`, ephemeral: true });
+
+  const spareCount = await getSpareCount(interaction.user.id, monsterId, cfg.current_season);
+  if (spareCount <= 0) return interaction.reply({ content: `<:wrong:1495666083594502174> You don't have a spare copy of that one to give away.`, ephemeral: true });
+
+  await db.run('UPDATE dropzone_collections SET quantity = quantity - 1 WHERE user_id = ? AND monster_id = ? AND season = ?', [interaction.user.id, monsterId, cfg.current_season]);
+  await db.run(
+    `INSERT INTO dropzone_collections (user_id, monster_id, season, quantity, first_caught_at)
+     VALUES (?, ?, ?, 1, NOW())
+     ON CONFLICT (user_id, monster_id, season) DO UPDATE SET quantity = dropzone_collections.quantity + 1`,
+    [targetUser.id, monsterId, cfg.current_season]
+  );
+
+  const { embed, attachment } = buildGiftEmbed(monster, targetUser, interaction.user);
+  return interaction.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
 }
 
 // ── /stickers leaderboard ────────────────────────────────────────────────
@@ -228,8 +293,27 @@ async function cmdLeaderboard(interaction, mode) {
 
 // ── Autocomplete ──────────────────────────────────────────────────────────
 async function handleAutocomplete(interaction) {
-  const focused = interaction.options.getFocused().toLowerCase();
-  const matches = MONSTERS.filter(m => isEnabled(m) && m.name.toLowerCase().includes(focused)).slice(0, 25);
+  const focused = interaction.options.getFocused(true);
+  const sub = interaction.options.getSubcommand(false);
+  const query = (focused.value || '').toLowerCase();
+
+  // Trade's "offer" field and the member gift's "sticker" field, and exchange's optional
+  // "sticker" field: only show the user's OWN duplicates, with spare counts shown.
+  const dupeOnlyFields = (sub === 'trade' && focused.name === 'offer')
+    || (sub === 'gift' && focused.name === 'sticker')
+    || (sub === 'exchange' && focused.name === 'sticker');
+
+  if (dupeOnlyFields) {
+    const cfg = await A.getConfig(interaction.guild.id);
+    const dupes = await getDuplicates(interaction.user.id, cfg.current_season);
+    const matches = dupes.filter(d => d.monster.name.toLowerCase().includes(query)).slice(0, 25);
+    return interaction.respond(matches.map(d => ({
+      name: `#${String(d.monster.number).padStart(3, '0')} ${d.monster.name} — ${d.spareCount} spare${d.spareCount !== 1 ? 's' : ''}`,
+      value: d.monster.id,
+    })));
+  }
+
+  const matches = MONSTERS.filter(m => isEnabled(m) && m.name.toLowerCase().includes(query)).slice(0, 25);
   return interaction.respond(matches.map(m => ({ name: `#${String(m.number).padStart(3, '0')} ${m.name}`, value: m.id })));
 }
 async function handleAdminAutocomplete(interaction) {
@@ -239,19 +323,30 @@ async function handleAdminAutocomplete(interaction) {
 }
 
 // ── Activity listener (called from index.js's messageCreate) ────────────
+// Activity counts server-wide now — chat in ANY channel contributes. The
+// spawn itself still only ever posts into an allowed spawn channel, picked
+// randomly if there's more than one, since the triggering channel might not
+// be on that list at all.
 async function handleActivityMessage(message) {
   if (!CONFIG.enabled || message.author.bot || !message.guild) return;
   const cfg = await A.getConfig(message.guild.id);
   if (!cfg.enabled) return;
-  if (!(await A.isSpawnChannelAllowed(message.guild.id, message.channel.id))) return;
 
-  const shouldSpawn = recordActivity(message.channel.id, message.author.id, message.content || '');
+  const shouldSpawn = recordActivity(message.guild.id, message.author.id, message.content || '');
   if (!shouldSpawn) return;
 
-  markSpawned(message.channel.id);
+  markSpawned(message.guild.id);
+
+  const spawnChannels = await A.getSpawnChannels(message.guild.id);
+  if (!spawnChannels.length) return; // nothing configured — nowhere to actually post it
+
+  const pick = spawnChannels[Math.floor(Math.random() * spawnChannels.length)];
+  const channel = await message.guild.channels.fetch(pick.channel_id).catch(() => null);
+  if (!channel || !channel.isTextBased()) return;
+
   const monster = rollMonster(cfg.current_season);
-  if (!monster) return; // nothing enabled anywhere — nothing to spawn
-  await postSpawn(message.channel, message.guild.id, monster, 'NATURAL', cfg.ping_role_id).catch(err => console.error('[Drop It Like It\'s Hot] spawn error', err));
+  if (!monster) return;
+  await postSpawn(channel, message.guild.id, monster, 'NATURAL', cfg.ping_role_id).catch(err => console.error('[Drop It Like It\'s Hot] spawn error', err));
 }
 
 // ── Button router (called from index.js's interactionCreate) ────────────
@@ -272,6 +367,8 @@ async function handleSlash(interaction, commandName) {
     if (sub === 'trade') return cmdTrade(interaction, interaction.options.getUser('user'), interaction.options.getString('offer'), interaction.options.getString('request'));
     if (sub === 'exchange') return cmdExchange(interaction);
     if (sub === 'leaderboard') return cmdLeaderboard(interaction, interaction.options.getString('mode'));
+    if (sub === 'duplicates') return cmdDuplicates(interaction);
+    if (sub === 'gift') return cmdMemberGift(interaction, interaction.options.getUser('user'), interaction.options.getString('sticker'));
   }
 
   if (commandName === 'stickers-admin') {
@@ -284,7 +381,11 @@ async function handleSlash(interaction, commandName) {
       const qty = interaction.options.getInteger('quantity') || 1;
       const result = await A.giftSticker(target.id, monsterId, qty);
       if (result.error) return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown sticker.', ephemeral: true });
-      return interaction.reply(`<:checkmark:1495666088417956002> Gave <@${target.id}> **${qty}×** ${result.monster.name} (now owns ${result.newQuantity}).`);
+      const { embed, attachment } = buildGiftEmbed(result.monster, target, interaction.user, [
+        { name: 'Quantity', value: `${qty}`, inline: true },
+        { name: 'Now Owns', value: `${result.newQuantity}`, inline: true },
+      ]);
+      return interaction.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
     }
     if (sub === 'remove') {
       const target = interaction.options.getUser('user');
@@ -349,17 +450,26 @@ async function handleSlash(interaction, commandName) {
       if (state) {
         const cfg = await A.getConfig(interaction.guild.id);
         if (!cfg.timer_enabled) {
-          // First time turning this on — auto-enable random background drops so nothing needs manual setup.
           await T.setTimerConfig(interaction.client, interaction.guild.id, true, 30, 90);
           extra = `\nRandom drops are on too — a sticker will drop roughly every 30-90 minutes on its own, no setup needed. (Adjust anytime with \`/stickers-admin timer\`.)`;
         }
       }
       return interaction.reply(`<:checkmark:1495666088417956002> Drop It Like It's Hot is now **${state ? 'ON' : 'OFF'}**.${extra}`);
     }
+    if (sub === 'giftpermission') {
+      const target = interaction.options.getUser('user');
+      const state = interaction.options.getString('state');
+      if (state === 'on') {
+        await A.grantGiftPermission(interaction.guild.id, target.id);
+        return interaction.reply(`<:checkmark:1495666088417956002> <@${target.id}> can now gift their duplicate stickers to other members with /stickers gift.`);
+      }
+      await A.revokeGiftPermission(interaction.guild.id, target.id);
+      return interaction.reply(`<:checkmark:1495666088417956002> <@${target.id}>'s gift permission has been revoked.`);
+    }
     if (sub === 'stats') {
       const cfg = await A.getConfig(interaction.guild.id);
       const stats = await A.getStats(interaction.guild.id, cfg.current_season);
-      const embed = new EmbedBuilder().setColor(LAVENDER).setTitle(`<a:leaderboard:1552119707518238740> Drop It Like It's Hot — ${getSeasonName(cfg.current_season)} Stats`)
+      const embed = new EmbedBuilder().setColor(LAVENDER).setTitle(`<a:leaderboard:1552119707518238740> ${getSeasonName(cfg.current_season)} Stats`)
         .addFields(
           { name: 'Total Caught', value: `${stats.totalCaught}`, inline: true },
           { name: 'Natural Spawns', value: `${stats.naturalSpawns}`, inline: true },

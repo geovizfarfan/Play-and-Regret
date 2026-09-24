@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Drop It Like It's Hot — admin controls.
-// Gifting, manual spawns, enable/disable, channel config, stats.
+// Gifting, manual spawns, enable/disable, channel config, stats, and the
+// member-level gift permission tier.
 // ─────────────────────────────────────────────────────────────────────────────
 const { db } = require('../../utils/database');
 const { CONFIG } = require('./config');
@@ -52,7 +53,22 @@ async function setPingRole(guildId, roleId) {
   );
 }
 
-/** Gift a specific sticker (any season, any enabled state) to a user. */
+// ── Gift permission tier — lets specific non-admin members gift too ───────
+async function grantGiftPermission(guildId, userId) {
+  await db.run('INSERT INTO dropzone_gift_permissions (guild_id, user_id) VALUES (?, ?) ON CONFLICT (guild_id, user_id) DO NOTHING', [guildId, userId]);
+}
+async function revokeGiftPermission(guildId, userId) {
+  await db.run('DELETE FROM dropzone_gift_permissions WHERE guild_id = ? AND user_id = ?', [guildId, userId]);
+}
+async function hasGiftPermission(guildId, userId) {
+  const row = await db.get('SELECT 1 AS x FROM dropzone_gift_permissions WHERE guild_id = ? AND user_id = ?', [guildId, userId]);
+  return !!row;
+}
+async function getGiftPermittedUsers(guildId) {
+  return db.all('SELECT user_id FROM dropzone_gift_permissions WHERE guild_id = ?', [guildId]);
+}
+
+/** Gift a specific sticker (any season, any enabled state) to a user. Returns full monster data for building a result embed. */
 async function giftSticker(targetUserId, monsterId, quantity = 1) {
   const monster = getMonster(monsterId);
   if (!monster) return { error: 'unknown_sticker' };
@@ -125,4 +141,5 @@ async function getStats(guildId, season) {
 module.exports = {
   getConfig, setGuildEnabled, setSpawnChannel, getSpawnChannels, isSpawnChannelAllowed,
   setExchangeChannel, setPingRole, giftSticker, removeSticker, manualSpawn, setMonsterEnabled, getStats,
+  grantGiftPermission, revokeGiftPermission, hasGiftPermission, getGiftPermittedUsers,
 };
