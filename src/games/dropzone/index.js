@@ -313,6 +313,29 @@ async function handleAutocomplete(interaction) {
     })));
   }
 
+  // Trade's "request" field: once a trade partner is picked, only show stickers THEY
+  // actually own, with their quantity shown — so you can see if it's a spare for them too.
+  if (sub === 'trade' && focused.name === 'request') {
+    const targetUser = interaction.options.getUser('user');
+    if (targetUser) {
+      const cfg = await A.getConfig(interaction.guild.id);
+      const theirCollection = await getUserCollection(targetUser.id, cfg.current_season);
+      const owned = [...theirCollection.entries()]
+        .map(([monsterId, row]) => ({ monster: getMonster(monsterId), quantity: row.quantity }))
+        .filter(o => o.monster && o.monster.name.toLowerCase().includes(query))
+        .sort((a, b) => a.monster.number - b.monster.number)
+        .slice(0, 25);
+      if (!owned.length) {
+        return interaction.respond([{ name: `${targetUser.username} doesn't own any matching stickers`, value: 'none' }]);
+      }
+      return interaction.respond(owned.map(o => ({
+        name: `#${String(o.monster.number).padStart(3, '0')} ${o.monster.name} — ${targetUser.username} owns ${o.quantity}${o.quantity > 1 ? ' (spare for them too)' : ''}`,
+        value: o.monster.id,
+      })));
+    }
+    // no trade partner picked yet — can't filter by ownership, fall through to the generic list below
+  }
+
   const matches = MONSTERS.filter(m => isEnabled(m) && m.name.toLowerCase().includes(query)).slice(0, 25);
   return interaction.respond(matches.map(m => ({ name: `#${String(m.number).padStart(3, '0')} ${m.name}`, value: m.id })));
 }
