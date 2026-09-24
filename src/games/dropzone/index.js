@@ -316,20 +316,25 @@ async function handleAutocomplete(interaction) {
   // Trade's "request" field: once a trade partner is picked, only show stickers THEY
   // actually own, with their quantity shown — so you can see if it's a spare for them too.
   if (sub === 'trade' && focused.name === 'request') {
-    const targetUser = interaction.options.getUser('user');
-    if (targetUser) {
+    // Discord's autocomplete payload often omits resolved data for other options even
+    // when they're already filled in on the modal, so interaction.options.getUser('user')
+    // can come back undefined here despite a partner being picked. The raw ID doesn't
+    // need resolution though — pull it directly off the option instead.
+    const targetUserId = interaction.options.get('user')?.value;
+    if (targetUserId) {
+      const targetUsername = interaction.client.users.cache.get(targetUserId)?.username || 'this user';
       const cfg = await A.getConfig(interaction.guild.id);
-      const theirCollection = await getUserCollection(targetUser.id, cfg.current_season);
+      const theirCollection = await getUserCollection(targetUserId, cfg.current_season);
       const owned = [...theirCollection.entries()]
         .map(([monsterId, row]) => ({ monster: getMonster(monsterId), quantity: row.quantity }))
         .filter(o => o.monster && o.monster.name.toLowerCase().includes(query))
         .sort((a, b) => a.monster.number - b.monster.number)
         .slice(0, 25);
       if (!owned.length) {
-        return interaction.respond([{ name: `${targetUser.username} doesn't own any matching stickers`, value: 'none' }]);
+        return interaction.respond([{ name: `${targetUsername} doesn't own any matching stickers`, value: 'none' }]);
       }
       return interaction.respond(owned.map(o => ({
-        name: `#${String(o.monster.number).padStart(3, '0')} ${o.monster.name} — ${targetUser.username} owns ${o.quantity}${o.quantity > 1 ? ' (spare for them too)' : ''}`,
+        name: `#${String(o.monster.number).padStart(3, '0')} ${o.monster.name} — ${targetUsername} owns ${o.quantity}${o.quantity > 1 ? ' (spare for them too)' : ''}`,
         value: o.monster.id,
       })));
     }
