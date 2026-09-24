@@ -408,6 +408,9 @@ async function handleSlash(interaction, commandName) {
       const target = interaction.options.getUser('user');
       const monsterId = interaction.options.getString('sticker');
       const qty = interaction.options.getInteger('quantity') || 1;
+      if (target.id === interaction.user.id && target.id !== process.env.OWNER_ID) {
+        return interaction.reply({ content: `<:wrong:1495666083594502174> You can't gift stickers to yourself.`, ephemeral: true });
+      }
       const result = await A.giftSticker(target.id, monsterId, qty);
       if (result.error) return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown sticker.', ephemeral: true });
       const { embed, attachment } = buildGiftEmbed(result.monster, target, interaction.user, [
