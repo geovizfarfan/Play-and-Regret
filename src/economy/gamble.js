@@ -1,8 +1,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Gambling — tiered risk. Bet sins, pick a risk tier, win big or lose it all.
+// Balance now comes from Veloura's per-guild economy (whatever currency this
+// server set up in /currency setup), not this bot's own local balance.
+// Regret stays local — it's not currency, it's not part of this migration.
 // ─────────────────────────────────────────────────────────────────────────────
 const { EmbedBuilder } = require('discord.js');
 const { economy } = require('../utils/database');
+const guildEconomy = require('../utils/guildEconomy');
 const E = require('../utils/emojis');
 
 const TIERS = {
@@ -32,6 +36,12 @@ module.exports = {
   TIERS,
 
   async gamble(message, args) {
+    if (!message.guild) {
+      return message.reply(`${E.ERROR} Gambling only works in a server, not DMs.`);
+    }
+    const guildId = message.guild.id;
+    const { name: currency } = await guildEconomy.getCurrencyName(guildId);
+
     const bet     = parseInt(args[0]);
     const tierKey = (args[1] || '').toLowerCase();
 
@@ -42,12 +52,12 @@ module.exports = {
       );
     }
     if (isNaN(bet) || bet < MIN_BET) {
-      return message.reply(`${E.ERROR} Minimum bet is **${MIN_BET} sins**.`);
+      return message.reply(`${E.ERROR} Minimum bet is **${MIN_BET} ${currency}**.`);
     }
 
-    const balance = await economy.getBalance(message.author.id);
+    const balance = await guildEconomy.getBalance(guildId, message.author.id);
     if (balance < bet) {
-      return message.reply(`${E.ERROR} You only have **${balance.toLocaleString()} sins**.`);
+      return message.reply(`${E.ERROR} You only have **${balance.toLocaleString()} ${currency}**.`);
     }
 
     const tier = TIERS[tierKey];
@@ -55,18 +65,18 @@ module.exports = {
 
     if (won) {
       const winnings = Math.floor(bet * tier.payout) - bet; // net gain
-      await economy.addFunds(message.author.id, winnings, `Gamble win (${tierKey})`);
+      await guildEconomy.addFunds(guildId, message.author.id, message.author.username, winnings, `Gamble win (${tierKey})`);
       return message.reply({ embeds: [new EmbedBuilder().setColor(tier.color)
         .setTitle(`${E.BB_COIN} ${tier.label} — YOU WON`)
-        .setDescription(`${pick(WIN_LINES)}\n\nBet **${bet.toLocaleString()}** → won **+${winnings.toLocaleString()} sins** (${tier.payout}x)`)
+        .setDescription(`${pick(WIN_LINES)}\n\nBet **${bet.toLocaleString()}** → won **+${winnings.toLocaleString()} ${currency}** (${tier.payout}x)`)
       ] });
     } else {
-      await economy.removeFunds(message.author.id, bet, `Gamble loss (${tierKey})`);
+      await guildEconomy.removeFunds(guildId, message.author.id, message.author.username, bet, `Gamble loss (${tierKey})`);
       const regretAmt = 15 + Math.floor(Math.random() * 20);
       await economy.addRegret(message.author.id, regretAmt);
       return message.reply({ embeds: [new EmbedBuilder().setColor(tier.color)
         .setTitle(`${E.BB_COIN} ${tier.label} — YOU LOST`)
-        .setDescription(`${pick(LOSE_LINES)}\n\nLost **${bet.toLocaleString()} sins** · +${regretAmt} regret`)
+        .setDescription(`${pick(LOSE_LINES)}\n\nLost **${bet.toLocaleString()} ${currency}** · +${regretAmt} regret`)
       ] });
     }
   },
