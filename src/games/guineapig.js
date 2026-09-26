@@ -9,6 +9,7 @@
 
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { economy, stats } = require('../utils/database');
+const guildEconomy = require('../utils/guildEconomy');
 const jackpot = require('../utils/jackpot');
 
 const EVENT_HOST_ROLE = process.env.EVENT_HOST_ROLE || 'Event Host';
@@ -224,7 +225,7 @@ async function runCuyGame(channel, players, bet, totalRounds) {
   const share    = Math.floor((pot - tax) / winners.length);
 
   for (const w of winners) {
-    await economy.addFunds(w.id, share, 'Cuy win');
+    await guildEconomy.addFunds(channel.guild.id, w.id, w.username, share, 'Cuy win');
     await economy.untrackGameChannel(channelId).catch(()=>{});
     stats.increment(w.id, 'cuy_wins').catch(() => {});
   }
@@ -322,11 +323,10 @@ async function launchCuy(channel, bet, rounds, triggeredBy, hostId) {
     if (g.players.find(p => p.id === interaction.user.id)) {
       return interaction.followUp({ content: `<a:Warning:1497476844860215366> Already joined!`, ephemeral: true });
     }
-    await economy.getUser(interaction.user.id, interaction.user.username);
-    const bal = await economy.getBalance(interaction.user.id);
+    const bal = await guildEconomy.getBalance(interaction.guild.id, interaction.user.id);
     if (bal < bet) return interaction.followUp({ content: `<:wrong:1495666083594502174> Need **${bet} sins**!`, ephemeral: true });
 
-    await economy.removeFunds(interaction.user.id, bet, 'Cuy entry');
+    await guildEconomy.removeFunds(interaction.guild.id, interaction.user.id, interaction.user.username, bet, 'Cuy entry');
     await economy.trackGameEntry(interaction.user.id, interaction.user.username, interaction.channel.id, 'Find the Cuy', bet).catch(()=>{});
     g.players.push({ id: interaction.user.id, username: interaction.user.username });
     await gameMsg.edit({ embeds: [makeEmbed()], components: [makeButtons()] });
@@ -344,7 +344,7 @@ async function launchCuy(channel, bet, rounds, triggeredBy, hostId) {
     await gameMsg.edit({ components: [closed] }).catch(() => {});
 
     if (g.players.length < 2) {
-      for (const p of g.players) await economy.addFunds(p.id, bet, 'Cuy refund');
+      for (const p of g.players) await guildEconomy.addFunds(channel.guild.id, p.id, p.username, bet, 'Cuy refund');
       activeGames.delete(channelId);
       return channel.send(`<:wrong:1495666083594502174> Not enough players. Refunded.`);
     }
