@@ -152,7 +152,13 @@ module.exports = {
     const target = message.mentions?.users?.first() || message.author;
     await economy.getUser(target.id, target.username);
     const guildId = message.guild.id;
-    const { name: currency, emoji: currencyEmoji } = await guildEconomy.getCurrencyName(guildId);
+    const { name: currency } = await guildEconomy.getCurrencyName(guildId);
+    // Use this bot's own known-working emoji for "Sins" rather than trusting
+    // whatever emoji string Veloura has stored — a custom emoji tag only
+    // renders for the bot application that actually owns it, and the one on
+    // file there doesn't render for this bot. Any other custom currency name
+    // just gets no emoji rather than guessing.
+    const currencyEmoji = currency === 'Sins' ? E.BB_COIN : '';
     const bal    = await guildEconomy.getBalance(guildId, target.id);
     const user   = await economy.getUser(target.id, target.username);
     const regret = user?.regret || 0;
