@@ -12,6 +12,7 @@ const {
   StringSelectMenuBuilder,
 } = require('discord.js');
 const { db, economy } = require('../../utils/database');
+const guildEconomy = require('../../utils/guildEconomy');
 const { awardRegret } = require('../../utils/regret');
 const { POWERS, POWER_KEYS, grantRandomPower } = require('./powers');
 const S = require('./scenarios');
@@ -108,12 +109,11 @@ async function handleLobbyButton(interaction) {
     if (game.players.has(interaction.user.id)) return interaction.reply({ content: '<a:Warning:1497476844860215366> You already joined.', ephemeral: true });
     if (game.players.size >= CONFIG.maxPlayers) return interaction.reply({ content: '<:wrong:1495666083594502174> Lobby\'s full.', ephemeral: true });
     if (game.feeEnabled) {
-      await economy.getUser(interaction.user.id, interaction.user.username);
-      const balance = await economy.getBalance(interaction.user.id);
+      const balance = await guildEconomy.getBalance(interaction.guild.id, interaction.user.id);
       if (balance < game.feeAmount) {
         return interaction.reply({ content: `<:wrong:1495666083594502174> You need **${game.feeAmount.toLocaleString()} sins** to join. You have **${balance.toLocaleString()}**.`, ephemeral: true });
       }
-      await economy.removeFunds(interaction.user.id, game.feeAmount, 'Pick Me Pit entry fee');
+      await guildEconomy.removeFunds(interaction.guild.id, interaction.user.id, interaction.user.username, game.feeAmount, 'Pick Me Pit entry fee');
       game.collectedFees += game.feeAmount;
     }
     const p = newPlayer(interaction.user.id, interaction.user.username);
@@ -360,7 +360,7 @@ async function endGame(channel, game, winner) {
     ]});
     const totalPrize = game.prize + game.collectedFees;
     if (totalPrize > 0) {
-      await economy.addFunds(winner.userId, totalPrize, 'Pick Me Pit prize').catch(() => {});
+      await guildEconomy.addFunds(channel.guild.id, winner.userId, winner.username, totalPrize, 'Pick Me Pit prize').catch(() => {});
       await channel.send(`<a:SINS:1522338223613804724> **${winner.username}** takes home **${totalPrize.toLocaleString()} sins**.`);
     }
   }
@@ -376,7 +376,7 @@ async function cancelViaUniversal(channel, userId, member) {
   clearTimeout(game.lobbyTimer);
   if (game.feeEnabled) {
     for (const p of game.players.values()) {
-      if (p.paidFee) await economy.addFunds(p.userId, game.feeAmount, 'Pick Me Pit cancelled — refund').catch(() => {});
+      if (p.paidFee) await guildEconomy.addFunds(channel.guild.id, p.userId, p.username, game.feeAmount, 'Pick Me Pit cancelled — refund').catch(() => {});
     }
   }
   activeGames.delete(channel.id);
