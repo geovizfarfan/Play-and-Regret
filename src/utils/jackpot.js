@@ -4,7 +4,7 @@
  */
 const { db } = require('./database');
 
-let ENTRY_COST = 50;
+let ENTRY_COST = 200; // default/fallback only — real sessions store their own entry_cost now
 const NUMBER_MIN = 1;
 const NUMBER_MAX = 100;
 
@@ -40,10 +40,10 @@ const jackpot = {
   },
 
   // ── Sessions ───────────────────────────────────────────────────────────────
-  async startSession(name, endsAt, channelId) {
+  async startSession(name, endsAt, channelId, entryCost = ENTRY_COST) {
     const result = await db.run(
-      'INSERT INTO jackpot_sessions (name, status, channel_id, pot, ends_at) VALUES (?, ?, ?, 0, ?)',
-      [name, 'active', channelId, endsAt]
+      'INSERT INTO jackpot_sessions (name, status, channel_id, pot, ends_at, entry_cost) VALUES (?, ?, ?, 0, ?, ?)',
+      [name, 'active', channelId, endsAt, entryCost]
     );
     const id = result.lastInsertRowid;
     await this.drainDrawFundIntoSession(id);
@@ -62,7 +62,7 @@ const jackpot = {
     const session = await this.getSession(sessionId);
     if (!session) return { refunded: [], drawFundRestored: 0 };
     const entries        = await this.getEntries(sessionId);
-    const entryTotal     = entries.length * ENTRY_COST;
+    const entryTotal     = entries.length * (session.entry_cost ?? ENTRY_COST);
     const drawFundPortion = Math.max(0, (Number(session.pot) || 0) - entryTotal);
     if (drawFundPortion > 0) {
       await db.run('UPDATE jackpot_draw_fund SET amount = amount + ? WHERE id = 1', [drawFundPortion]);

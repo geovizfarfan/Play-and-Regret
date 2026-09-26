@@ -221,11 +221,11 @@ module.exports = {
       return replyFn(`${E.ERROR} You already entered **${session.name}**!`);
 
     const bal = await guildEconomy.getBalance(guildId, user.id);
-    if (bal < jackpot.ENTRY_COST)
-      return replyFn(`${E.ERROR} You need **${jackpot.ENTRY_COST} ${CURRENCY}** but only have **${bal}**.`);
+    if (bal < session.entry_cost)
+      return replyFn(`${E.ERROR} You need **${session.entry_cost} ${CURRENCY}** but only have **${bal}**.`);
 
-    await guildEconomy.removeFunds(guildId, user.id, user.username, jackpot.ENTRY_COST, `Entry: ${session.name}`);
-    await jackpot.addToPot(jackpot.ENTRY_COST, `Entry by ${user.username}`, sessionId);
+    await guildEconomy.removeFunds(guildId, user.id, user.username, session.entry_cost, `Entry: ${session.name}`);
+    await jackpot.addToPot(session.entry_cost, `Entry by ${user.username}`, sessionId);
     await jackpot.enter(user.id, user.username, number, sessionId);
     await this.updateLiveChannels();
 
@@ -299,8 +299,7 @@ module.exports = {
     const label  = modeKey === 'monthly' ? '1 Month (30 days)' : modeKey === 'biweekly' ? '15 Days' : '1 Week (7 days)';
     const endsAt = new Date(Date.now() + ms);
 
-    if (customEntryCost) jackpot.ENTRY_COST = customEntryCost;
-    const session = await jackpot.startSession(name, endsAt.toISOString(), channel.id);
+    const session = await jackpot.startSession(name, endsAt.toISOString(), channel.id, customEntryCost || undefined);
 
     const drawFund = await jackpot.getDrawFund();
     const entries0 = await jackpot.getEntries(session.id);
@@ -308,7 +307,7 @@ module.exports = {
       .setColor('#D8B4FE')
       .setDescription(
         `**What is this?**\n` +
-        `It's a jackpot lottery! Pay **${jackpot.ENTRY_COST} Sins** to enter and pick a number 1-100.\n` +
+        `It's a jackpot lottery! Pay **${session.entry_cost} Sins** to enter and pick a number 1-100.\n` +
         `When time is up, we draw a random number — whoever's pick is **closest wins the entire pot!** <a:confetti:1495667283870089307>\n\n` +
         `<a:583778moneyfly:1479271753392853023> Game ties (game draws feed into the pot automatically)\n\n` +
         `<a:calendar:1479266779837632562> Draw in: **${label}** · Ends: <t:${Math.floor(endsAt.getTime()/1000)}:F>`
@@ -317,7 +316,7 @@ module.exports = {
         { name: '<:pd_zPurple_Pin:1495665628672037046> How to Win', value: 'Pick the closest number to the draw — you win the whole pot!', inline: false },
         { name: '<:member:1495666085121491024> Entries', value: `**${entries0.length}**`, inline: true },
       )
-      .setFooter({ text: `Entry: ${jackpot.ENTRY_COST} Sins • Click the button to enter!` });
+      .setFooter({ text: `Entry: ${session.entry_cost} Sins • Click the button to enter!` });
 
     const ping = roleId ? `<@&${roleId}>` : '';
     const titleLine = ping
@@ -665,7 +664,7 @@ ${ping}`
 
     // Refund each player their entry fee
     for (const entry of refunded) {
-      await guildEconomy.addFunds(guildId, entry.user_id, entry.username, jackpot.ENTRY_COST, `Refund: ${session.name} stopped`);
+      await guildEconomy.addFunds(guildId, entry.user_id, entry.username, session.entry_cost, `Refund: ${session.name} stopped`);
     }
 
     const drawFundNote = drawFundRestored > 0
@@ -678,12 +677,12 @@ ${ping}`
         .setTitle(`🛑 ${session.name} Stopped`)
         .setDescription(
           refunded.length > 0
-            ? `**${refunded.length} player${refunded.length !== 1 ? 's' : ''}** refunded **${jackpot.ENTRY_COST} Sins** each.` + drawFundNote
+            ? `**${refunded.length} player${refunded.length !== 1 ? 's' : ''}** refunded **${session.entry_cost} Sins** each.` + drawFundNote
             : `No entries to refund.` + drawFundNote
         )
         .addFields(
           { name: '<:member:1495666085121491024> Players Refunded', value: `**${refunded.length}**`,                                             inline: true },
-          { name: '<a:moneybag:1479268556687540345> Total Refunded',   value: `**${(refunded.length * jackpot.ENTRY_COST).toLocaleString()} Sins**`, inline: true },
+          { name: '<a:moneybag:1479268556687540345> Total Refunded',   value: `**${(refunded.length * session.entry_cost).toLocaleString()} Sins**`, inline: true },
         )
         .setFooter({ text: 'Start a new pot anytime with /jackpotstart' })
     ]});
@@ -768,7 +767,7 @@ async function buildOverviewPayload() {
         { name: `${E.BB_COIN || '<a:moneybag:1479268556687540345>'} Pot`, value: `**${s.pot.toLocaleString()} Sins**`, inline: true },
         { name: '<a:calendar:1479266779837632562> Draws In',               value: timeLeft,                             inline: true },
       )
-      .setFooter({ text: `Pot ID: ${s.id} • Entry: ${jackpot.ENTRY_COST} Sins` });
+      .setFooter({ text: `Pot ID: ${s.id} • Entry: ${s.entry_cost} Sins` });
   });
 
   // If multiple pots, add a "view" picker
