@@ -6,6 +6,7 @@
 
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { economy, stats, db } = require('../utils/database');
+const guildEconomy = require('../utils/guildEconomy');
 const jackpot = require('../utils/jackpot');
 
 const EVENT_HOST_ROLE = process.env.EVENT_HOST_ROLE || 'Event Host';
@@ -300,7 +301,7 @@ async function runGame(channel, players, bet, sizeKey, guild, mode) {
           const tax     = Math.floor(bet * 0.10);
           const base    = bet * 2 - tax;
           const total   = base + bonusEarned;
-          await economy.addFunds(players[0].id, total, 'Memory Game win');
+          await guildEconomy.addFunds(channel.guild.id, players[0].id, players[0].username, total, 'Memory Game win');
           await economy.untrackGameChannel(channel.id).catch(()=>{});
           await jackpot.addToDrawFund(tax);
           await saveScore(players[0].id, players[0].username, sizeKey, elapsed, moves);
@@ -330,7 +331,7 @@ async function runGame(channel, players, bet, sizeKey, guild, mode) {
         const isTie    = winners.length > 1;
         const tax      = Math.floor(pot * 0.10);
         const share    = Math.floor((pot - tax) / winners.length);
-        for (const w of winners) await economy.addFunds(w.id, share, 'Memory Game win');
+        for (const w of winners) await guildEconomy.addFunds(channel.guild.id, w.id, w.username, share, 'Memory Game win');
         await economy.untrackGameChannel(channel.id).catch(()=>{});
         await jackpot.addToDrawFund(tax);
 
@@ -362,10 +363,9 @@ async function launchMemory(channel, bet, sizeKey, mode, triggeredBy, hostId, gu
   await initMemoryTable();
 
   if (mode === 'solo') {
-    await economy.getUser(hostId, triggeredBy);
-    const bal = await economy.getBalance(hostId);
+    const bal = await guildEconomy.getBalance(channel.guild.id, hostId);
     if (bal < bet) return channel.send(`<:wrong:1495666083594502174> **${triggeredBy}** needs **${bet} sins** to play!`);
-    await economy.removeFunds(hostId, bet, 'Memory Game entry');
+    await guildEconomy.removeFunds(channel.guild.id, hostId, triggeredBy, bet, 'Memory Game entry');
     await economy.trackGameEntry(hostId, triggeredBy || 'unknown', channelId, 'Memory', bet).catch(()=>{});
     await runGame(channel, [{ id: hostId, username: triggeredBy }], bet, sizeKey, guild, 'solo');
     return;
@@ -423,10 +423,9 @@ async function launchMemory(channel, bet, sizeKey, mode, triggeredBy, hostId, gu
     if (g.players.find(p => p.id === interaction.user.id)) {
       return interaction.followUp({ content: `<a:Warning:1497476844860215366> Already joined!`, ephemeral: true });
     }
-    await economy.getUser(interaction.user.id, interaction.user.username);
-    const bal = await economy.getBalance(interaction.user.id);
+    const bal = await guildEconomy.getBalance(interaction.guild.id, interaction.user.id);
     if (bal < bet) return interaction.followUp({ content: `<:wrong:1495666083594502174> Need **${bet} sins**!`, ephemeral: true });
-    await economy.removeFunds(interaction.user.id, bet, 'Memory Game entry');
+    await guildEconomy.removeFunds(interaction.guild.id, interaction.user.id, interaction.user.username, bet, 'Memory Game entry');
     await economy.trackGameEntry(interaction.user.id, interaction.user.username, interaction.channel?.id || channelId, 'Memory', bet).catch(()=>{});
     g.players.push({ id: interaction.user.id, username: interaction.user.username });
     await signupMsg.edit({ embeds: [makeSignupEmbed()], components: [makeButtons()] });
@@ -442,7 +441,7 @@ async function launchMemory(channel, bet, sizeKey, mode, triggeredBy, hostId, gu
     );
     await signupMsg.edit({ components: [closed] }).catch(() => {});
     if (g.players.length < 2) {
-      for (const p of g.players) await economy.addFunds(p.id, bet, 'Memory refund');
+      for (const p of g.players) await guildEconomy.addFunds(channel.guild.id, p.id, p.username, bet, 'Memory refund');
       activeGames.delete(channelId);
       return channel.send(`<:wrong:1495666083594502174> Not enough players. Refunded.`);
     }
