@@ -1,5 +1,6 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { economy, stats } = require('../utils/database');
+const guildEconomy = require('../utils/guildEconomy');
 const E = require('../utils/emojis');
 const jackpot = require('../utils/jackpot');
 
@@ -170,8 +171,8 @@ async function startGame(channel, authorId, authorUsername, is2v2, bet, replyFn,
   if (bet < 10) return replyFn(`${E.ERROR} Minimum bet is 10 sins!`);
 
   await economy.getUser(authorId, authorUsername);
-  if (await economy.getBalance(authorId) < bet) return replyFn(`${E.ERROR} Not enough sins!`);
-  await economy.removeFunds(authorId, bet, 'Cuarenta entry');
+  if (await guildEconomy.getBalance(channel.guild.id, authorId) < bet) return replyFn(`${E.ERROR} Not enough sins!`);
+  await guildEconomy.removeFunds(channel.guild.id, authorId, authorUsername, bet, 'Cuarenta entry');
   await economy.trackGameEntry(authorId, authorUsername, channelId, 'Cuarenta', bet).catch(()=>{});
 
   const game = {
@@ -219,8 +220,8 @@ async function startGame(channel, authorId, authorUsername, is2v2, bet, replyFn,
     if (!g || g.phase !== 'lobby') return inter.reply({ content:'Lobby closed.', ephemeral:true });
     if (g.players.find(p=>p.id===inter.user.id)) return inter.reply({ content:'Already joined!', ephemeral:true });
     await economy.getUser(inter.user.id, inter.user.username);
-    if (await economy.getBalance(inter.user.id) < g.bet) return inter.reply({ content:`Need ${g.bet} sins!`, ephemeral:true });
-    await economy.removeFunds(inter.user.id, g.bet, 'Cuarenta entry');
+    if (await guildEconomy.getBalance(channel.guild.id, inter.user.id) < g.bet) return inter.reply({ content:`Need ${g.bet} sins!`, ephemeral:true });
+    await guildEconomy.removeFunds(channel.guild.id, inter.user.id, inter.user.username, g.bet, 'Cuarenta entry');
     await economy.trackGameEntry(inter.user.id, inter.user.username, g.channelId, 'Cuarenta', g.bet).catch(()=>{});
     g.players.push(newPlayer(inter.user.id, inter.user.username, g.players.length%2));
     await inter.reply({ content:`<:checkmark:1495666088417956002> Joined! (${g.players.length}/${g.numPlayers})`, ephemeral:true });
@@ -237,7 +238,7 @@ async function startGame(channel, authorId, authorUsername, is2v2, bet, replyFn,
     if (reason !== 'full') {
       const g = activeGames.get(channelId);
       if (g?.phase === 'lobby') {
-        for (const p of g.players) if (!p.isBot) await economy.addFunds(p.id, g.bet, 'Cuarenta refund');
+        for (const p of g.players) if (!p.isBot) await guildEconomy.addFunds(channel.guild.id, p.id, p.username, g.bet, 'Cuarenta refund');
         activeGames.delete(channelId);
         channel.send(`${E.ERROR} Cuarenta cancelled — not enough players. Bets refunded.`).catch(()=>{});
       }
@@ -631,7 +632,7 @@ async function endGame(channel, game, winner) {
     const team  = game.players.filter(p=>p.team===winner.team&&!p.isBot);
     const share = Math.floor((pot - tax) / team.length);
     await jackpot.addToDrawFund(tax).catch(() => {});
-    for (const p of team) { await economy.addFunds(p.id, share, 'Cuarenta win'); await stats.increment(p.id,'cuarenta_wins'); }
+    for (const p of team) { await guildEconomy.addFunds(channel.guild.id, p.id, p.username, share, 'Cuarenta win'); await stats.increment(p.id,'cuarenta_wins'); }
     await economy.untrackGameChannel(game.channelId).catch(()=>{});
     for (const p of game.players.filter(p=>p.team!==winner.team&&!p.isBot)) await stats.increment(p.id,'cuarenta_losses');
     await channel.send({ embeds: [new EmbedBuilder().setColor('#F2F5E0').setTitle(`${E.TROPHY} Cuarenta (Ecuadorian) — ¡Ganaron! 🇪🇨`)
@@ -642,7 +643,7 @@ async function endGame(channel, game, winner) {
       const cuaTax = Math.floor(game.bet * game.numPlayers * 0.10);
       const cuaPayout = game.bet * game.numPlayers - cuaTax;
       await jackpot.addToDrawFund(cuaTax).catch(() => {});
-      await economy.addFunds(humanWinner.id, cuaPayout, 'Cuarenta win');
+      await guildEconomy.addFunds(channel.guild.id, humanWinner.id, humanWinner.username, cuaPayout, 'Cuarenta win');
       await economy.untrackGameChannel(game.channelId).catch(()=>{});
       await stats.increment(humanWinner.id, 'cuarenta_wins');
     }
@@ -661,7 +662,7 @@ async function cancelGame(channelId, channel, requesterId, replyFn) {
   const member  = channel.guild?.members.cache.get(requesterId);
   const isAdmin = member && (member.permissions.has('Administrator') || member.roles.cache.some(r=>r.name===(process.env.ADMIN_ROLE||'Admin')));
   if (!isHost && !isAdmin) return replyFn(`${E.ERROR} Only the host or admins can cancel.`);
-  for (const p of game.players) if (!p.isBot) await economy.addFunds(p.id, game.bet, 'Cuarenta cancelled');
+  for (const p of game.players) if (!p.isBot) await guildEconomy.addFunds(channel.guild.id, p.id, p.username, game.bet, 'Cuarenta cancelled');
   if (game.turnMessage) game.turnMessage.edit({ components: turnButtons(true) }).catch(()=>{});
   game.phase = 'ended';
   activeGames.delete(channelId);

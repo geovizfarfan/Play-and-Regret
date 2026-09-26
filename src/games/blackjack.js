@@ -12,6 +12,7 @@
 
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { economy, stats } = require('../utils/database');
+const guildEconomy = require('../utils/guildEconomy');
 const jackpot = require('../utils/jackpot');
 
 const EVENT_HOST_ROLE = process.env.EVENT_HOST_ROLE || 'Event Host';
@@ -158,10 +159,10 @@ async function runBlackjack(channel, players, bet) {
       if (!pd || pd.insurance) {
         return interaction.reply({ content: `<a:Warning:1497476844860215366> Already insured or not in game.`, ephemeral: true });
       }
-      const bal = await economy.getBalance(interaction.user.id);
+      const bal = await guildEconomy.getBalance(channel.guild.id, interaction.user.id);
       const ins = Math.floor(bet / 2);
       if (bal < ins) return interaction.reply({ content: `<:wrong:1495666083594502174> Not enough sins for insurance!`, ephemeral: true });
-      await economy.removeFunds(interaction.user.id, ins, 'BJ Insurance');
+      await guildEconomy.removeFunds(channel.guild.id, interaction.user.id, interaction.user.username, ins, 'BJ Insurance');
       pd.insurance = true;
       await interaction.reply({ content: `🛡️ **${interaction.user.username}** took insurance for **${ins} sins**.`, ephemeral: false });
     });
@@ -243,7 +244,7 @@ async function runBlackjack(channel, players, bet) {
       if (pd.insurance) {
         const ins     = Math.floor(bet / 2);
         const payout  = ins * 2;
-        await economy.addFunds(uid, payout, 'BJ Insurance payout');
+        await guildEconomy.addFunds(channel.guild.id, uid, pd.username, payout, 'BJ Insurance payout');
         await channel.send(`🛡️ **${pd.username}** insurance pays out **${payout} sins**!`);
       }
     }
@@ -282,7 +283,7 @@ async function runBlackjack(channel, players, bet) {
       const bonusPct     = getStreakBonus(uid, true);
       const bonusAmount  = Math.floor(afterTax * bonusPct);
       const finalPayout  = afterTax + bonusAmount;
-      await economy.addFunds(uid, finalPayout, `Blackjack ${outcome}`);
+      await guildEconomy.addFunds(channel.guild.id, uid, pd.username, finalPayout, `Blackjack ${outcome}`);
       await jackpot.addToDrawFund(tax);
       stats.increment(uid, 'blackjack_wins').catch(() => {});
       const sm = streakMsg(uid);
@@ -294,7 +295,7 @@ async function runBlackjack(channel, players, bet) {
       );
     } else if (outcome === 'PUSH') {
       getStreakBonus(uid, false);
-      await economy.addFunds(uid, bet, 'Blackjack push refund');
+      await guildEconomy.addFunds(channel.guild.id, uid, pd.username, bet, 'Blackjack push refund');
       results.push(`🤝 **${pd.username}** — PUSH! Bet refunded.`);
     } else {
       getStreakBonus(uid, false);
@@ -343,10 +344,9 @@ async function launchBlackjack(channel, bet, triggeredBy, hostId, mode = 'multi'
 
   // Solo mode — just the host vs dealer, no signup window
   if (mode === 'solo') {
-    await economy.getUser(hostId, triggeredBy);
-    const bal = await economy.getBalance(hostId);
+    const bal = await guildEconomy.getBalance(channel.guild.id, hostId);
     if (bal < bet) return channel.send(`<:wrong:1495666083594502174> **${triggeredBy}** needs **${bet} sins** to play!`);
-    await economy.removeFunds(hostId, bet, 'Blackjack solo entry');
+    await guildEconomy.removeFunds(channel.guild.id, hostId, triggeredBy, bet, 'Blackjack solo entry');
     await economy.trackGameEntry(hostId, message.author.username, channelId, 'Blackjack', bet).catch(()=>{});
     game.players.push({ id: hostId, username: triggeredBy });
     game.phase = 'running';
@@ -383,11 +383,10 @@ async function launchBlackjack(channel, bet, triggeredBy, hostId, mode = 'multi'
     if (g.players.find(p => p.id === interaction.user.id)) {
       return interaction.followUp({ content: `<a:Warning:1497476844860215366> You're already in!`, ephemeral: true });
     }
-    await economy.getUser(interaction.user.id, interaction.user.username);
-    const bal = await economy.getBalance(interaction.user.id);
+    const bal = await guildEconomy.getBalance(interaction.guild.id, interaction.user.id);
     if (bal < bet) return interaction.followUp({ content: `<:wrong:1495666083594502174> You need **${bet} sins** to join!`, ephemeral: true });
 
-    await economy.removeFunds(interaction.user.id, bet, 'Blackjack entry');
+    await guildEconomy.removeFunds(interaction.guild.id, interaction.user.id, interaction.user.username, bet, 'Blackjack entry');
       await economy.trackGameEntry(interaction.user.id, interaction.user.username, channelId, 'Blackjack', bet).catch(()=>{});
     g.players.push({ id: interaction.user.id, username: interaction.user.username });
     await gameMsg.edit({ embeds: [makeSignupEmbed(g.players, bet, fmtSecs(g.signupSecs), g.mode)], components: [makeButtons(g.mode)] });
@@ -438,7 +437,7 @@ module.exports = {
       const isHost  = g.hostId === interaction.user.id;
       const isAdmin = interaction.member?.permissions?.has('Administrator') || interaction.member?.roles?.cache?.some(r => r.name === (process.env.ADMIN_ROLE || 'Admin'));
       if (!isHost && !isAdmin) return interaction.reply({ content: `<:wrong:1495666083594502174> Only the host or admins can cancel.`, ephemeral: true });
-      for (const p of g.players) await economy.addFunds(p.id, g.bet, 'Blackjack cancelled');
+      for (const p of g.players) await guildEconomy.addFunds(interaction.guild.id, p.id, p.username, g.bet, 'Blackjack cancelled');
       if (g.message) g.message.edit({ components: [] }).catch(() => {});
       activeGames.delete(interaction.channel.id);
       await interaction.reply({ content: `<:checkmark:1495666088417956002> Blackjack cancelled. **${g.players.length}** player(s) refunded.` });
@@ -459,7 +458,7 @@ module.exports = {
       const isHost  = g.hostId === message.author.id;
       const isAdmin = message.member?.permissions?.has('Administrator') || message.member?.roles?.cache?.some(r => r.name === (process.env.ADMIN_ROLE || 'Admin'));
       if (!isHost && !isAdmin) return message.reply(`<:wrong:1495666083594502174> Only the host or admins can cancel.`);
-      for (const p of g.players) await economy.addFunds(p.id, g.bet, 'Blackjack cancelled');
+      for (const p of g.players) await guildEconomy.addFunds(message.guild.id, p.id, p.username, g.bet, 'Blackjack cancelled');
       if (g.message) g.message.edit({ components: [] }).catch(() => {});
       activeGames.delete(message.channel.id);
       return message.reply(`<:checkmark:1495666088417956002> Blackjack cancelled. **${g.players.length}** player(s) refunded.`);
