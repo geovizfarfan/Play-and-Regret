@@ -8,6 +8,7 @@
 
 const { EmbedBuilder } = require('discord.js');
 const { economy } = require('../utils/database');
+const guildEconomy = require('../utils/guildEconomy');
 
 const CURRENCY = 'sins';
 const CLEANSE_COOLDOWN_MS = 12 * 3_600_000;
@@ -237,7 +238,7 @@ const CONFESS_DISASTER = [
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 
 // ─── DAILY COMMAND ────────────────────────────────────────────────────────────
-async function handleDaily(userId, username, replyFn) {
+async function handleDaily(guildId, userId, username, replyFn) {
   await economy.getUser(userId, username);
   const result = await economy.claimDaily(userId);
 
@@ -251,6 +252,7 @@ async function handleDaily(userId, username, replyFn) {
   }
 
   const { amount, streak } = result;
+  await guildEconomy.addFunds(guildId, userId, username, amount, 'Daily reward');
   const emoji = getStreakEmoji(streak);
 
   // 1% rare chaos event
@@ -263,7 +265,7 @@ async function handleDaily(userId, username, replyFn) {
     extraSins   = event.extra || 0;
     rareMsg     = event.msg;
 
-    if (extraSins !== 0) await economy.addFunds(userId, extraSins, 'Daily rare event');
+    if (extraSins !== 0) await guildEconomy.addFunds(guildId, userId, username, extraSins, 'Daily rare event');
   }
 
   const mainMsg = pickDailyMessage(streak, amount + Math.max(0, extraSins));
@@ -280,7 +282,7 @@ async function handleDaily(userId, username, replyFn) {
 }
 
 // ─── CLEANSE COMMAND ──────────────────────────────────────────────────────────
-async function handleCleanse(userId, username, replyFn) {
+async function handleCleanse(guildId, userId, username, replyFn) {
   await economy.getUser(userId, username);
   const user = await economy.getUser(userId, username);
 
@@ -296,7 +298,7 @@ async function handleCleanse(userId, username, replyFn) {
   }
 
   const COST = 200;
-  const bal  = await economy.getBalance(userId);
+  const bal  = await guildEconomy.getBalance(guildId, userId);
   if (bal < COST) {
     return replyFn({ embeds: [new EmbedBuilder().setColor('#2B0057')
       .setDescription(`<:wrong:1495666083594502174> you need **${COST} sins** to cleanse.\nyou don't even have enough to try to fix yourself. <a:pray:1495665631775817778>`)
@@ -311,8 +313,7 @@ async function handleCleanse(userId, username, replyFn) {
   }
 
   // Deduct cost
-  await economy.removeFunds(userId, COST, 'Cleanse attempt');
-  await economy.getUser(userId, username); // refresh
+  await guildEconomy.removeFunds(guildId, userId, username, COST, 'Cleanse attempt');
 
   // Success rate drops at high regret
   const successPenalty = Math.min(0.30, currentRegret / 50_000);
@@ -349,7 +350,7 @@ async function handleCleanse(userId, username, replyFn) {
   await db.run('UPDATE users SET last_cleanse = NOW() WHERE user_id = ?', [userId]);
 
   const newRegret  = await economy.getRegret(userId);
-  const newBalance = await economy.getBalance(userId);
+  const newBalance = await guildEconomy.getBalance(guildId, userId);
 
   const embed = new EmbedBuilder()
     .setColor(color)
@@ -365,7 +366,7 @@ async function handleCleanse(userId, username, replyFn) {
 }
 
 // ─── CONFESS COMMAND ──────────────────────────────────────────────────────────
-async function handleConfess(userId, username, replyFn) {
+async function handleConfess(guildId, userId, username, replyFn) {
   await economy.getUser(userId, username);
   const user = await economy.getUser(userId, username);
 
@@ -381,7 +382,7 @@ async function handleConfess(userId, username, replyFn) {
   }
 
   const currentRegret = await economy.getRegret(userId);
-  const currentBal    = await economy.getBalance(userId);
+  const currentBal    = await guildEconomy.getBalance(guildId, userId);
 
   if (currentRegret < 100) {
     return replyFn({ embeds: [new EmbedBuilder().setColor('#2B0057')
@@ -399,7 +400,7 @@ async function handleConfess(userId, username, replyFn) {
     // Jackpot (rare)
     const sinGain = 800 + Math.floor(Math.random() * 800);
     const regRemoved = Math.floor(currentRegret * 0.4);
-    await economy.addFunds(userId, sinGain, 'Confess jackpot');
+    await guildEconomy.addFunds(guildId, userId, username, sinGain, 'Confess jackpot');
     await economy.addRegret(userId, -regRemoved);
     description = pick(CONFESS_JACKPOT)(sinGain, regRemoved);
     color = '#C9B1FF';
@@ -407,7 +408,7 @@ async function handleConfess(userId, username, replyFn) {
     // Trade
     const sinGain   = Math.floor(100 + Math.random() * 400);
     const regRemoved = Math.floor(sinGain * (0.8 + Math.random() * 0.4));
-    await economy.addFunds(userId, sinGain, 'Confess trade');
+    await guildEconomy.addFunds(guildId, userId, username, sinGain, 'Confess trade');
     await economy.addRegret(userId, -Math.min(regRemoved, currentRegret));
     description = pick(CONFESS_TRADE)(sinGain, Math.min(regRemoved, currentRegret));
     color = '#C9B1FF';
@@ -415,7 +416,7 @@ async function handleConfess(userId, username, replyFn) {
     // Neutral chaos
     const sinGain  = Math.floor(50 + Math.random() * 150);
     const regGain  = Math.floor(100 + Math.random() * 200);
-    await economy.addFunds(userId, sinGain, 'Confess neutral');
+    await guildEconomy.addFunds(guildId, userId, username, sinGain, 'Confess neutral');
     await economy.addRegret(userId, regGain);
     description = pick(CONFESS_NEUTRAL)(sinGain, regGain);
     color = '#9B6DFF';
@@ -424,13 +425,13 @@ async function handleConfess(userId, username, replyFn) {
     const sinLoss = Math.floor(100 + Math.random() * 500);
     const regGain = Math.floor(200 + Math.random() * 500);
     const actualLoss = Math.min(sinLoss, currentBal);
-    if (actualLoss > 0) await economy.removeFunds(userId, actualLoss, 'Confess punishment');
+    if (actualLoss > 0) await guildEconomy.removeFunds(guildId, userId, username, actualLoss, 'Confess punishment');
     await economy.addRegret(userId, regGain);
     description = pick(CONFESS_PUNISHMENT)(actualLoss, regGain);
     color = '#7B2FBE';
   } else {
     // Disaster — wipe sins
-    if (currentBal > 0) await economy.removeFunds(userId, currentBal, 'Confess disaster');
+    if (currentBal > 0) await guildEconomy.removeFunds(guildId, userId, username, currentBal, 'Confess disaster');
     await economy.addRegret(userId, 1000);
     description = pick(CONFESS_DISASTER)();
     color = '#4B0082';
@@ -441,7 +442,7 @@ async function handleConfess(userId, username, replyFn) {
   await db.run('UPDATE users SET last_confess = NOW() WHERE user_id = ?', [userId]);
 
   const newRegret  = await economy.getRegret(userId);
-  const newBalance = await economy.getBalance(userId);
+  const newBalance = await guildEconomy.getBalance(guildId, userId);
 
   const embed = new EmbedBuilder()
     .setColor(color)
@@ -462,15 +463,15 @@ module.exports = {
 
   async handleCommand(message, args, command) {
     if (command === 'daily') {
-      return handleDaily(message.author.id, message.author.username,
+      return handleDaily(message.guild.id, message.author.id, message.author.username,
         data => message.reply(data));
     }
     if (command === 'cleanse') {
-      return handleCleanse(message.author.id, message.author.username,
+      return handleCleanse(message.guild.id, message.author.id, message.author.username,
         data => message.reply(data));
     }
     if (command === 'confess') {
-      return handleConfess(message.author.id, message.author.username,
+      return handleConfess(message.guild.id, message.author.id, message.author.username,
         data => message.reply(data));
     }
   },
@@ -478,8 +479,8 @@ module.exports = {
   async handleSlash(interaction, commandName) {
     await interaction.deferReply().catch(() => {});
     const replyFn = data => interaction.editReply(data);
-    if (commandName === 'daily')   return handleDaily(interaction.user.id, interaction.user.username, replyFn);
-    if (commandName === 'cleanse') return handleCleanse(interaction.user.id, interaction.user.username, replyFn);
-    if (commandName === 'confess') return handleConfess(interaction.user.id, interaction.user.username, replyFn);
+    if (commandName === 'daily')   return handleDaily(interaction.guild.id, interaction.user.id, interaction.user.username, replyFn);
+    if (commandName === 'cleanse') return handleCleanse(interaction.guild.id, interaction.user.id, interaction.user.username, replyFn);
+    if (commandName === 'confess') return handleConfess(interaction.guild.id, interaction.user.id, interaction.user.username, replyFn);
   },
 };

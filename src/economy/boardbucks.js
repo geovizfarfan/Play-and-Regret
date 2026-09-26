@@ -1,5 +1,6 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { economy, stats, db } = require('../utils/database');
+const guildEconomy = require('../utils/guildEconomy');
 const E = require('../utils/emojis');
 
 const sins = 'sins';
@@ -150,17 +151,19 @@ module.exports = {
     // Balance is public
     const target = message.mentions?.users?.first() || message.author;
     await economy.getUser(target.id, target.username);
-    const bal    = await economy.getBalance(target.id);
+    const guildId = message.guild.id;
+    const { name: currency, emoji: currencyEmoji } = await guildEconomy.getCurrencyName(guildId);
+    const bal    = await guildEconomy.getBalance(guildId, target.id);
     const user   = await economy.getUser(target.id, target.username);
     const regret = user?.regret || 0;
     const avatar = typeof target.displayAvatarURL === 'function' ? target.displayAvatarURL() : null;
     return message.reply({ embeds: [
       new EmbedBuilder().setColor('#D8B4FE')
-        .setTitle('<a:SINS:1522338223613804724> Sins Balance')
+        .setTitle(`${currencyEmoji || '<a:SINS:1522338223613804724>'} ${currency} Balance`)
         .setThumbnail(avatar)
         .addFields(
           { name: '<:member:1495666085121491024> Player', value: target.username,                 inline: true },
-          { name: '<a:SINS:1522338223613804724> Sins',     value: `**${bal.toLocaleString()}**`,   inline: true },
+          { name: `${currencyEmoji || '<a:SINS:1522338223613804724>'} ${currency}`, value: `**${bal.toLocaleString()}**`, inline: true },
           { name: '<a:hmmdevil:1495665623219306647> Regret', value: `**${regret.toLocaleString()}**`, inline: true },
         )
     ]});
@@ -174,7 +177,8 @@ module.exports = {
     if (isNaN(amount) || amount <= 0) return message.reply(`${E.ERROR} Enter a valid positive amount!`);
     if (target.id === message.author.id) return message.reply(`${E.ERROR} You cannot give sins to yourself!`);
 
-    const senderBal = await economy.getBalance(message.author.id);
+    const guildId = message.guild.id;
+    const senderBal = await guildEconomy.getBalance(guildId, message.author.id);
     if (senderBal < amount) return message.reply(`${E.ERROR} You only have **${senderBal.toLocaleString()} sins**!`);
 
     const tax      = Math.min(10000, Math.max(1, Math.floor(amount * 0.10)));
@@ -198,16 +202,16 @@ module.exports = {
     ], components: [confirmRow] });
   },
 
-  async executeGive(senderId, targetId, amount, replyFn, client) {
+  async executeGive(senderId, targetId, amount, replyFn, client, guildId) {
     const target = await client.users.fetch(targetId).catch(() => null);
     if (!target) return replyFn(`${E.ERROR} User not found.`);
-    const senderBal = await economy.getBalance(senderId);
+    const sender = await client.users.fetch(senderId).catch(() => null);
+    const senderBal = await guildEconomy.getBalance(guildId, senderId);
     if (senderBal < amount) return replyFn(`${E.ERROR} You no longer have enough sins!`);
     const tax      = Math.min(10000, Math.max(1, Math.floor(amount * 0.10)));
     const received = amount - tax;
-    await economy.removeFunds(senderId, amount, `Give to ${target.username}`);
-    await economy.getUser(targetId, target.username);
-    await economy.addFunds(targetId, received, `Gift from sender`);
+    await guildEconomy.removeFunds(guildId, senderId, sender?.username, amount, `Give to ${target.username}`);
+    await guildEconomy.addFunds(guildId, targetId, target.username, received, `Gift from sender`);
     const jackpot = require('../utils/jackpot');
     await jackpot.addToDrawFund(tax).catch(() => {});
     return replyFn({ embeds: [
@@ -229,10 +233,10 @@ module.exports = {
     if (!target) return message.reply(`${E.ERROR} Usage: \`!take @user <amount>\``);
     if (isNaN(amount) || amount <= 0) return message.reply(`${E.ERROR} Enter a valid positive amount!`);
 
-    await economy.getUser(target.id, target.username);
-    const success = await economy.removeFunds(target.id, amount, `Taken by ${message.author.username}`);
+    const guildId = message.guild.id;
+    const success = await guildEconomy.removeFunds(guildId, target.id, target.username, amount, `Taken by ${message.author.username}`);
     if (!success) return message.reply(`${E.ERROR} ${target.username} doesn't have enough sins!`);
-    const newBal = await economy.getBalance(target.id);
+    const newBal = await guildEconomy.getBalance(guildId, target.id);
 
     return message.reply({ embeds: [
       new EmbedBuilder().setColor('#FFB3B3')
@@ -251,13 +255,12 @@ module.exports = {
     if (target.id === message.author.id) return message.reply(`${E.ERROR} You can't transfer to yourself!`);
     if (target.bot) return message.reply(`${E.ERROR} You can't transfer to a bot!`);
 
-    await economy.getUser(message.author.id, message.author.username);
-    await economy.getUser(target.id, target.username);
-    const success = await economy.transfer(message.author.id, target.id, amount, 'Player transfer');
+    const guildId = message.guild.id;
+    const success = await guildEconomy.transfer(guildId, message.author.id, message.author.username, target.id, target.username, amount, 'Player transfer');
     if (!success) return message.reply(`${E.ERROR} You don't have enough sins!`);
 
-    const senderBal = await economy.getBalance(message.author.id);
-    const targetBal = await economy.getBalance(target.id);
+    const senderBal = await guildEconomy.getBalance(guildId, message.author.id);
+    const targetBal = await guildEconomy.getBalance(guildId, target.id);
 
     return message.reply({ embeds: [
       new EmbedBuilder().setColor('#B3D9FF')
@@ -322,9 +325,8 @@ module.exports = {
       clearTimeout(expireTimeout);
       collector.stop('claimed');
 
-      await economy.getUser(inter.user.id, inter.user.username);
-      await economy.addFunds(inter.user.id, amount, `Drop claimed from ${message.author.username}`);
-      const newBal = await economy.getBalance(inter.user.id);
+      await guildEconomy.addFunds(message.guild.id, inter.user.id, inter.user.username, amount, `Drop claimed from ${message.author.username}`);
+      const newBal = await guildEconomy.getBalance(message.guild.id, inter.user.id);
 
       await inter.update({ embeds: [
         new EmbedBuilder().setColor('#D8B4FE')
@@ -357,6 +359,7 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
     }
 
     await economy.getUser(userId, username);
+    const guildId = message.guild.id;
     begCooldowns.set(userId, now);
 
     const roll = Math.random();
@@ -368,7 +371,7 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
       // PAID — 55%
       sinDelta   = Math.floor(10 + Math.random() * 140);
       regretDelta = 0;
-      await economy.addFunds(userId, sinDelta, 'Beg reward');
+      await guildEconomy.addFunds(guildId, userId, username, sinDelta, 'Beg reward');
       description = pick(BEG_PAID)(sinDelta, regretDelta);
       color = '#C9B1FF';
 
@@ -381,10 +384,10 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
 
     } else if (roll < 0.90) {
       // BACKFIRE — 15%
-      const bal  = await economy.getBalance(userId);
+      const bal  = await guildEconomy.getBalance(guildId, userId);
       sinDelta   = Math.floor(10 + Math.random() * Math.min(50, bal || 50));
       regretDelta = Math.floor(30 + Math.random() * 50);
-      if (sinDelta > 0) await economy.removeFunds(userId, sinDelta, 'Beg backfire');
+      if (sinDelta > 0) await guildEconomy.removeFunds(guildId, userId, username, sinDelta, 'Beg backfire');
       await economy.addRegret(userId, regretDelta);
       description = pick(BEG_BACKFIRE)(sinDelta, regretDelta);
       color = '#8B0000';
@@ -393,7 +396,7 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
       // JACKPOT PITY — 10%
       sinDelta   = Math.floor(200 + Math.random() * 400);
       regretDelta = Math.floor(150 + Math.random() * 200);
-      await economy.addFunds(userId, sinDelta, 'Beg jackpot pity');
+      await guildEconomy.addFunds(guildId, userId, username, sinDelta, 'Beg jackpot pity');
       await economy.addRegret(userId, regretDelta);
       description = pick(BEG_JACKPOT)(sinDelta, regretDelta);
       color = '#C9B1FF';
@@ -415,6 +418,8 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
     if (!result.success && result.reason === 'cooldown') {
       return message.reply(`${E.CLOCK} You already claimed your daily! Come back in **${result.hours}h ${result.minutes}m**.`);
     }
+    const guildId = message.guild.id;
+    await guildEconomy.addFunds(guildId, message.author.id, message.author.username, result.amount, 'Daily reward');
     const msgFn = DAILY_MESSAGES[Math.floor(Math.random() * DAILY_MESSAGES.length)];
     const ITEM_NAMES = {
       sin_vacuum: '<a:SINS:1522338223613804724> Sin Vacuum', shield: '🛡️ Shield', bomb: '💣 Bomb',
@@ -544,17 +549,15 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
   async history(message, args) {
     const isAdmin = this.isAdmin(message);
     const target  = (isAdmin && message.mentions?.users?.first()) || message.author;
-    const rows    = await db.all(
-      'SELECT amount, reason, created_at FROM transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20',
-      [target.id]
-    );
+    const guildId = message.guild.id;
+    const rows    = await guildEconomy.getHistory(guildId, target.id, 20);
     if (!rows.length) return message.reply('<:wrong:1495666083594502174> No transactions found.');
     const lines = rows.map(r => {
       const sign = r.amount >= 0 ? '+' : '';
       const time = new Date(r.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
       return `\`${sign}${r.amount}\` — ${r.reason || 'no reason'} *(${time})*`;
     });
-    const bal = await economy.getBalance(target.id);
+    const bal = await guildEconomy.getBalance(guildId, target.id);
     return message.reply({ embeds: [
       new EmbedBuilder().setColor('#D8B4FE')
         .setTitle(`<:member:1495666085121491024> ${target.username}'s Last 20 Transactions`)
@@ -565,7 +568,7 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
 
   // ── Leaderboard ──────────────────────────────────────────────────────────────
   async leaderboard(message) {
-    const top    = await economy.getLeaderboard(10);
+    const top    = await guildEconomy.getLeaderboard(message.guild.id, 10);
     const medals = [E.MEDAL_1, E.MEDAL_2, E.MEDAL_3];
     const rows   = top.map((u, i) =>
       `${medals[i] || `**${i+1}.**`} <@${u.user_id}> — **${u.balance.toLocaleString()} sins**`
@@ -584,7 +587,7 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
     await economy.getUser(target.id, target.username);
     const user   = await economy.getUser(target.id, target.username);
     const s      = await stats.get(target.id);
-    const bal    = await economy.getBalance(target.id);
+    const bal    = await guildEconomy.getBalance(message.guild.id, target.id);
     const regret = await economy.getRegret(target.id);
 
     // RS profile
@@ -627,8 +630,7 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
     const amount = parseInt(args[1]);
     if (!target || isNaN(amount) || amount <= 0)
       return message.reply(`${E.ERROR} Usage: \`!grantsins @user <amount>\``);
-    await economy.getUser(target.id, target.username);
-    await economy.addFunds(target.id, amount, `Granted by owner`);
+    await guildEconomy.addFunds(message.guild.id, target.id, target.username, amount, `Granted by owner`);
     return message.reply(`${E.SUCCESS} Granted **${amount.toLocaleString()} sins** to **${target.username}**! (minted — no balance was deducted)`);
   },
 

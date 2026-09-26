@@ -130,12 +130,14 @@ const economy = {
     const bonus  = Math.min(streak - 1, 6) * 25;
     const amount = base + bonus;
 
+    // Streak/cooldown tracking stays local — only balance moves to Veloura now,
+    // so this no longer touches balance/total_earned. Callers must credit the
+    // currency themselves via guildEconomy.addFunds after this returns.
     await db.run(
       `UPDATE users
-       SET balance = balance + ?, total_earned = total_earned + ?,
-           last_daily = NOW(), daily_streak = ?
+       SET last_daily = NOW(), daily_streak = ?
        WHERE user_id = ?`,
-      [amount, amount, streak, userId]
+      [streak, userId]
     );
 
     // Weekly gift — every 7th consecutive day

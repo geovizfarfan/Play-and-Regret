@@ -485,7 +485,7 @@ client.once('clientReady', async () => {
       await interaction.deferUpdate();
       await economyModule.executeGive(senderId, targetId, parseInt(amountStr),
         async (data) => interaction.editReply({ embeds: typeof data === 'string' ? [] : data.embeds, content: typeof data === 'string' ? data : undefined, components: [] }),
-        client
+        client, interaction.guild.id
       );
     }
     if (interaction.customId.startsWith('give_cancel:')) {

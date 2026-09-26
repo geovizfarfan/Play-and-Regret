@@ -87,4 +87,21 @@ async function transfer(guildId, fromId, fromUsername, toId, toUsername, amount,
   return true;
 }
 
-module.exports = { getBalance, addFunds, removeFunds, setFunds, transfer, getCurrencyName, resolveGroup };
+async function getLeaderboard(guildId, limit = 10) {
+  const groupId = await resolveGroup(guildId);
+  const res = await veloura.query(
+    'SELECT user_id, username, balance FROM guild_balances WHERE group_id=$1 ORDER BY balance DESC LIMIT $2',
+    [groupId, limit]
+  );
+  return res.rows.map(r => ({ user_id: r.user_id, username: r.username, balance: Number(r.balance) }));
+}
+
+async function getHistory(guildId, userId, limit = 20) {
+  const res = await veloura.query(
+    'SELECT amount, reason, created_at FROM currency_transactions WHERE guild_id=$1 AND user_id=$2 ORDER BY created_at DESC LIMIT $3',
+    [guildId, userId, limit]
+  );
+  return res.rows;
+}
+
+module.exports = { getBalance, addFunds, removeFunds, setFunds, transfer, getCurrencyName, resolveGroup, getLeaderboard, getHistory };
