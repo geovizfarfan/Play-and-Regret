@@ -7,6 +7,7 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBu
 const path = require('path');
 const fs = require('fs');
 const { db, economy } = require('../../utils/database');
+const guildEconomy = require('../../utils/guildEconomy');
 const { CONFIG, RARITY_ORDER, RARITY_META, getSeasonName } = require('./config');
 const { renderBookImage } = require('./bookImage');
 const { MONSTERS, getMonster, isEnabled, loadOverrides } = require('./monsters');
@@ -219,7 +220,7 @@ async function cmdExchange(interaction) {
     if (result.error === 'unknown_sticker') return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown sticker.', ephemeral: true });
     if (result.error === 'no_duplicates') return interaction.reply({ content: `<a:Warning:1497476844860215366> You don't have any spare copies of that one.`, ephemeral: true });
 
-    await economy.addFunds(interaction.user.id, result.sinsEarned, `Drop It Like It's Hot — exchanged ${result.monster.name}`);
+    await guildEconomy.addFunds(interaction.guild.id, interaction.user.id, interaction.user.username, result.sinsEarned, `Drop It Like It's Hot — exchanged ${result.monster.name}`);
     return interaction.reply({
       content: `<:checkmark:1495666088417956002> Exchanged **${result.itemsExchanged}×** ${result.monster.name} for **${result.sinsEarned.toLocaleString()} sins**. (${result.remainingSpares} spare${result.remainingSpares !== 1 ? 's' : ''} left)`,
       ephemeral: true,
@@ -230,7 +231,7 @@ async function cmdExchange(interaction) {
   if (!result.itemsExchanged) {
     return interaction.reply({ content: `<a:Warning:1497476844860215366> No duplicates to exchange right now.`, ephemeral: true });
   }
-  await economy.addFunds(interaction.user.id, result.sinsEarned, 'Drop It Like It\'s Hot — duplicate exchange');
+  await guildEconomy.addFunds(interaction.guild.id, interaction.user.id, interaction.user.username, result.sinsEarned, 'Drop It Like It\'s Hot — duplicate exchange');
   const breakdown = RARITY_ORDER.filter(r => result.breakdown[r]).map(r => `${RARITY_META[r].emoji} ${result.breakdown[r]}× ${RARITY_META[r].label}`).join('\n');
 
   return interaction.reply({
