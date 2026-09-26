@@ -10,6 +10,7 @@
 
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { db, economy } = require('../utils/database');
+const guildEconomy      = require('../utils/guildEconomy');
 const jackpot          = require('../utils/jackpot');
 const E                = require('../utils/emojis');
 
@@ -87,8 +88,7 @@ async function launchAutoDrop(channel, amount) {
     await interaction.deferUpdate();
     claimed = true;
 
-    await economy.getUser(interaction.user.id, interaction.user.username);
-    await economy.addFunds(interaction.user.id, amount, 'Auto-drop claim');
+    await guildEconomy.addFunds(channel.guild.id, interaction.user.id, interaction.user.username, amount, 'Auto-drop claim');
 
     const disabledBtn = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(claimId).setLabel('💸 Claimed!').setStyle(ButtonStyle.Secondary).setDisabled(true)

@@ -96,6 +96,18 @@ async function getLeaderboard(guildId, limit = 10) {
   return res.rows.map(r => ({ user_id: r.user_id, username: r.username, balance: Number(r.balance) }));
 }
 
+// Random pool of members with a positive balance in this guild's economy group,
+// excluding one user (the caller). Used by things like Super Vacuum that hit a
+// few random active members.
+async function getRandomHolders(guildId, excludeUserId, limit = 10) {
+  const groupId = await resolveGroup(guildId);
+  const res = await veloura.query(
+    'SELECT user_id, username, balance FROM guild_balances WHERE group_id=$1 AND user_id != $2 AND balance > 0 ORDER BY RANDOM() LIMIT $3',
+    [groupId, excludeUserId, limit]
+  );
+  return res.rows.map(r => ({ user_id: r.user_id, username: r.username, balance: Number(r.balance) }));
+}
+
 async function getHistory(guildId, userId, limit = 20) {
   const res = await veloura.query(
     'SELECT amount, reason, created_at FROM currency_transactions WHERE guild_id=$1 AND user_id=$2 ORDER BY created_at DESC LIMIT $3',
@@ -104,4 +116,4 @@ async function getHistory(guildId, userId, limit = 20) {
   return res.rows;
 }
 
-module.exports = { getBalance, addFunds, removeFunds, setFunds, transfer, getCurrencyName, resolveGroup, getLeaderboard, getHistory };
+module.exports = { getBalance, addFunds, removeFunds, setFunds, transfer, getCurrencyName, resolveGroup, getLeaderboard, getHistory, getRandomHolders };

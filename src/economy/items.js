@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 const { EmbedBuilder } = require('discord.js');
 const { economy, db } = require('../utils/database');
+const guildEconomy = require('../utils/guildEconomy');
 const E = require('../utils/emojis');
 
 // In-memory only — 30s window, no need to hit the DB on every single message in the server
@@ -113,12 +114,12 @@ module.exports = {
         .setDescription(`**${target.username}**'s shield absorbed the hit. Nothing stolen.`)] });
     }
 
-    const targetBalance = await economy.getBalance(target.id);
+    const targetBalance = await guildEconomy.getBalance(message.guild.id, target.id);
     const pct    = 0.08 + Math.random() * 0.07; // 8-15%
     const amount = Math.max(1, Math.floor(targetBalance * pct));
 
-    await economy.removeFunds(target.id, amount, 'Hit by Sin Vacuum');
-    await economy.addFunds(userId, amount, 'Sin Vacuum steal');
+    await guildEconomy.removeFunds(message.guild.id, target.id, target.username, amount, 'Hit by Sin Vacuum');
+    await guildEconomy.addFunds(message.guild.id, userId, message.author.username, amount, 'Sin Vacuum steal');
 
     return message.reply({ embeds: [new EmbedBuilder().setColor('#C9B1FF')
       .setTitle(`${E.BB_COIN} Sin Vacuum!`)
@@ -131,11 +132,8 @@ module.exports = {
     const guild  = message.guild;
     if (!guild) return message.reply(`${E.ERROR} This only works in a server.`);
 
-    // Pull a pool of known economy users in this guild (active or inactive) — anyone the bot has a balance row for
-    const pool = await db.all(
-      `SELECT u.user_id, u.balance FROM users u WHERE u.user_id != ? AND u.balance > 0 ORDER BY RANDOM() LIMIT 10`,
-      [userId]
-    ).catch(() => []);
+    // Pull a pool of members with a positive balance in this guild's economy
+    const pool = await guildEconomy.getRandomHolders(guild.id, userId, 10).catch(() => []);
 
     if (!pool.length) return message.reply(`${E.ERROR} No valid targets found on this server yet.`);
 
@@ -154,11 +152,11 @@ module.exports = {
       }
       const pct    = 0.08 + Math.random() * 0.04; // 8-12%
       const amount = Math.max(1, Math.floor(row.balance * pct));
-      await economy.removeFunds(row.user_id, amount, 'Hit by Super Vacuum');
+      await guildEconomy.removeFunds(guild.id, row.user_id, row.username, amount, 'Hit by Super Vacuum');
       totalStolen += amount;
       lines.push(`${E.BB_COIN} <@${row.user_id}> — **${amount.toLocaleString()} sins**`);
     }
-    await economy.addFunds(userId, totalStolen, 'Super Vacuum steal');
+    await guildEconomy.addFunds(guild.id, userId, message.author.username, totalStolen, 'Super Vacuum steal');
 
     return message.reply({ embeds: [new EmbedBuilder().setColor('#C9B1FF')
       .setTitle('🌪️ SUPER VACUUM!')
@@ -179,7 +177,7 @@ module.exports = {
     }
 
     const amount = 100 + Math.floor(Math.random() * 250); // 100-350 flat
-    await economy.removeFunds(target.id, amount, 'Hit by Bomb');
+    await guildEconomy.removeFunds(message.guild.id, target.id, target.username, amount, 'Hit by Bomb');
 
     return message.reply({ embeds: [new EmbedBuilder().setColor('#C9B1FF')
       .setTitle('💣 BOOM!')
@@ -215,7 +213,7 @@ module.exports = {
     const line   = pick(ROAST_LINES).replace(/@target/g, `**${target.username}**`);
     const reward = 50 + Math.floor(Math.random() * 100); // 50-150 for the roaster
     const regretAmt = 20 + Math.floor(Math.random() * 30); // 20-50 for the target
-    await economy.addFunds(userId, reward, 'Roast reward');
+    await guildEconomy.addFunds(message.guild.id, userId, message.author.username, reward, 'Roast reward');
     await economy.addRegret(target.id, regretAmt);
 
     return message.reply({ embeds: [new EmbedBuilder().setColor('#C9B1FF')

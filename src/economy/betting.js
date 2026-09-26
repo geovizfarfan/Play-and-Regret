@@ -1,5 +1,6 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 const { db, economy } = require('../utils/database');
+const guildEconomy = require('../utils/guildEconomy');
 const E = require('../utils/emojis');
 const axios = require('axios');
 const jackpot = require('../utils/jackpot');
@@ -211,10 +212,16 @@ module.exports = {
     if (!bet) return replyFn(`${E.ERROR} Bet #${betId} not found!`);
     if (bet.status !== 'open') return replyFn(`${E.ERROR} Bet #${betId} is already **${bet.status}**!`);
 
+    // This function is reached from several places (button, slash command) that
+    // don't all carry a live interaction/message — the bet's own channel is the
+    // one thing always on the row, so resolve guild from that.
+    const betChannel = this._client && bet.channel_id ? await this._client.channels.fetch(bet.channel_id).catch(() => null) : null;
+    const guildId = betChannel?.guild?.id;
+
     const entries = await db.all('SELECT * FROM bet_entries WHERE bet_id = ?', [betId]);
 
     if (winningOption === 'cancel') {
-      for (const entry of entries) await economy.addFunds(entry.user_id, entry.amount, `Bet #${betId} cancelled`);
+      for (const entry of entries) await guildEconomy.addFunds(guildId, entry.user_id, entry.username, entry.amount, `Bet #${betId} cancelled`);
       await db.run("UPDATE bets SET status = 'cancelled' WHERE id = ?", [betId]);
       await this._disableLiveMessage(bet);
       return replyFn(`<:checkmark:1495666088417956002> Bet #${betId} cancelled. All ${entries.length} bettors refunded!`);
@@ -239,7 +246,7 @@ module.exports = {
     const payoutLines = [];
     for (const entry of winEntries) {
       const payout = Math.floor((Number(entry.amount) / winPool) * totalPool);
-      await economy.addFunds(entry.user_id, payout, `Bet #${betId} win (${winningOption})`);
+      await guildEconomy.addFunds(guildId, entry.user_id, entry.username, payout, `Bet #${betId} win (${winningOption})`);
       payoutLines.push(`${entry.username}: +${payout.toLocaleString()} sins`);
     }
 
@@ -410,7 +417,7 @@ module.exports = {
       const bet = await db.get('SELECT * FROM bets WHERE id = ?', [betId]);
       if (!bet || bet.status !== 'open') return interaction.reply({ content: `${E.ERROR} This bet is no longer open!`, ephemeral: true });
 
-      const bal = await economy.getBalance(interaction.user.id);
+      const bal = await guildEconomy.getBalance(interaction.guild.id, interaction.user.id);
       if (bal < 10) return interaction.reply({ content: `${E.ERROR} You need at least 10 sins to bet!`, ephemeral: true });
 
       const existing = await db.get('SELECT * FROM bet_entries WHERE bet_id = ? AND user_id = ?', [betId, interaction.user.id]);
@@ -442,7 +449,7 @@ module.exports = {
 
       await interaction.deferReply({ ephemeral: true }).catch(() => {});
 
-      const bal = await economy.getBalance(interaction.user.id);
+      const bal = await guildEconomy.getBalance(interaction.guild.id, interaction.user.id);
       if (bal < amount) return interaction.editReply(`${E.ERROR} You need **${amount} sins** but only have **${bal.toLocaleString()}**!`);
 
       const bet = await db.get('SELECT * FROM bets WHERE id = ?', [betId2]);
@@ -454,7 +461,7 @@ module.exports = {
       const options = bet.options || [];
       const side    = options[optionIdx2];
 
-      await economy.removeFunds(interaction.user.id, amount, `Bet #${betId2} (${side})`);
+      await guildEconomy.removeFunds(interaction.guild.id, interaction.user.id, interaction.user.username, amount, `Bet #${betId2} (${side})`);
       await db.run(
         'INSERT INTO bet_entries (bet_id, user_id, username, side, amount) VALUES (?, ?, ?, ?, ?)',
         [betId2, interaction.user.id, interaction.user.username, side, amount]
@@ -512,12 +519,12 @@ module.exports = {
       }
 
       await interaction.deferReply({ ephemeral: true });
-      const bal = await economy.getBalance(interaction.user.id);
+      const bal = await guildEconomy.getBalance(interaction.guild.id, interaction.user.id);
       if (bal < amount) return interaction.editReply(`${E.ERROR} You need **${amount} sins** but only have **${bal.toLocaleString()}**!`);
       const existing = await db.get('SELECT * FROM bet_entries WHERE bet_id = ? AND user_id = ?', [qBetId, interaction.user.id]);
       if (existing) return interaction.editReply(`<a:Warning:1497476844860215366> You already placed a bet on this one!`);
 
-      await economy.removeFunds(interaction.user.id, amount, `Bet #${qBetId} (${side})`);
+      await guildEconomy.removeFunds(interaction.guild.id, interaction.user.id, interaction.user.username, amount, `Bet #${qBetId} (${side})`);
       await db.run('INSERT INTO bet_entries (bet_id, user_id, username, side, amount) VALUES (?, ?, ?, ?, ?)', [qBetId, interaction.user.id, interaction.user.username, side, amount]);
       await db.run('UPDATE bets SET total_pool = total_pool + ? WHERE id = ?', [amount, qBetId]);
       return interaction.editReply(`<:checkmark:1495666088417956002> Bet **${amount} sins** on **${side}** for bet #${qBetId}!`);

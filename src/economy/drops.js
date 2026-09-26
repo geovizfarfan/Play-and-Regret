@@ -16,6 +16,7 @@
 
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { economy } = require('../utils/database');
+const guildEconomy = require('../utils/guildEconomy');
 const jackpot     = require('../utils/jackpot');
 const E           = require('../utils/emojis');
 
@@ -108,8 +109,7 @@ async function launchBigBag(channel, totalAmount, droppedBy) {
     remaining -= actual;
     claimers.add(interaction.user.id);
 
-    await economy.getUser(interaction.user.id, interaction.user.username);
-    await economy.addFunds(interaction.user.id, actual, 'Big Bag grab');
+    await guildEconomy.addFunds(channel.guild.id, interaction.user.id, interaction.user.username, actual, 'Big Bag grab');
 
     await interaction.followUp({
       content: `🎒 **${interaction.user.username}** grabbed **${actual.toLocaleString()} sins** from the bag!`,
@@ -186,8 +186,7 @@ async function launchQuickDrop(channel, amount, dropper) {
     await interaction.deferUpdate();
     claimed = true;
 
-    await economy.getUser(interaction.user.id, interaction.user.username);
-    await economy.addFunds(interaction.user.id, amount, `Quick Drop from ${dropper.username}`);
+    await guildEconomy.addFunds(channel.guild.id, interaction.user.id, interaction.user.username, amount, `Quick Drop from ${dropper.username}`);
 
     const disabledBtn = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -251,10 +250,9 @@ module.exports = {
           bigbagCooldowns.set(interaction.user.id, Date.now());
         }
         const amount = interaction.options.getInteger('amount');
-        await economy.getUser(interaction.user.id, interaction.user.username);
-        const bal = await economy.getBalance(interaction.user.id);
+        const bal = await guildEconomy.getBalance(interaction.guild.id, interaction.user.id);
         if (bal < amount) return interaction.editReply(`<:wrong:1495666083594502174> You need **${amount.toLocaleString()} sins** but only have **${bal.toLocaleString()}**!`);
-        await economy.removeFunds(interaction.user.id, amount, 'Big Bag drop');
+        await guildEconomy.removeFunds(interaction.guild.id, interaction.user.id, interaction.user.username, amount, 'Big Bag drop');
         await interaction.editReply(`<:checkmark:1495666088417956002> Big Bag of **${amount.toLocaleString()} sins** thrown!`);
         await launchBigBag(interaction.channel, amount, interaction.user.username);
       } catch (err) {
@@ -277,10 +275,9 @@ module.exports = {
         }
         dropCooldowns.set(interaction.user.id, Date.now());
       }
-      await economy.getUser(interaction.user.id, interaction.user.username);
-      const bal = await economy.getBalance(interaction.user.id);
+      const bal = await guildEconomy.getBalance(interaction.guild.id, interaction.user.id);
       if (bal < amount) return interaction.editReply(`<:wrong:1495666083594502174> You need **${amount.toLocaleString()} sins** but only have **${bal.toLocaleString()}**!`);
-      await economy.removeFunds(interaction.user.id, amount, 'Quick Drop');
+      await guildEconomy.removeFunds(interaction.guild.id, interaction.user.id, interaction.user.username, amount, 'Quick Drop');
       await interaction.editReply(`<:checkmark:1495666088417956002> You dropped **${amount.toLocaleString()} sins**!`);
       await launchQuickDrop(interaction.channel, amount, interaction.user);
     }
@@ -301,10 +298,9 @@ module.exports = {
         }
         bigbagCooldowns.set(message.author.id, Date.now());
       }
-      await economy.getUser(message.author.id, message.author.username);
-      const bal = await economy.getBalance(message.author.id);
+      const bal = await guildEconomy.getBalance(message.guild.id, message.author.id);
       if (bal < amount) return message.reply(`<:wrong:1495666083594502174> You need **${amount.toLocaleString()} sins** but only have **${bal.toLocaleString()}**!`);
-      await economy.removeFunds(message.author.id, amount, 'Big Bag drop');
+      await guildEconomy.removeFunds(message.guild.id, message.author.id, message.author.username, amount, 'Big Bag drop');
       await launchBigBag(message.channel, amount, message.author.username);
 
     } else if (command === 'drop') {
@@ -317,10 +313,9 @@ module.exports = {
         }
         dropCooldowns.set(message.author.id, Date.now());
       }
-      await economy.getUser(message.author.id, message.author.username);
-      const bal = await economy.getBalance(message.author.id);
+      const bal = await guildEconomy.getBalance(message.guild.id, message.author.id);
       if (bal < amount) return message.reply(`<:wrong:1495666083594502174> You need **${amount.toLocaleString()} sins** but only have **${bal.toLocaleString()}**!`);
-      await economy.removeFunds(message.author.id, amount, 'Quick Drop');
+      await guildEconomy.removeFunds(message.guild.id, message.author.id, message.author.username, amount, 'Quick Drop');
       await launchQuickDrop(message.channel, amount, message.author);
     }
   },
