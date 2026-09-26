@@ -30,6 +30,7 @@
 
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { db, economy } = require('../utils/database');
+const guildEconomy = require('../utils/guildEconomy');
 const jackpot = require('../utils/jackpot');
 const E = require('../utils/emojis');
 const { resolveEra, getEra, listEras, ERAS } = require('./rs_eras');
