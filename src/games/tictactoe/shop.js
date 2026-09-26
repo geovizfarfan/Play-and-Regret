@@ -1,5 +1,6 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 const { economy } = require('../../utils/database');
+const guildEconomy = require('../../utils/guildEconomy');
 const shop = require('../../utils/shop');
 const E = require('../../utils/emojis');
 
@@ -31,7 +32,8 @@ module.exports = {
       await interaction.deferUpdate();
       const tokenId = interaction.values[0];
       return this._processBuyToken(interaction.user, tokenId,
-        async (msg) => interaction.editReply(typeof msg === 'string' ? { content: msg, embeds: [], components: [] } : msg)
+        async (msg) => interaction.editReply(typeof msg === 'string' ? { content: msg, embeds: [], components: [] } : msg),
+        interaction.guild.id
       );
     }
 
@@ -51,13 +53,13 @@ module.exports = {
 
   // ── Shop display ─────────────────────────────────────────────────────────────
   async showShop(message) {
-    const { embeds, components } = await buildShopDisplay(message.author);
+    const { embeds, components } = await buildShopDisplay(message.author, message.guild.id);
     return message.reply({ embeds, components });
   },
 
   async showShopSlash(interaction) {
     try {
-      const { embeds, components } = await buildShopDisplay(interaction.user);
+      const { embeds, components } = await buildShopDisplay(interaction.user, interaction.guild.id);
       await interaction.reply({ embeds, components, ephemeral: true });
     } catch(err) {
       console.error('[shop display error]', err.stack || err);
@@ -70,7 +72,7 @@ module.exports = {
     const itemType = args[0]?.toLowerCase();
     const emoji    = args[1];
     // Legacy support — if old-style !buy ttt_x <emoji>
-    if (emoji) return this._processLegacyBuy(message.author, itemType, emoji, async (msg) => message.reply(msg));
+    if (emoji) return this._processLegacyBuy(message.author, itemType, emoji, async (msg) => message.reply(msg), message.guild.id);
     // New style — show catalog picker
     const { embeds, components } = buildCatalogPicker(null);
     return message.reply({ embeds, components });
@@ -81,14 +83,15 @@ module.exports = {
     await interaction.deferReply({ ephemeral: true });
     if (tokenId) {
       return this._processBuyToken(interaction.user, tokenId,
-        async (msg) => interaction.editReply(typeof msg === 'string' ? { content: msg } : msg)
+        async (msg) => interaction.editReply(typeof msg === 'string' ? { content: msg } : msg),
+        interaction.guild.id
       );
     }
     const { embeds, components } = buildCatalogPicker(null);
     return interaction.editReply({ embeds, components });
   },
 
-  async _processBuyToken(user, tokenId, replyFn) {
+  async _processBuyToken(user, tokenId, replyFn, guildId) {
     const token = shop.CATALOG.find(t => t.id === tokenId);
     if (!token) return replyFn(`${E.ERROR} Token not found.`);
     if (token.price === 0) {
@@ -104,12 +107,11 @@ module.exports = {
     if (already) {
       return replyFn(`<:checkmark:1495666088417956002> You already own **${token.emoji} ${token.name}**! Use \`/inventory\` to equip it to X or O.`);
     }
-    await economy.getUser(user.id, user.username);
-    const bal = await economy.getBalance(user.id);
+    const bal = await guildEconomy.getBalance(guildId, user.id);
     if (bal < token.price) return replyFn(`${E.ERROR} **${token.name}** costs **${token.price} ${CURRENCY}** but you only have **${bal}**!`);
-    await economy.removeFunds(user.id, token.price, `Shop: ${token.name}`);
+    await guildEconomy.removeFunds(guildId, user.id, user.username, token.price, `Shop: ${token.name}`);
     await shop.buyToken(user.id, tokenId);
-    const newBal = await economy.getBalance(user.id);
+    const newBal = await guildEconomy.getBalance(guildId, user.id);
     return replyFn({ embeds: [
       new EmbedBuilder()
         .setColor('#B3FFD9')
@@ -124,7 +126,7 @@ module.exports = {
     ]});
   },
 
-  async _processLegacyBuy(user, itemType, emoji, replyFn) {
+  async _processLegacyBuy(user, itemType, emoji, replyFn, guildId) {
     const validItems = ['ttt_x', 'ttt_o', 'ping_emoji'];
     if (!itemType || !validItems.includes(itemType))
       return replyFn(`${E.ERROR} Valid items: \`ttt_x\`, \`ttt_o\`, \`ping_emoji\``);
@@ -133,10 +135,9 @@ module.exports = {
     const isUnicode = /^\p{Emoji}/u.test(emoji);
     if (!isCustom && !isUnicode) return replyFn(`${E.ERROR} That doesn't look like a valid emoji!`);
     const price = shop.price(itemType);
-    await economy.getUser(user.id, user.username);
-    const bal = await economy.getBalance(user.id);
+    const bal = await guildEconomy.getBalance(guildId, user.id);
     if (bal < price) return replyFn(`${E.ERROR} You need **${price} ${CURRENCY}** but only have **${bal}**!`);
-    await economy.removeFunds(user.id, price, `Shop: ${itemType}`);
+    await guildEconomy.removeFunds(guildId, user.id, user.username, price, `Shop: ${itemType}`);
     await shop.setItem(user.id, itemType, emoji);
     const labels = { ttt_x: 'X Piece', ttt_o: 'O Piece', ping_emoji: 'Turn Indicator' };
     return replyFn(`<:checkmark:1495666088417956002> Equipped ${emoji} as your **${labels[itemType]}**!`);
@@ -250,9 +251,8 @@ module.exports = {
 };
 
 // ── Shop display builder ──────────────────────────────────────────────────────
-async function buildShopDisplay(user) {
-  await economy.getUser(user.id, user.username);
-  const bal      = await economy.getBalance(user.id);
+async function buildShopDisplay(user, guildId) {
+  const bal      = await guildEconomy.getBalance(guildId, user.id);
   const equipped = await shop.getEquipped(user.id, 'ttt_x');
 
   const embed = new EmbedBuilder()

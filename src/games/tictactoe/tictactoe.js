@@ -1,5 +1,6 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { economy, stats } = require('../../utils/database');
+const guildEconomy = require('../../utils/guildEconomy');
 const E = require('../../utils/emojis');
 const shop = require('../tictactoe/shop');
 const jackpot = require('../../utils/jackpot');
@@ -130,7 +131,7 @@ async function buildResultPayload(g, result, bet) {
     const winnerName = g.names[result];
     const isBot      = winnerId === BOT_ID;
     const loserIsBot = loserId === BOT_ID;
-    if (!isBot) await economy.addFunds(winnerId, bet * 2, 'TTT win');
+    if (!isBot) await guildEconomy.addFunds(g._channel.guild.id, winnerId, winnerName, bet * 2, 'TTT win');
     if (!isBot) stats.increment(winnerId, 'tictactoe_wins');
     if (!loserIsBot) stats.increment(loserId, 'tictactoe_losses');
     if (stats.incrementStreak) await stats.incrementStreak(winnerId);
@@ -253,8 +254,8 @@ module.exports = {
     const isAdmin = source.member?.permissions?.has('Administrator') || source.memberPermissions?.has('Administrator');
     if (!isHost && !isAdmin) return reply(`${E.ERROR} Only the host or admins can cancel.`);
 
-    if (game.players.X !== BOT_ID) economy.addFunds(game.players.X, game.bet, 'TTT cancel refund');
-    if (game.players.O !== BOT_ID) economy.addFunds(game.players.O, game.bet, 'TTT cancel refund');
+    if (game.players.X !== BOT_ID) guildEconomy.addFunds(source.guild.id, game.players.X, game.names.X, game.bet, 'TTT cancel refund');
+    if (game.players.O !== BOT_ID) guildEconomy.addFunds(source.guild.id, game.players.O, game.names.O, game.bet, 'TTT cancel refund');
     activeGames.delete(channelId);
     return reply(`🚫 Tic-Tac-Bruh cancelled. **${game.names.X}** and **${game.names.O}** refunded **${game.bet} sins** each.`);
   },
@@ -264,12 +265,11 @@ module.exports = {
     const gameKey = message.channel.id;
     if (activeGames.has(gameKey)) return message.channel.send(`${E.ERROR} There's already a game in this channel!`);
 
-    await economy.getUser(message.author.id, message.author.username);
-    const bal = await economy.getBalance(message.author.id);
+    const bal = await guildEconomy.getBalance(message.guild.id, message.author.id);
     if (bal < bet)
       return message.channel.send(`${E.ERROR} You need **${bet} sins** but only have **${bal}**!`);
 
-    await economy.removeFunds(message.author.id, bet, 'TTT vs Bot bet');
+    await guildEconomy.removeFunds(message.guild.id, message.author.id, message.author.username, bet, 'TTT vs Bot bet');
 
     const xShopEmoji = await shop.getItem(message.author.id, 'ttt_x');
     const oShopEmoji = await shop.getItem(message.author.id, 'ttt_o');
@@ -343,8 +343,7 @@ module.exports = {
     if (activeGames.has(gameKey))
       return message.reply(`${E.ERROR} There\'s already a game in this channel!`);
 
-    await economy.getUser(message.author.id, message.author.username);
-    const bal = await economy.getBalance(message.author.id);
+    const bal = await guildEconomy.getBalance(message.guild.id, message.author.id);
     if (bal < bet) return message.reply(`${E.ERROR} You need **${bet} sins** to start but only have **${bal}**!`);
 
     const xShop  = await shop.getItem(message.author.id, 'ttt_x');
@@ -387,15 +386,14 @@ module.exports = {
         await interaction.deferUpdate();
 
         const opponent = interaction.user;
-        await economy.getUser(opponent.id, opponent.username);
-        const oppBal = await economy.getBalance(opponent.id);
+        const oppBal = await guildEconomy.getBalance(interaction.guild.id, opponent.id);
         if (oppBal < bet) {
           activeGames.delete(gameKey);
           return openMsg.edit({ content: `${E.ERROR} **${opponent.username}** doesn\'t have enough sins to join!`, components: [] });
         }
 
-        await economy.removeFunds(message.author.id, bet, 'TTT bet');
-        await economy.removeFunds(opponent.id, bet, 'TTT bet');
+        await guildEconomy.removeFunds(interaction.guild.id, message.author.id, message.author.username, bet, 'TTT bet');
+        await guildEconomy.removeFunds(interaction.guild.id, opponent.id, opponent.username, bet, 'TTT bet');
 
         const oShop  = await shop.getItem(opponent.id, 'ttt_o');
         const pingO  = await shop.getItem(opponent.id, 'ttt_turn');
@@ -476,10 +474,8 @@ module.exports = {
     const gameKey = message.channel.id;
     if (activeGames.has(gameKey)) return message.reply(`${E.ERROR} There's already a game in this channel!`);
 
-    await economy.getUser(message.author.id, message.author.username);
-    await economy.getUser(opponent.id, opponent.username);
-    const authorBal   = await economy.getBalance(message.author.id);
-    const opponentBal = await economy.getBalance(opponent.id);
+    const authorBal   = await guildEconomy.getBalance(message.guild.id, message.author.id);
+    const opponentBal = await guildEconomy.getBalance(message.guild.id, opponent.id);
     if (authorBal < bet)   return message.reply(`${E.ERROR} You need **${bet} sins** but only have **${authorBal}**!`);
     if (opponentBal < bet) return message.reply(`${E.ERROR} **${opponent.username}** needs **${bet} sins** but only has **${opponentBal}**!`);
 
@@ -509,8 +505,8 @@ module.exports = {
 
       if (interaction.customId === 'ttt_accept') {
         collector.stop();
-        await economy.removeFunds(message.author.id, bet, 'TTT bet');
-        await economy.removeFunds(opponent.id, bet, 'TTT bet');
+        await guildEconomy.removeFunds(interaction.guild.id, message.author.id, message.author.username, bet, 'TTT bet');
+        await guildEconomy.removeFunds(interaction.guild.id, opponent.id, opponent.username, bet, 'TTT bet');
 
         const [xShop, oShop, pingX, pingO] = await Promise.all([
           shop.getItem(message.author.id, 'ttt_x'),
