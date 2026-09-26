@@ -12,6 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { db, economy } = require('../../utils/database');
+const guildEconomy = require('../../utils/guildEconomy');
 const { promptWager } = require('../../utils/wager');
 const { awardRegret } = require('../../utils/regret');
 const { ROUNDS, FINAL_FAFO, CONFIG, getRoundConfig } = require('./rounds');
@@ -87,8 +88,7 @@ async function handleJoin(interaction) {
     return interaction.reply({ content: '<a:Warning:1497476844860215366> You\'re already in this session.', ephemeral: true });
   }
 
-  await economy.getUser(interaction.user.id, interaction.user.username);
-  const balance = await economy.getBalance(interaction.user.id);
+  const balance = await guildEconomy.getBalance(interaction.guild.id, interaction.user.id);
   const limits = calcWagerLimits(balance);
   if (!limits) {
     return interaction.reply({ content: `<:wrong:1495666083594502174> You need at least **${CONFIG.minBalanceToPlay.toLocaleString()} sins** to play. You have **${balance.toLocaleString()}**.`, ephemeral: true });
@@ -104,12 +104,12 @@ async function handleJoin(interaction) {
   // Re-check session still open and re-check balance hasn't changed enough to invalidate (race protection)
   const freshSession = activeSessions.get(channelId);
   if (!freshSession || freshSession.phase !== 'lobby') return;
-  const freshBalance = await economy.getBalance(interaction.user.id);
+  const freshBalance = await guildEconomy.getBalance(interaction.guild.id, interaction.user.id);
   if (freshBalance < wager) {
     return interaction.followUp({ content: `<:wrong:1495666083594502174> Your balance changed and you can no longer cover **${wager.toLocaleString()} sins**. Join again.`, ephemeral: true });
   }
 
-  await economy.removeFunds(interaction.user.id, wager, 'FAFO wager');
+  await guildEconomy.removeFunds(interaction.guild.id, interaction.user.id, interaction.user.username, wager, 'FAFO wager');
   await ensureStats(interaction.user.id);
 
   freshSession.players.set(interaction.user.id, {
@@ -134,7 +134,7 @@ async function handleCancel(interaction) {
 
   clearTimeout(session.lobbyTimer);
   for (const p of session.players.values()) {
-    await economy.addFunds(p.userId, p.wager, 'FAFO cancelled — refund').catch(() => {});
+    await guildEconomy.addFunds(interaction.guild.id, p.userId, p.username, p.wager, 'FAFO cancelled — refund').catch(() => {});
   }
   activeSessions.delete(channelId);
   await session.lobbyMsg?.edit({ components: [] }).catch(() => {});
@@ -163,7 +163,7 @@ async function beginRounds(channel) {
 
   if (session.players.size < CONFIG.minPlayers) {
     for (const p of session.players.values()) {
-      await economy.addFunds(p.userId, p.wager, 'FAFO cancelled — not enough players').catch(() => {});
+      await guildEconomy.addFunds(channel.guild.id, p.userId, p.username, p.wager, 'FAFO cancelled — not enough players').catch(() => {});
     }
     activeSessions.delete(channel.id);
     await session.lobbyMsg?.edit({ components: [] }).catch(() => {});
@@ -254,7 +254,7 @@ async function resolveRound(channel, session, cfg, active, decisions) {
     const choice = decisions.get(p.userId);
     if (choice === 'cash') {
       p.status = 'cashed';
-      await economy.addFunds(p.userId, p.pot, 'FAFO cash out').catch(() => {});
+      await guildEconomy.addFunds(channel.guild.id, p.userId, p.username, p.pot, 'FAFO cash out').catch(() => {});
       cashLines.push(`<a:chicken:1544848378741915770> <@${p.userId}> ${M.pick(M.CASH_OUT_LINES)} **(+${p.pot.toLocaleString()} sins)**`);
       await db.run('UPDATE fafo_stats SET chicken_outs = chicken_outs + 1, total_sins_won = total_sins_won + ?, biggest_cash_out = GREATEST(biggest_cash_out, ?) WHERE user_id = ?', [p.pot, p.pot, p.userId]).catch(() => {});
       continue;
@@ -335,7 +335,7 @@ async function runFinalFafo(channel, session, player) {
   });
 
   if (choice === 'cash') {
-    await economy.addFunds(player.userId, player.pot, 'FAFO Final cash out').catch(() => {});
+    await guildEconomy.addFunds(channel.guild.id, player.userId, player.username, player.pot, 'FAFO Final cash out').catch(() => {});
     await channel.send({ embeds: [
       new EmbedBuilder().setColor('#FFD700').setTitle('<a:cashout:1544848377009803274> TOOK THE MONEY')
         .setDescription(`<@${player.userId}> took the **${player.pot.toLocaleString()} sins** and walked. ${M.pick(M.CASH_OUT_LINES)}`)
@@ -343,7 +343,7 @@ async function runFinalFafo(channel, session, player) {
   } else {
     const survived = Math.random() >= FINAL_FAFO.findOutChance;
     if (survived) {
-      await economy.addFunds(player.userId, jackpot, 'FAFO Final win').catch(() => {});
+      await guildEconomy.addFunds(channel.guild.id, player.userId, player.username, jackpot, 'FAFO Final win').catch(() => {});
       await db.run('UPDATE fafo_stats SET final_fafo_wins = final_fafo_wins + 1, total_sins_won = total_sins_won + ? WHERE user_id = ?', [jackpot, player.userId]).catch(() => {});
       await channel.send({ embeds: [
         new EmbedBuilder().setColor('#FFD700').setTitle('<a:crowned:1544882007652438077> FINAL FAFO — WINNER')
@@ -476,7 +476,7 @@ module.exports = {
     if (session.phase !== 'lobby') return { blocked: true, reason: 'running' };
     clearTimeout(session.lobbyTimer);
     for (const p of session.players.values()) {
-      await economy.addFunds(p.userId, p.wager, 'FAFO cancelled — refund').catch(() => {});
+      await guildEconomy.addFunds(channel.guild.id, p.userId, p.username, p.wager, 'FAFO cancelled — refund').catch(() => {});
     }
     activeSessions.delete(channel.id);
     await session.lobbyMsg?.edit({ components: [] }).catch(() => {});
