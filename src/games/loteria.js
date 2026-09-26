@@ -4,6 +4,7 @@ const path = require('path');
 const fs   = require('fs');
 const os   = require('os');
 const { economy, stats } = require('../utils/database');
+const guildEconomy = require('../utils/guildEconomy');
 const E = require('../utils/emojis');
 const jackpot = require('../utils/jackpot');
 
@@ -350,12 +351,11 @@ module.exports = {
           if (g.players.has(inter.user.id))
             return inter.reply({ content: `<:checkmark:1495666088417956002> Already joined! Press **👁 My Board** to see your card.`, ephemeral: true });
 
-          await economy.getUser(inter.user.id, inter.user.username);
-          if (await economy.getBalance(inter.user.id) < g.bet)
+          if (await guildEconomy.getBalance(inter.guild.id, inter.user.id) < g.bet)
             return inter.reply({ content: `${E.ERROR} You need **${g.bet} sins** to join!`, ephemeral: true });
 
           const lotTax = Math.floor(g.bet * 0.10);
-        await economy.removeFunds(inter.user.id, g.bet, 'Lotería entry');
+        await guildEconomy.removeFunds(inter.guild.id, inter.user.id, inter.user.username, g.bet, 'Lotería entry');
         await economy.trackGameEntry(inter.user.id, inter.user.username, channelId, 'Lotería', g.bet).catch(()=>{});
         await jackpot.addToDrawFund(lotTax).catch(() => {});
           g.players.set(inter.user.id, {
@@ -402,7 +402,7 @@ module.exports = {
             activeGames.delete(channelId);
             col.stop('winner');
 
-            await economy.addFunds(inter.user.id, pot, 'Lotería win');
+            await guildEconomy.addFunds(inter.guild.id, inter.user.id, inter.user.username, pot, 'Lotería win');
             await economy.untrackGameChannel(channelId).catch(()=>{});
             await stats.increment(inter.user.id, 'loteria_wins');
             for (const [uid] of g.players)
@@ -456,8 +456,8 @@ module.exports = {
     if (!game || game.phase !== 'lobby') return;
 
     if (game.players.size < 2) {
-      for (const [uid] of game.players)
-        await economy.addFunds(uid, game.bet, 'Lotería refund — not enough players');
+      for (const [uid, pd] of game.players)
+        await guildEconomy.addFunds(channel.guild.id, uid, pd.username, game.bet, 'Lotería refund — not enough players');
       activeGames.delete(channelId);
       return channel.send(`${E.ERROR} Lotería cancelled — not enough players! Bets refunded.`);
     }
@@ -485,7 +485,7 @@ module.exports = {
     if (g.deck.length === 0) {
       clearInterval(g.interval);
       activeGames.delete(channelId);
-      for (const [uid] of g.players) await economy.addFunds(uid, g.bet, 'Lotería refund — no winner');
+      for (const [uid, pd] of g.players) await guildEconomy.addFunds(channel.guild.id, uid, pd.username, g.bet, 'Lotería refund — no winner');
       await economy.untrackGameChannel(channelId).catch(()=>{});
       const noWinPot = g.bet * g.players.size;
       if (noWinPot > 0) await jackpot.addToDrawFund(noWinPot).catch(() => {});
@@ -545,7 +545,7 @@ module.exports = {
           activeGames.delete(channelId);
           await economy.untrackGameChannel(channelId).catch(() => {});
           for (const [uid, pd] of gNow.players)
-            await economy.addFunds(uid, gNow.bet, 'Lotería cancelled').catch(() => {});
+            await guildEconomy.addFunds(inter.guild.id, uid, pd.username, gNow.bet, 'Lotería cancelled').catch(() => {});
           return inter.reply({ content: `<:checkmark:1495666088417956002> Lotería cancelled. All players refunded **${gNow.bet} Sins**.` });
         }
         // Board button — handled by handleButton, skip here
@@ -570,7 +570,7 @@ module.exports = {
 
     const share = Math.floor(pot / winners.length);
     for (const w of winners) {
-      await economy.addFunds(w.uid, share, 'Lotería win');
+      await guildEconomy.addFunds(channel.guild.id, w.uid, w.pd.username, share, 'Lotería win');
     await economy.untrackGameChannel(channelId).catch(()=>{});
       await stats.increment(w.uid, 'loteria_wins');
     }
@@ -602,8 +602,8 @@ module.exports = {
     activeGames.delete(channelId);
     await economy.untrackGameChannel(channelId).catch(() => {});
 
-    for (const [uid] of game.players)
-      await economy.addFunds(uid, game.bet, 'Lotería cancelled — refund');
+    for (const [uid, pd] of game.players)
+      await guildEconomy.addFunds(game.lobbyMsg.guild.id, uid, pd.username, game.bet, 'Lotería cancelled — refund');
 
     if (game.lobbyMsg) game.lobbyMsg.edit({ components: [] }).catch(() => {});
 
@@ -696,7 +696,7 @@ module.exports = {
         g.phase = 'finished';
         const pot = g.bet * g.players.size;
         activeGames.delete(channelId);
-        await economy.addFunds(interaction.user.id, pot, 'Lotería win');
+        await guildEconomy.addFunds(interaction.guild.id, interaction.user.id, interaction.user.username, pot, 'Lotería win');
         await economy.untrackGameChannel(channelId).catch(() => {});
         await stats.increment(interaction.user.id, 'loteria_wins');
         for (const [uid] of g.players)
