@@ -4,7 +4,7 @@
  */
 const { db } = require('./database');
 
-let ENTRY_COST = 200; // default/fallback only — real sessions store their own entry_cost now
+let ENTRY_COST = 50; // default/fallback only — real sessions store their own entry_cost now
 const NUMBER_MIN = 1;
 const NUMBER_MAX = 100;
 
