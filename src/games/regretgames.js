@@ -15,6 +15,7 @@ const {
   StringSelectMenuBuilder,
 } = require('discord.js');
 const { db, economy } = require('../utils/database');
+const guildEconomy = require('../utils/guildEconomy');
 const jackpot = require('../utils/jackpot');
 const story   = require('./rg_story');
 
@@ -644,7 +645,7 @@ async function processHungerEvent(season, alive, arenaChannel) {
       lines.push(pick(HUNGER_SURVIVE)(p.username));
     } else {
       await addRegret(season.id, p.user_id, 90);
-      await economy.removeFunds(p.user_id, 50, 'Regret Games hunger').catch(() => {});
+      await guildEconomy.removeFunds(season.guild_id, p.user_id, p.username, 50, 'Regret Games hunger').catch(() => {});
       lines.push(pick(HUNGER_STARVE)(p.username));
     }
   }
@@ -681,7 +682,7 @@ async function processChaosEvent(season, alive, arenaChannel) {
       await addRegret(season.id, p.user_id, Math.floor(150 * regretMult));
       lines.push(pick(CHAOS_HIT_REGRET)(p.username, watcher));
     } else {
-      await economy.removeFunds(p.user_id, 100, 'Chaos event').catch(() => {});
+      await guildEconomy.removeFunds(season.guild_id, p.user_id, p.username, 100, 'Chaos event').catch(() => {});
       lines.push(pick(CHAOS_HIT_SINS)(p.username, watcher));
     }
   }
@@ -710,7 +711,7 @@ async function processBlessingEvent(season, alive, arenaChannel) {
 
   for (const p of picked) {
     const jealous = others.length > 0 ? pick(others).username : 'the rest';
-    await economy.addFunds(p.user_id, 200, 'Queen\'s Blessing').catch(() => {});
+    await guildEconomy.addFunds(season.guild_id, p.user_id, p.username, 200, 'Queen\'s Blessing').catch(() => {});
     await db.run('UPDATE rg_players SET sins_earned = sins_earned + 200 WHERE season_id = $1 AND user_id = $2', [season.id, p.user_id]);
     lines.push(pick(BLESSING_LINES)(p.username, jealous));
   }
@@ -818,8 +819,8 @@ async function processTheftEvent(season, alive, arenaChannel) {
   const others  = alive.filter(p => p.user_id !== thief.user_id && p.user_id !== victim.user_id);
   const witness = others.length > 0 ? pick(others) : null;
 
-  await economy.removeFunds(victim.user_id, amount, 'Mass Theft event').catch(() => {});
-  await economy.addFunds(thief.user_id, amount, 'Mass Theft event').catch(() => {});
+  await guildEconomy.removeFunds(season.guild_id, victim.user_id, victim.username, amount, 'Mass Theft event').catch(() => {});
+  await guildEconomy.addFunds(season.guild_id, thief.user_id, thief.username, amount, 'Mass Theft event').catch(() => {});
 
   const mainLine    = pick(THEFT_LINES)(thief.username, victim.username, amount);
   const witnessLine = witness ? '\n' + pick(THEFT_WITNESS)(witness.username, thief.username, victim.username) : '';
@@ -956,7 +957,7 @@ async function resolveWinnerAuto(season, client) {
   const prize      = season.prize_pot || season.pot;
   const allPlayers = await getAllPlayers(season.id);
 
-  await economy.addFunds(winner.user_id, prize, 'Regret Games winner');
+  await guildEconomy.addFunds(season.guild_id, winner.user_id, winner.username, prize, 'Regret Games winner');
   await db.run("UPDATE rg_players SET title = 'Regret Royalty' WHERE season_id = $1 AND user_id = $2", [season.id, winner.user_id]);
   if (arenaChannel) await resolveRGWinnerBounties(season.arena_channel_id, winner.user_id, winner.username, arenaChannel);
 
@@ -1513,7 +1514,7 @@ async function runDay7Finale(season, alive, arenaChannel, client) {
   const isBlessing = Math.random() < 0.5;
   if (isBlessing) {
     const blessed = pick(current);
-    await economy.addFunds(blessed.user_id, 500, "Queen's Final Blessing").catch(() => {});
+    await guildEconomy.addFunds(season.guild_id, blessed.user_id, blessed.username, 500, "Queen's Final Blessing").catch(() => {});
     await db.run('UPDATE rg_players SET regret = GREATEST(0, regret - 300) WHERE season_id=$1 AND user_id=$2', [season.id, blessed.user_id]);
     await arenaChannel.send({ embeds: [
       new EmbedBuilder().setColor('#F9F2DC')
@@ -1671,12 +1672,11 @@ module.exports = {
     if (existing)
       return interaction.reply({ content: '<a:Warning:1497476844860215366> You\'re already in the Regret Games.', ephemeral: true });
 
-    await economy.getUser(interaction.user.id, interaction.user.username);
-    const bal = await economy.getBalance(interaction.user.id);
+    const bal = await guildEconomy.getBalance(interaction.guild.id, interaction.user.id);
     if (bal < season.entry_fee)
       return interaction.reply({ content: `<:wrong:1495666083594502174> You need **${season.entry_fee} sins** but only have **${bal}**.`, ephemeral: true });
 
-    await economy.removeFunds(interaction.user.id, season.entry_fee, 'Regret Games entry');
+    await guildEconomy.removeFunds(interaction.guild.id, interaction.user.id, interaction.user.username, season.entry_fee, 'Regret Games entry');
     await db.run('UPDATE rg_seasons SET pot = pot + $1 WHERE id = $2', [season.entry_fee, seasonId]);
     await db.run(
       'INSERT INTO rg_players (season_id, user_id, username, status, regret, sins_earned, food, has_shield) VALUES ($1, $2, $3, \'alive\', 0, 0, 1, 0)',
@@ -2081,7 +2081,7 @@ module.exports = {
     const prize    = season.prize_pot || season.pot;
     const allPlayers = await getAllPlayers(season.id);
 
-    await economy.addFunds(winner.user_id, prize, 'Regret Games winner');
+    await guildEconomy.addFunds(season.guild_id, winner.user_id, winner.username, prize, 'Regret Games winner');
     await db.run('UPDATE rg_players SET title = $1 WHERE season_id = $2 AND user_id = $3', ['Regret Royalty', season.id, winner.user_id]);
 
     if (arenaChannel) await arenaChannel.send({ embeds: [
@@ -2146,8 +2146,8 @@ module.exports = {
 
     if (success) {
       const amount = Math.floor(Math.random() * 150) + 50;
-      await economy.removeFunds(target.id, amount, 'Regret Games steal').catch(() => {});
-      await economy.addFunds(interaction.user.id, amount, 'Regret Games steal').catch(() => {});
+      await guildEconomy.removeFunds(interaction.guild.id, target.id, targetPlayer.username, amount, 'Regret Games steal').catch(() => {});
+      await guildEconomy.addFunds(interaction.guild.id, interaction.user.id, interaction.user.username, amount, 'Regret Games steal').catch(() => {});
       if (arenaChannel) await arenaChannel.send(
         `<a:moneybag:1479268556687540345> **${interaction.user.username}** stole **${amount} sins** from **${targetPlayer.username}**. *Shameless.*`
       );
@@ -2192,7 +2192,7 @@ module.exports = {
 
     await addRegret(season.id, interaction.user.id, regretPenalty);
     await addRegret(season.id, target.id, 150);
-    await economy.addFunds(interaction.user.id, 300, 'Betrayal reward').catch(() => {});
+    await guildEconomy.addFunds(interaction.guild.id, interaction.user.id, interaction.user.username, 300, 'Betrayal reward').catch(() => {});
 
     const arenaChannel = await getArenaChannel(season, interaction.client);
     if (arenaChannel) await arenaChannel.send({ embeds: [
@@ -2333,15 +2333,14 @@ module.exports = {
     const cd = getCooldownLeft(userId, 'buy');
     if (cd > 0) return interaction.reply({ content: `<:wrong:1495666083594502174> Shop cooldown: **${fmtTime(cd)}** remaining.`, ephemeral: true });
 
-    await economy.getUser(userId, interaction.user.username);
-    const bal = await economy.getBalance(userId);
+    const bal = await guildEconomy.getBalance(interaction.guild.id, userId);
     if (bal < item.cost)
       return interaction.reply({ content: `<:wrong:1495666083594502174> You need **${item.cost} sins** but only have **${bal}**.`, ephemeral: true });
 
     // Handle fake_apology immediately
     if (itemId === 'fake_apology') {
       await db.run('UPDATE rg_players SET regret = GREATEST(0, regret - 100) WHERE season_id = $1 AND user_id = $2', [season.id, userId]);
-      await economy.removeFunds(userId, item.cost, 'Regret Games shop');
+      await guildEconomy.removeFunds(interaction.guild.id, userId, interaction.user.username, item.cost, 'Regret Games shop');
       setCooldown(userId, 'buy', 10 * 60 * 1000);
       return interaction.reply({ content: `<:checkmark:1495666088417956002> Used **Fake Apology**. -100 REGRET.`, ephemeral: true });
     }
@@ -2368,7 +2367,7 @@ module.exports = {
     }
 
     await addItem(season.id, userId, itemId);
-    await economy.removeFunds(userId, item.cost, 'Regret Games shop');
+    await guildEconomy.removeFunds(interaction.guild.id, userId, interaction.user.username, item.cost, 'Regret Games shop');
     setCooldown(userId, 'buy', 10 * 60 * 1000);
 
     return interaction.reply({ content: `<:checkmark:1495666088417956002> Purchased **${item.name}**. It\'s now in your inventory.`, ephemeral: true });
@@ -2519,7 +2518,7 @@ ${vs.join('\n')}`)
             const target     = await getPlayer(seasonId, targetId);
             const arenaChannel = season ? await getArenaChannel(season, interaction.client) : interaction.channel;
             // Deduct cost and consume item
-            await economy.removeFunds(hostId, SHOP_ITEMS.humiliation_pass.cost, 'Regret Games humiliation').catch(() => {});
+            await guildEconomy.removeFunds(interaction.guild.id, hostId, interaction.user.username, SHOP_ITEMS.humiliation_pass.cost, 'Regret Games humiliation').catch(() => {});
             if (arenaChannel && target) {
               await arenaChannel.send(
                 `<a:hmmdevil:1495665623219306647> **${target.username}** has been publicly humiliated by an anonymous source.\n*${getInsult(target.regret || 0)}*`
