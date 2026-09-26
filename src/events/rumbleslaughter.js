@@ -1045,8 +1045,7 @@ async function runGame(channel, game) {
       const share       = winTeam.length > 0 ? Math.floor(payout / winTeam.length) : 0;
 
       for (const w of winTeam) {
-        await economy.getUser(w.user_id, w.username);
-        await economy.addFunds(w.user_id, share, 'Rumble Slaughter RvR win');
+        await guildEconomy.addFunds(game.guildId, w.user_id, w.username, share, 'Rumble Slaughter RvR win');
         await economy.addRegret(w.user_id, REGRET_WINNER).catch(() => {});
       }
       if (share === 0) await jackpot.addToDrawFund(payout);
@@ -1068,8 +1067,7 @@ async function runGame(channel, game) {
     const share  = Math.floor(payout / alive.length);
 
     for (const w of alive) {
-      await economy.getUser(w.user_id, w.username);
-      await economy.addFunds(w.user_id, share, 'Rumble Slaughter win');
+      await guildEconomy.addFunds(game.guildId, w.user_id, w.username, share, 'Rumble Slaughter win');
       await economy.addRegret(w.user_id, REGRET_WINNER).catch(() => {});
     }
 
@@ -1236,7 +1234,7 @@ async function launchSignup(channel, bet, hostId, hostName, fireAt, scheduleId, 
   }
 
   const game = {
-    scheduleId, channelId: channel.id,
+    scheduleId, channelId: channel.id, guildId: channel.guild.id,
     bet, hostId, hostName, fireAt,
     era: eraKey,
     mode: gameMode,
@@ -1266,7 +1264,7 @@ async function fireGame(channel) {
 
   if (game.players.length < MIN_PLAYERS) {
     for (const p of game.players) {
-      await economy.addFunds(p.user_id, game.bet, 'Rumble Slaughter cancelled — not enough players').catch(() => {});
+      await guildEconomy.addFunds(game.guildId, p.user_id, p.username, game.bet, 'Rumble Slaughter cancelled — not enough players').catch(() => {});
     }
     activeGames.delete(channel.id);
     if (game.scheduleId) await db.run("UPDATE rs_schedules SET status = 'cancelled' WHERE id = ?", [game.scheduleId]).catch(() => {});
@@ -1307,7 +1305,7 @@ async function fireGame(channel) {
     await runGame(channel, game);
   } catch (err) {
     console.error('[RumbleSlaughter] Game error:', err.message, err.stack);
-    for (const p of game.players) await economy.addFunds(p.user_id, game.bet, 'Rumble Slaughter error refund').catch(() => {});
+    for (const p of game.players) await guildEconomy.addFunds(game.guildId, p.user_id, p.username, game.bet, 'Rumble Slaughter error refund').catch(() => {});
     await channel.send(`<:wrong:1495666083594502174> The arena collapsed. Everyone refunded. Error: ${err.message}`).catch(() => {});
   } finally {
     activeGames.delete(channel.id);
@@ -1385,13 +1383,12 @@ module.exports = {
       }
 
       await interaction.deferUpdate();
-      await economy.getUser(interaction.user.id, interaction.user.username);
-      const bal = await economy.getBalance(interaction.user.id);
+      const bal = await guildEconomy.getBalance(game.guildId, interaction.user.id);
       if (bal < game.bet) {
         return interaction.followUp({ content: `<:wrong:1495666083594502174> You need **${game.bet} sins** to enter. Go earn some first.`, ephemeral: true });
       }
 
-      await economy.removeFunds(interaction.user.id, game.bet, 'Rumble Slaughter entry');
+      await guildEconomy.removeFunds(game.guildId, interaction.user.id, interaction.user.username, game.bet, 'Rumble Slaughter entry');
       const player = await ensureRSUser(interaction.user.id, interaction.user.username);
       game.players.push(player);
 
@@ -1518,7 +1515,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
         }
 
         const game = {
-          scheduleId: row.id, channelId: row.channel_id,
+          scheduleId: row.id, channelId: row.channel_id, guildId: channel.guild.id,
           bet: row.bet, hostId: row.host_id, hostName: row.host_name,
           fireAt, players: savedPlayers, phase: 'signup',
           message: msg, timer: null,
@@ -1876,11 +1873,10 @@ It will affect your duels in the next Rumble Slaughter match.`,
       assignedTeam = firstMatch?.id === game.roleAId ? 'A' : 'B';
     }
 
-    await economy.getUser(message.author.id, message.author.username);
-    const bal = await economy.getBalance(message.author.id);
+    const bal = await guildEconomy.getBalance(game.guildId, message.author.id);
     if (bal < game.bet) return message.reply(`<:wrong:1495666083594502174> You need **${game.bet} sins** to enter. Check \`!balance\`.`);
 
-    await economy.removeFunds(message.author.id, game.bet, 'Rumble Slaughter entry');
+    await guildEconomy.removeFunds(game.guildId, message.author.id, message.author.username, game.bet, 'Rumble Slaughter entry');
     const player = await ensureRSUser(message.author.id, message.author.username);
     if (assignedTeam === 'A') game.teamA.push(player);
     if (assignedTeam === 'B') game.teamB.push(player);
@@ -1925,7 +1921,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
     game.players.splice(idx, 1);
     game.teamA = game.teamA?.filter(p => p.user_id !== target.id) || [];
     game.teamB = game.teamB?.filter(p => p.user_id !== target.id) || [];
-    await economy.addFunds(target.id, game.bet, 'Removed from Rumble Slaughter by host').catch(() => {});
+    await guildEconomy.addFunds(game.guildId, target.id, target.username, game.bet, 'Removed from Rumble Slaughter by host').catch(() => {});
     if (game.scheduleId) {
       await db.run('DELETE FROM rs_schedule_players WHERE schedule_id = ? AND user_id = ?', [game.scheduleId, target.id]).catch(() => {});
     }
@@ -1966,7 +1962,7 @@ It will affect your duels in the next Rumble Slaughter match.`,
       return message.reply('<:wrong:1495666083594502174> The game is already running. Too late.');
     }
     if (game.timer) clearTimeout(game.timer);
-    for (const p of game.players) await economy.addFunds(p.user_id, game.bet, 'Rumble Slaughter cancelled').catch(() => {});
+    for (const p of game.players) await guildEconomy.addFunds(game.guildId, p.user_id, p.username, game.bet, 'Rumble Slaughter cancelled').catch(() => {});
     const btn = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(`rs_join:${message.channel.id}`).setLabel('Cancelled').setStyle(ButtonStyle.Secondary).setDisabled(true)
     );
