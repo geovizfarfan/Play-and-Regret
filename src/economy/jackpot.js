@@ -4,6 +4,7 @@ const {
   StringSelectMenuBuilder, StringSelectMenuOptionBuilder,
 } = require('discord.js');
 const { economy } = require('../utils/database');
+const guildEconomy = require('../utils/guildEconomy');
 const jackpot = require('../utils/jackpot');
 const E = require('../utils/emojis');
 
@@ -113,7 +114,7 @@ module.exports = {
     if (action === 'richpot_stop') {
       await interaction.deferReply({ ephemeral: true });
       const sessionId = parseInt(interaction.values[0]);
-      return this._stopAndRefund(sessionId, async (msg) => interaction.editReply(msg));
+      return this._stopAndRefund(sessionId, async (msg) => interaction.editReply(msg), interaction.guild.id);
     }
 
     if (action === 'richpot_entries') {
@@ -142,7 +143,7 @@ module.exports = {
         if (interaction.replied || interaction.deferred)
           return interaction.followUp(typeof msg === 'string' ? { content: msg, ephemeral: true } : { ...msg, ephemeral: true });
         return interaction.reply(typeof msg === 'string' ? { content: msg, ephemeral: true } : { ...msg, ephemeral: true });
-      });
+      }, interaction.guild.id);
     }
   },
 
@@ -183,7 +184,7 @@ module.exports = {
     if (!sessions.length) return message.reply(`${E.ERROR} No active pots right now!`);
     if (sessions.length === 1) {
       return this._processEnter(message.author, parseInt(args[0]), sessions[0].id,
-        async (msg) => message.reply(msg));
+        async (msg) => message.reply(msg), message.guild.id);
     }
     // Multiple pots — ask which one: !enter <number> <sessionId>
     const sessionId = parseInt(args[1]);
@@ -192,7 +193,7 @@ module.exports = {
       return message.reply(`Multiple pots are running! Use \`!enter <number> <potID>\`:\n${names}`);
     }
     return this._processEnter(message.author, parseInt(args[0]), sessionId,
-      async (msg) => message.reply(msg));
+      async (msg) => message.reply(msg), message.guild.id);
   },
   async enterSlash(interaction) {
     const number  = interaction.options.getInteger('number');
@@ -202,7 +203,7 @@ module.exports = {
       return interaction.editReply(`${E.ERROR} No active pots right now!`);
     if (sessions.length === 1)
       return this._processEnter(interaction.user, number, sessions[0].id,
-        async (msg) => interaction.editReply(typeof msg === 'string' ? { content: msg } : msg));
+        async (msg) => interaction.editReply(typeof msg === 'string' ? { content: msg } : msg), interaction.guild.id);
     // Show picker
     const picker = buildSessionPicker(sessions, 'richpot_join_pick', 'Which pot do you want to enter?');
     // Store number temporarily via customId hack — we handle this in select
@@ -210,7 +211,7 @@ module.exports = {
     return interaction.editReply({ content: 'Which pot do you want to enter?', components: [picker] });
   },
 
-  async _processEnter(user, number, sessionId, replyFn) {
+  async _processEnter(user, number, sessionId, replyFn, guildId) {
     const session = await jackpot.getSession(sessionId);
     if (!session || session.status !== 'active')
       return replyFn(`${E.ERROR} That pot is no longer active!`);
@@ -219,12 +220,11 @@ module.exports = {
     if (await jackpot.hasEntered(user.id, sessionId))
       return replyFn(`${E.ERROR} You already entered **${session.name}**!`);
 
-    await economy.getUser(user.id, user.username);
-    const bal = await economy.getBalance(user.id);
+    const bal = await guildEconomy.getBalance(guildId, user.id);
     if (bal < jackpot.ENTRY_COST)
       return replyFn(`${E.ERROR} You need **${jackpot.ENTRY_COST} ${CURRENCY}** but only have **${bal}**.`);
 
-    await economy.removeFunds(user.id, jackpot.ENTRY_COST, `Entry: ${session.name}`);
+    await guildEconomy.removeFunds(guildId, user.id, user.username, jackpot.ENTRY_COST, `Entry: ${session.name}`);
     await jackpot.addToPot(jackpot.ENTRY_COST, `Entry by ${user.username}`, sessionId);
     await jackpot.enter(user.id, user.username, number, sessionId);
     await this.updateLiveChannels();
@@ -357,7 +357,7 @@ ${ping}`
     const sessions = await jackpot.getActiveSessions();
     if (!sessions.length) return message.reply(`${E.ERROR} No active pots!`);
     if (sessions.length === 1) {
-      return this._stopAndRefund(sessions[0].id, async (msg) => message.reply(msg));
+      return this._stopAndRefund(sessions[0].id, async (msg) => message.reply(msg), message.guild.id);
     }
     const picker = buildSessionPicker(sessions, 'richpot_stop', 'Which pot do you want to stop?');
     return message.reply({ content: 'Which pot do you want to stop?', components: [picker] });
@@ -369,7 +369,7 @@ ${ping}`
     if (!sessions.length) return interaction.reply({ content: `${E.ERROR} No active pots!`, ephemeral: true });
     if (sessions.length === 1) {
       await interaction.deferReply({ ephemeral: true });
-      return this._stopAndRefund(sessions[0].id, async (msg) => interaction.editReply(msg));
+      return this._stopAndRefund(sessions[0].id, async (msg) => interaction.editReply(msg), interaction.guild.id);
     }
     await interaction.reply({
       content: 'Which pot do you want to stop?',
@@ -422,8 +422,7 @@ ${ping}`
       return replyFn ? replyFn(msg) : channel.send(msg);
     }
 
-    await economy.getUser(result.winner.user_id, result.winner.username);
-    await economy.addFunds(result.winner.user_id, result.pot, `${name} win`);
+    await guildEconomy.addFunds(channel.guild.id, result.winner.user_id, result.winner.username, result.pot, `${name} win`);
 
     const embed = new EmbedBuilder()
       .setColor('#FFFFFF')
@@ -647,8 +646,7 @@ ${ping}`
   async awardStreakBonus(userId, username, streak, channel) {
     const tier = getStreakBonus(streak);
     if (!tier) return;
-    await economy.getUser(userId, username);
-    await economy.addFunds(userId, tier.bonus, `Streak bonus (${streak} wins)`);
+    await guildEconomy.addFunds(channel.guild.id, userId, username, tier.bonus, `Streak bonus (${streak} wins)`);
     if (channel) await channel.send({ embeds: [
       new EmbedBuilder().setColor('#FFD4A8').setTitle(tier.label)
         .setDescription(`<@${userId}> is on a **${streak}-win streak** in Tic-Tac-Bruh!\n${E.BB_COIN} **+${tier.bonus} Sins** streak bonus!`)
@@ -656,7 +654,7 @@ ${ping}`
     ]});
   },
 
-  async _stopAndRefund(sessionId, replyFn) {
+  async _stopAndRefund(sessionId, replyFn, guildId) {
     const session = await jackpot.getSession(sessionId);
     if (!session) return replyFn(`${E.ERROR} Pot not found.`);
 
@@ -667,8 +665,7 @@ ${ping}`
 
     // Refund each player their entry fee
     for (const entry of refunded) {
-      await economy.getUser(entry.user_id, entry.username);
-      await economy.addFunds(entry.user_id, jackpot.ENTRY_COST, `Refund: ${session.name} stopped`);
+      await guildEconomy.addFunds(guildId, entry.user_id, entry.username, jackpot.ENTRY_COST, `Refund: ${session.name} stopped`);
     }
 
     const drawFundNote = drawFundRestored > 0
