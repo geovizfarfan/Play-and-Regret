@@ -159,11 +159,11 @@ module.exports = {
     const avatar = typeof target.displayAvatarURL === 'function' ? target.displayAvatarURL() : null;
     return message.reply({ embeds: [
       new EmbedBuilder().setColor('#D8B4FE')
-        .setTitle(`${currencyEmoji || '<a:SINS:1522338223613804724>'} ${currency} Balance`)
+        .setTitle(`${currencyEmoji || ''} ${currency} Balance`.trim())
         .setThumbnail(avatar)
         .addFields(
           { name: '<:member:1495666085121491024> Player', value: target.username,                 inline: true },
-          { name: `${currencyEmoji || '<a:SINS:1522338223613804724>'} ${currency}`, value: `**${bal.toLocaleString()}**`, inline: true },
+          { name: `${currencyEmoji ? currencyEmoji + ' ' : ''}${currency}`, value: `**${bal.toLocaleString()}**`, inline: true },
           { name: '<a:hmmdevil:1495665623219306647> Regret', value: `**${regret.toLocaleString()}**`, inline: true },
         )
     ]});
