@@ -9,52 +9,54 @@ const path = require('path');
 const fs = require('fs');
 const { isEnabled } = require('./monsters');
 
-const CELL = 96;
+const CELL_W = 80;
+const CELL_H = 120; // matches the 2:3 card art — cover-fits with zero crop
 const GAP = 8;
 const COLS = 10;
 const TITLE_H = 44;
+const FONT = 'DejaVu Sans, sans-serif'; // Arial isn't installed in the container — this renders as tofu boxes instead of text
 
 async function renderBookImage(monsters, ownedIds, title) {
   const enabledMonsters = monsters.filter(isEnabled).sort((a, b) => a.number - b.number);
   const rows = Math.ceil(enabledMonsters.length / COLS);
-  const width = COLS * CELL + (COLS + 1) * GAP;
-  const height = TITLE_H + rows * CELL + (rows + 1) * GAP;
+  const width = COLS * CELL_W + (COLS + 1) * GAP;
+  const height = TITLE_H + rows * CELL_H + (rows + 1) * GAP;
 
   const composites = [];
 
   const tasks = enabledMonsters.map(async (monster, i) => {
     const col = i % COLS, row = Math.floor(i / COLS);
-    const x = GAP + col * (CELL + GAP);
-    const y = TITLE_H + GAP + row * (CELL + GAP);
+    const x = GAP + col * (CELL_W + GAP);
+    const y = TITLE_H + GAP + row * (CELL_H + GAP);
     const owned = ownedIds.has(monster.id);
     const results = [];
 
     const filePath = path.join(__dirname, monster.image);
     if (fs.existsSync(filePath)) {
       try {
-        let img = sharp(filePath).resize(CELL, CELL, { fit: 'cover' });
+        let img = sharp(filePath).resize(CELL_W, CELL_H, { fit: 'cover' });
         if (!owned) img = img.greyscale().modulate({ brightness: 0.55 });
         const buf = await img.toBuffer();
         results.push({ input: buf, left: x, top: y });
       } catch (e) { console.error(`[Drop It Like It's Hot] book image error for ${monster.name}:`, e.message); }
     } else {
-      const placeholder = `<svg xmlns="http://www.w3.org/2000/svg" width="${CELL}" height="${CELL}">
-        <rect width="${CELL}" height="${CELL}" fill="${owned ? '#4a2f6b' : '#2a2a2a'}" rx="6"/>
-        <text x="${CELL/2}" y="${CELL/2+5}" text-anchor="middle" fill="#888" font-family="Arial" font-size="11">#${String(monster.number).padStart(3,'0')}</text>
+      const placeholder = `<svg xmlns="http://www.w3.org/2000/svg" width="${CELL_W}" height="${CELL_H}">
+        <rect width="${CELL_W}" height="${CELL_H}" fill="${owned ? '#4a2f6b' : '#2a2a2a'}" rx="6"/>
+        <text x="${CELL_W/2}" y="${CELL_H/2+5}" text-anchor="middle" fill="#888" font-family="${FONT}" font-size="11">#${String(monster.number).padStart(3,'0')}</text>
       </svg>`;
       results.push({ input: Buffer.from(placeholder), left: x, top: y });
     }
 
     if (owned) {
-      const badge = `<svg xmlns="http://www.w3.org/2000/svg" width="${CELL}" height="${CELL}">
-        <circle cx="${CELL-14}" cy="14" r="12" fill="#3ba55d" stroke="white" stroke-width="2"/>
-        <text x="${CELL-14}" y="19" text-anchor="middle" fill="white" font-family="Arial" font-size="14" font-weight="bold">✓</text>
+      const badge = `<svg xmlns="http://www.w3.org/2000/svg" width="${CELL_W}" height="${CELL_H}">
+        <circle cx="${CELL_W-14}" cy="14" r="12" fill="#3ba55d" stroke="white" stroke-width="2"/>
+        <text x="${CELL_W-14}" y="19" text-anchor="middle" fill="white" font-family="${FONT}" font-size="14" font-weight="bold">✓</text>
       </svg>`;
       results.push({ input: Buffer.from(badge), left: x, top: y });
     } else {
-      const numTag = `<svg xmlns="http://www.w3.org/2000/svg" width="${CELL}" height="${CELL}">
-        <rect x="0" y="${CELL-16}" width="${CELL}" height="16" fill="rgba(0,0,0,0.6)" rx="0"/>
-        <text x="${CELL/2}" y="${CELL-4}" text-anchor="middle" fill="#ccc" font-family="Arial" font-size="10">#${String(monster.number).padStart(3,'0')}</text>
+      const numTag = `<svg xmlns="http://www.w3.org/2000/svg" width="${CELL_W}" height="${CELL_H}">
+        <rect x="0" y="${CELL_H-16}" width="${CELL_W}" height="16" fill="rgba(0,0,0,0.6)" rx="0"/>
+        <text x="${CELL_W/2}" y="${CELL_H-4}" text-anchor="middle" fill="#ccc" font-family="${FONT}" font-size="10">#${String(monster.number).padStart(3,'0')}</text>
       </svg>`;
       results.push({ input: Buffer.from(numTag), left: x, top: y });
     }
@@ -66,7 +68,7 @@ async function renderBookImage(monsters, ownedIds, title) {
 
   const titleSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${TITLE_H}">
     <rect width="${width}" height="${TITLE_H}" fill="#C9B1FF" rx="6"/>
-    <text x="${width/2}" y="${TITLE_H - 15}" text-anchor="middle" fill="#3A0066" font-family="Arial" font-size="16" font-weight="bold">${title.replace(/[<>&'"]/g, '')}</text>
+    <text x="${width/2}" y="${TITLE_H - 15}" text-anchor="middle" fill="#3A0066" font-family="${FONT}" font-size="16" font-weight="bold">${title.replace(/[<>&'"]/g, '')}</text>
   </svg>`;
   composites.unshift({ input: Buffer.from(titleSvg), left: 0, top: 0 });
 
