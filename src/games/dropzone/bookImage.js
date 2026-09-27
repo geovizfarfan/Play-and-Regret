@@ -7,6 +7,7 @@
 const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
+const opentype = require('opentype.js');
 const { isEnabled } = require('./monsters');
 
 const CELL_W = 80;
@@ -15,23 +16,44 @@ const GAP = 8;
 const COLS = 10;
 const TITLE_H = 44;
 
-// System fonts (Arial, DejaVu Sans, etc.) aren't reliably installed in the
-// container, so font-family lookups silently fail and text renders as empty
-// boxes. Embedding the font's own bytes directly in each SVG sidesteps that
-// entirely — this works regardless of what's installed on the host.
-const FONT_REGULAR_B64 = fs.readFileSync(
-  path.join(__dirname, '../../../node_modules/dejavu-fonts-ttf/ttf/DejaVuSans.ttf')
-).toString('base64');
-const FONT_BOLD_B64 = fs.readFileSync(
-  path.join(__dirname, '../../../node_modules/dejavu-fonts-ttf/ttf/DejaVuSans-Bold.ttf')
-).toString('base64');
+// System/embedded fonts aren't reliably rendered by the container's SVG
+// engine (tried font-family lookup, then @font-face + base64 — both came
+// out as empty boxes in production). Converting text to actual glyph
+// outlines ahead of time sidesteps font rendering entirely: sharp just
+// draws the shapes, no font lookup happens at render time at all.
+const REGULAR_FONT = opentype.parse(
+  fs.readFileSync(path.join(__dirname, '../../../node_modules/dejavu-fonts-ttf/ttf/DejaVuSans.ttf')).buffer
+);
+const BOLD_FONT = opentype.parse(
+  fs.readFileSync(path.join(__dirname, '../../../node_modules/dejavu-fonts-ttf/ttf/DejaVuSans-Bold.ttf')).buffer
+);
 
-function fontStyle() {
-  return `<style>
-    @font-face { font-family: 'BookFont'; src: url(data:font/ttf;base64,${FONT_REGULAR_B64}) format('truetype'); font-weight: normal; }
-    @font-face { font-family: 'BookFont'; src: url(data:font/ttf;base64,${FONT_BOLD_B64}) format('truetype'); font-weight: bold; }
-    text { font-family: 'BookFont'; }
-  </style>`;
+// Per-character glyph lookup, skipping ligature/substitution features —
+// this game only ever renders plain numbers/letters, so that's fine, and
+// it avoids a GSUB parsing bug in this font that crashes font.getPath().
+function textWidth(font, text, fontSize) {
+  const scale = fontSize / font.unitsPerEm;
+  let w = 0;
+  for (const ch of text) w += font.charToGlyph(ch).advanceWidth * scale;
+  return w;
+}
+function textPathD(font, text, x, y, fontSize) {
+  const scale = fontSize / font.unitsPerEm;
+  let cx = x, d = '';
+  for (const ch of text) {
+    const glyph = font.charToGlyph(ch);
+    d += glyph.getPath(cx, y, fontSize).toPathData(1) + ' ';
+    cx += glyph.advanceWidth * scale;
+  }
+  return d;
+}
+// anchor: 'start' | 'middle' | 'end' — x is the reference point per that anchor, like SVG text-anchor
+function textPathEl(text, x, y, fontSize, { bold = false, anchor = 'start', fill = '#fff' } = {}) {
+  const font = bold ? BOLD_FONT : REGULAR_FONT;
+  const w = textWidth(font, text, fontSize);
+  const startX = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w : x;
+  const d = textPathD(font, text, startX, y, fontSize);
+  return `<path d="${d}" fill="${fill}"/>`;
 }
 
 async function renderBookImage(monsters, ownedIds, title) {
@@ -48,6 +70,7 @@ async function renderBookImage(monsters, ownedIds, title) {
     const y = TITLE_H + GAP + row * (CELL_H + GAP);
     const owned = ownedIds.has(monster.id);
     const results = [];
+    const numLabel = `#${String(monster.number).padStart(3, '0')}`;
 
     const filePath = path.join(__dirname, monster.image);
     if (fs.existsSync(filePath)) {
@@ -59,25 +82,22 @@ async function renderBookImage(monsters, ownedIds, title) {
       } catch (e) { console.error(`[Drop It Like It's Hot] book image error for ${monster.name}:`, e.message); }
     } else {
       const placeholder = `<svg xmlns="http://www.w3.org/2000/svg" width="${CELL_W}" height="${CELL_H}">
-        ${fontStyle()}
         <rect width="${CELL_W}" height="${CELL_H}" fill="${owned ? '#4a2f6b' : '#2a2a2a'}" rx="6"/>
-        <text x="${CELL_W/2}" y="${CELL_H/2+5}" text-anchor="middle" fill="#888" font-size="11">#${String(monster.number).padStart(3,'0')}</text>
+        ${textPathEl(numLabel, CELL_W/2, CELL_H/2+9, 11, { anchor: 'middle', fill: '#888' })}
       </svg>`;
       results.push({ input: Buffer.from(placeholder), left: x, top: y });
     }
 
     if (owned) {
       const badge = `<svg xmlns="http://www.w3.org/2000/svg" width="${CELL_W}" height="${CELL_H}">
-        ${fontStyle()}
         <circle cx="${CELL_W-14}" cy="14" r="12" fill="#3ba55d" stroke="white" stroke-width="2"/>
-        <text x="${CELL_W-14}" y="19" text-anchor="middle" fill="white" font-size="14" font-weight="bold">✓</text>
+        ${textPathEl('✓', CELL_W-14, 20, 14, { bold: true, anchor: 'middle', fill: 'white' })}
       </svg>`;
       results.push({ input: Buffer.from(badge), left: x, top: y });
     } else {
       const numTag = `<svg xmlns="http://www.w3.org/2000/svg" width="${CELL_W}" height="${CELL_H}">
-        ${fontStyle()}
         <rect x="0" y="${CELL_H-16}" width="${CELL_W}" height="16" fill="rgba(0,0,0,0.6)" rx="0"/>
-        <text x="${CELL_W/2}" y="${CELL_H-4}" text-anchor="middle" fill="#ccc" font-size="10">#${String(monster.number).padStart(3,'0')}</text>
+        ${textPathEl(numLabel, CELL_W/2, CELL_H-4, 10, { anchor: 'middle', fill: '#ccc' })}
       </svg>`;
       results.push({ input: Buffer.from(numTag), left: x, top: y });
     }
@@ -87,10 +107,10 @@ async function renderBookImage(monsters, ownedIds, title) {
   const cellResults = await Promise.all(tasks);
   for (const r of cellResults) composites.push(...r);
 
+  const cleanTitle = title.replace(/[<>&'"]/g, '');
   const titleSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${TITLE_H}">
-    ${fontStyle()}
     <rect width="${width}" height="${TITLE_H}" fill="#C9B1FF" rx="6"/>
-    <text x="${width/2}" y="${TITLE_H - 15}" text-anchor="middle" fill="#3A0066" font-size="16" font-weight="bold">${title.replace(/[<>&'"]/g, '')}</text>
+    ${textPathEl(cleanTitle, width/2, TITLE_H - 15, 16, { bold: true, anchor: 'middle', fill: '#3A0066' })}
   </svg>`;
   composites.unshift({ input: Buffer.from(titleSvg), left: 0, top: 0 });
 
