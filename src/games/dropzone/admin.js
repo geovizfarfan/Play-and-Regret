@@ -69,6 +69,14 @@ async function getGiftPermittedUsers(guildId) {
 }
 
 /** Gift a specific sticker (any season, any enabled state) to a user. Returns full monster data for building a result embed. */
+/** Returns how many of a sticker a user currently owns (0 if none). */
+async function getOwnedQuantity(userId, monsterId) {
+  const monster = getMonster(monsterId);
+  if (!monster) return 0;
+  const row = await db.get('SELECT quantity FROM dropzone_collections WHERE user_id = ? AND monster_id = ? AND season = ?', [userId, monsterId, monster.season]);
+  return row?.quantity || 0;
+}
+
 async function giftSticker(targetUserId, monsterId, quantity = 1) {
   const monster = getMonster(monsterId);
   if (!monster) return { error: 'unknown_sticker' };
@@ -141,5 +149,5 @@ async function getStats(guildId, season) {
 module.exports = {
   getConfig, setGuildEnabled, setSpawnChannel, getSpawnChannels, isSpawnChannelAllowed,
   setExchangeChannel, setPingRole, giftSticker, removeSticker, manualSpawn, setMonsterEnabled, getStats,
-  grantGiftPermission, revokeGiftPermission, hasGiftPermission, getGiftPermittedUsers,
+  grantGiftPermission, revokeGiftPermission, hasGiftPermission, getGiftPermittedUsers, getOwnedQuantity,
 };

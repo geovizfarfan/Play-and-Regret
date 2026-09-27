@@ -40,16 +40,13 @@ function buildMonsterAttachment(monster) {
 }
 
 function buildGiftEmbed(monster, recipient, giver, extraFields) {
-  const meta = RARITY_META[monster.rarity];
   const embed = new EmbedBuilder()
     .setColor(LAVENDER)
-    .setTitle('🎁 Sticker Given')
+    .setTitle('<a:gift:1552714840861179974> Sticker Given')
     .setDescription(
-      `Successfully added **${monster.name}** \`#${String(monster.number).padStart(3, '0')}\` to <@${recipient.id}>'s collection.\n\n` +
-      `${meta.emoji} ${meta.label}`
+      `Successfully added **${monster.name}** \`#${String(monster.number).padStart(3, '0')}\` to <@${recipient.id}>'s collection.`
     )
     .addFields(
-      { name: 'Recipient', value: `<@${recipient.id}>`, inline: true },
       { name: 'Given By', value: giver ? `<@${giver.id}>` : 'Staff', inline: true },
       ...(extraFields || []),
     );
@@ -412,12 +409,13 @@ async function handleSlash(interaction, commandName) {
       if (target.id === interaction.user.id && target.id !== process.env.OWNER_ID) {
         return interaction.reply({ content: `<:wrong:1495666083594502174> You can't gift stickers to yourself.`, ephemeral: true });
       }
+      const alreadyOwned = await A.getOwnedQuantity(target.id, monsterId);
+      if (alreadyOwned > 0) {
+        return interaction.reply({ content: `<:wrong:1495666083594502174> ${target.username} already owns that sticker — staff gifts can't go to stickers someone already has.`, ephemeral: true });
+      }
       const result = await A.giftSticker(target.id, monsterId, qty);
       if (result.error) return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown sticker.', ephemeral: true });
-      const { embed, attachment } = buildGiftEmbed(result.monster, target, interaction.user, [
-        { name: 'Quantity', value: `${qty}`, inline: true },
-        { name: 'Now Owns', value: `${result.newQuantity}`, inline: true },
-      ]);
+      const { embed, attachment } = buildGiftEmbed(result.monster, target, interaction.user);
       return interaction.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
     }
     if (sub === 'remove') {
