@@ -440,7 +440,20 @@ async function handleActivityMessage(message) {
   const cfg = await A.getConfig(message.guild.id);
   if (!cfg.enabled) return;
 
-  const shouldSpawn = recordActivity(message.guild.id, message.author.id, message.content || '');
+  // Text content is the normal signal. A sticker or an attachment (GIF/image
+  // upload with no caption) has empty content, so on its own it used to look
+  // identical to pure spam and get filtered out — members who mostly react
+  // with stickers/GIFs weren't counting toward activity at all. Build a
+  // signature for those cases too so they qualify, while same-sticker or
+  // same-attachment spam is still caught as repeating exactly like text spam.
+  let content = message.content || '';
+  if (!content && message.stickers?.size) {
+    content = 'sticker:' + [...message.stickers.values()].map(s => s.id).sort().join(',');
+  } else if (!content && message.attachments?.size) {
+    content = 'attachment:' + [...message.attachments.values()].map(a => `${a.name}:${a.size}`).sort().join(',');
+  }
+
+  const shouldSpawn = recordActivity(message.guild.id, message.author.id, content);
   if (!shouldSpawn) return;
 
   markSpawned(message.guild.id);
