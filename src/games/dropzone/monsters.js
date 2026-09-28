@@ -124,14 +124,14 @@ const SEASON_2 = [
   { id: 'fall_baking', number: 42, name: 'Fall Baking', rarity: 'legendary', flavorText: "The kitchen is a disaster. The results are not." },
 
   // ── Mythic (Staff) ──────────────────────────────────────────────────────
-  { id: 'jess_gobblin_screamin', number: 43, name: "Jess Gobblin' & Screamin'", rarity: 'mythic', flavorText: "Haunting the Kirbys since day one. No refunds." },
+  { id: 'jess_gobblin_screamin', number: 43, name: 'Jess the Gobblescream', rarity: 'mythic', flavorText: "Haunting the Kirbys since day one. No refunds." },
   { id: 'shorty_mcgobble', number: 44, name: 'Shorty McGobble', rarity: 'mythic', flavorText: "Small in stature. Follows Jess anyway." },
-  { id: 'silent_but_turkey', number: 45, name: 'Silent But Turkey', rarity: 'mythic', flavorText: "Appeared after hours of silence. Has one question." },
+  { id: 'silent_but_turkey', number: 45, name: 'Silent the Shadowgobble', rarity: 'mythic', flavorText: "Appeared after hours of silence. Has one question." },
   { id: 'vale_the_pipe_gobbler', number: 46, name: 'Vale the Pipe Gobbler', rarity: 'mythic', flavorText: "Here to fix your pipes. Or bother you. Both." },
-  { id: 'wuera_never_sleeps', number: 47, name: 'Wuera Never Sleeps', rarity: 'mythic', flavorText: "It's 3 AM. Another raffle just started." },
-  { id: 'yasmin_crafty_clucker', number: 48, name: 'Yasmin Crafty Clucker', rarity: 'mythic', flavorText: "Lesson plans by day. Designs for fun by night." },
+  { id: 'wuera_never_sleeps', number: 47, name: 'Wuera the Sleepless Gobble', rarity: 'mythic', flavorText: "It's 3 AM. Another raffle just started." },
+  { id: 'yasmin_crafty_clucker', number: 48, name: 'Yasmin the CraftyGobble', rarity: 'mythic', flavorText: "Lesson plans by day. Designs for fun by night." },
   { id: 'nicole_on_the_gobble', number: 49, name: 'Nicole on the Gobble', rarity: 'mythic', flavorText: "Checklist done. Next game already queued." },
-  { id: 'geoviz_exe_has_vanished', number: 50, name: 'Geoviz.exe Has Vanished', rarity: 'mythic', flavorText: "Mid-fix. Mid-pixel. Back in five. Maybe." },
+  { id: 'geoviz_exe_has_vanished', number: 50, name: 'Geoviz the BossGobble', rarity: 'mythic', flavorText: "Mid-fix. Mid-pixel. Back in five. Maybe." },
 ];
 
 // season, enabled, limitedEdition, eventTag, image path — applied uniformly here
