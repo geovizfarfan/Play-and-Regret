@@ -135,11 +135,20 @@ const SEASON_2 = [
 ];
 
 // season, enabled, limitedEdition, eventTag, image path — applied uniformly here
-// rather than repeated on every entry above. Each season's art lives in
-// assets/season-N/NNN.png (numbers restart at 001 every season).
+// rather than repeated on every entry above.
+//
+// Numbering is continuous across seasons: Season 1 is #1-50, Season 2 is
+// #51-100, and so on. Each season's data above is written 1-50 for
+// readability; NUMBER_OFFSET turns that into the global number shown in the
+// bot. Art files stay per-season and local: assets/season-N/001.png..050.png.
+// To go back to restarting at #1 each season, set every offset to 0.
+const NUMBER_OFFSET = { 1: 0, 2: 50 };
+
 function withDefaults(list, season) {
+  const offset = NUMBER_OFFSET[season] || 0;
   return list.map(m => ({
     ...m,
+    number: m.number + offset,
     season,
     enabled: true,
     limitedEdition: false,
