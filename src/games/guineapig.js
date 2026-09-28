@@ -76,11 +76,11 @@ function buildGrid(gameId, round, cuyPos, revealed = false) {
             .setStyle(ButtonStyle.Secondary)
         );
       } else {
-        // Reveal — show 💥 where cuy was, ⬜ elsewhere
+        // Reveal — show the cuy where it was hiding, ⬜ elsewhere
         btns.push(
           new ButtonBuilder()
             .setCustomId(`cuy_done_${idx}`)
-            .setLabel(isCuy ? '💥' : '⬜')
+            .setLabel(isCuy ? CUY_EMOJI : '⬜')
             .setStyle(isCuy ? ButtonStyle.Danger : ButtonStyle.Secondary)
             .setDisabled(true)
         );
