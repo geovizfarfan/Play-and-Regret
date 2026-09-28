@@ -287,8 +287,7 @@ const slashCommands = [
     .addSubcommand(sc => sc.setName('duplicates').setDescription('See your duplicates and how many spares of each'))
     .addSubcommand(sc => sc.setName('gift').setDescription('Gift one of your spare duplicates to another member')
       .addUserOption(o => o.setName('user').setDescription('Who to gift it to').setRequired(true))
-      .addStringOption(o => o.setName('sticker').setDescription('Which spare sticker to give').setRequired(true).setAutocomplete(true))
-      .addIntegerOption(dzSeasonOption))
+      .addStringOption(o => o.setName('sticker').setDescription('Which spare sticker to give').setRequired(true).setAutocomplete(true)))
     .addSubcommand(sc => sc.setName('leaderboard').setDescription('Top collectors this season')
       .addStringOption(o => o.setName('mode').setDescription('Ranking type').addChoices(
         { name: 'Unique Stickers', value: 'unique' },

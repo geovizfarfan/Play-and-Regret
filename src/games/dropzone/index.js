@@ -271,20 +271,21 @@ async function cmdMemberGift(interaction, targetUser, monsterId) {
   }
   if (targetUser.id === interaction.user.id) return interaction.reply({ content: `<:wrong:1495666083594502174> Can't gift yourself.`, ephemeral: true });
 
+  const cfg = await A.getConfig(guildId);
   const monster = getMonster(monsterId);
   if (!monster) return interaction.reply({ content: `<:wrong:1495666083594502174> Unknown sticker.`, ephemeral: true });
-  // The sticker itself decides the season, so closed-season spares can be gifted too.
-  if (monster.season > getActiveSeason()) return interaction.reply({ content: `<:wrong:1495666083594502174> **${getSeasonName(monster.season)}** hasn't started yet.`, ephemeral: true });
+  // Members can only gift spares from the current season; older seasons are staff gifts only.
+  if (monster.season !== cfg.current_season) return interaction.reply({ content: `<:wrong:1495666083594502174> Only **${getSeasonName(cfg.current_season)}** stickers can be gifted by members. Ask staff about older seasons.`, ephemeral: true });
 
-  const spareCount = await getSpareCount(interaction.user.id, monsterId, monster.season);
+  const spareCount = await getSpareCount(interaction.user.id, monsterId, cfg.current_season);
   if (spareCount <= 0) return interaction.reply({ content: `<:wrong:1495666083594502174> You don't have a spare copy of that one to give away.`, ephemeral: true });
 
-  await db.run('UPDATE dropzone_collections SET quantity = quantity - 1 WHERE user_id = ? AND monster_id = ? AND season = ?', [interaction.user.id, monsterId, monster.season]);
+  await db.run('UPDATE dropzone_collections SET quantity = quantity - 1 WHERE user_id = ? AND monster_id = ? AND season = ?', [interaction.user.id, monsterId, cfg.current_season]);
   await db.run(
     `INSERT INTO dropzone_collections (user_id, monster_id, season, quantity, first_caught_at)
      VALUES (?, ?, ?, 1, NOW())
      ON CONFLICT (user_id, monster_id, season) DO UPDATE SET quantity = dropzone_collections.quantity + 1`,
-    [targetUser.id, monsterId, monster.season]
+    [targetUser.id, monsterId, cfg.current_season]
   );
 
   const { embed, attachment } = buildGiftEmbed(monster, targetUser, interaction.user);
@@ -305,13 +306,6 @@ async function cmdLeaderboard(interaction, mode) {
 }
 
 // ── Autocomplete ──────────────────────────────────────────────────────────
-/** Seasons that have started, current season first, then newest-to-oldest. */
-function startedSeasonsCurrentFirst(current) {
-  const live = getActiveSeason();
-  return Object.keys(SEASON_NAMES).map(Number).filter(n => n <= live)
-    .sort((a, b) => (a === current ? -1 : b === current ? 1 : b - a));
-}
-
 async function handleAutocomplete(interaction) {
   const focused = interaction.options.getFocused(true);
   const sub = interaction.options.getSubcommand(false);
@@ -325,17 +319,10 @@ async function handleAutocomplete(interaction) {
 
   if (dupeOnlyFields) {
     const cfg = await A.getConfig(interaction.guild.id);
-    // Member gift only: the season dropdown filters the list; with no pick, show spares from every
-    // season that has started (current first) so closed-season spares can still be gifted.
-    const isGift = sub === 'gift' && focused.name === 'sticker';
-    const picked = isGift ? interaction.options.get('season')?.value : undefined;
-    const started = startedSeasonsCurrentFirst(cfg.current_season);
-    const seasons = !isGift ? [cfg.current_season] : (picked != null ? started.filter(n => n === picked) : started);
-    const dupes = (await Promise.all(seasons.map(n => getDuplicates(interaction.user.id, n)))).flat();
-    const badge = isGift && picked == null && started.length > 1;
+    const dupes = await getDuplicates(interaction.user.id, cfg.current_season);
     const matches = dupes.filter(d => d.monster.name.toLowerCase().includes(query)).slice(0, 25);
     return interaction.respond(matches.map(d => ({
-      name: `${badge ? `S${d.monster.season} ` : ''}#${String(d.monster.number).padStart(3, '0')} ${d.monster.name} — ${d.spareCount} spare${d.spareCount !== 1 ? 's' : ''}`,
+      name: `#${String(d.monster.number).padStart(3, '0')} ${d.monster.name} — ${d.spareCount} spare${d.spareCount !== 1 ? 's' : ''}`,
       value: d.monster.id,
     })));
   }
