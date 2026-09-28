@@ -31,6 +31,10 @@ const redflagModule = require('./src/games/redflag');
 const pickmeModule = require('./src/games/pickme');
 const confessModule = require('./src/economy/confess');
 const dropzoneModule = require('./src/games/dropzone');
+const { SEASON_NAMES: DZ_SEASON_NAMES } = require('./src/games/dropzone/config');
+// Optional season dropdown shared by the sticker commands (one choice per season in SEASON_NAMES).
+const dzSeasonOption = o => o.setName('season').setDescription('Which season (default: current)')
+  .addChoices(...Object.entries(DZ_SEASON_NAMES).map(([n, name]) => ({ name: `Season ${n} - ${name}`, value: Number(n) })));
 const rgModule        = require('./src/games/regretgames');
 const jackpotModule   = require('./src/economy/jackpot');
 
@@ -267,8 +271,10 @@ const slashCommands = [
     .addIntegerOption(o => o.setName('number').setDescription('Confession number to delete').setRequired(true)),
   new SlashCommandBuilder().setName('stickers').setDescription('Drop It Like It\'s Hot — your sticker collection')
     .addSubcommand(sc => sc.setName('book').setDescription('View a sticker book')
-      .addUserOption(o => o.setName('user').setDescription('Whose book to view')))
-    .addSubcommand(sc => sc.setName('missing').setDescription('See what you\'re missing this season'))
+      .addUserOption(o => o.setName('user').setDescription('Whose book to view'))
+      .addIntegerOption(dzSeasonOption))
+    .addSubcommand(sc => sc.setName('missing').setDescription('See what you\'re missing')
+      .addIntegerOption(dzSeasonOption))
     .addSubcommand(sc => sc.setName('view').setDescription('Inspect a sticker you own')
       .addStringOption(o => o.setName('sticker').setDescription('Which sticker').setRequired(true).setAutocomplete(true)))
     .addSubcommand(sc => sc.setName('trade').setDescription('Propose a 1-for-1 trade with another member')
@@ -281,7 +287,8 @@ const slashCommands = [
     .addSubcommand(sc => sc.setName('duplicates').setDescription('See your duplicates and how many spares of each'))
     .addSubcommand(sc => sc.setName('gift').setDescription('Gift one of your spare duplicates to another member')
       .addUserOption(o => o.setName('user').setDescription('Who to gift it to').setRequired(true))
-      .addStringOption(o => o.setName('sticker').setDescription('Which spare sticker to give').setRequired(true).setAutocomplete(true)))
+      .addStringOption(o => o.setName('sticker').setDescription('Which spare sticker to give').setRequired(true).setAutocomplete(true))
+      .addIntegerOption(dzSeasonOption))
     .addSubcommand(sc => sc.setName('leaderboard').setDescription('Top collectors this season')
       .addStringOption(o => o.setName('mode').setDescription('Ranking type').addChoices(
         { name: 'Unique Stickers', value: 'unique' },
@@ -292,11 +299,13 @@ const slashCommands = [
     .addSubcommand(sc => sc.setName('gift').setDescription('Gift a sticker to a member — any season')
       .addUserOption(o => o.setName('user').setDescription('Who to gift').setRequired(true))
       .addStringOption(o => o.setName('sticker').setDescription('Which sticker').setRequired(true).setAutocomplete(true))
-      .addIntegerOption(o => o.setName('quantity').setDescription('How many (default 1)').setMinValue(1)))
+      .addIntegerOption(o => o.setName('quantity').setDescription('How many (default 1)').setMinValue(1))
+      .addIntegerOption(dzSeasonOption))
     .addSubcommand(sc => sc.setName('remove').setDescription('Remove sticker copies from a member')
       .addUserOption(o => o.setName('user').setDescription('Who to remove from').setRequired(true))
       .addStringOption(o => o.setName('sticker').setDescription('Which sticker').setRequired(true).setAutocomplete(true))
-      .addIntegerOption(o => o.setName('quantity').setDescription('How many (default 1)').setMinValue(1)))
+      .addIntegerOption(o => o.setName('quantity').setDescription('How many (default 1)').setMinValue(1))
+      .addIntegerOption(dzSeasonOption))
     .addSubcommand(sc => sc.setName('spawn').setDescription('Force a manual spawn')
       .addStringOption(o => o.setName('sticker').setDescription('Specific sticker (leave blank for random)').setAutocomplete(true))
       .addChannelOption(o => o.setName('channel').setDescription('Where to spawn it (default: here)')))

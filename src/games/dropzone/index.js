@@ -8,7 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const { db, economy } = require('../../utils/database');
 const guildEconomy = require('../../utils/guildEconomy');
-const { CONFIG, RARITY_ORDER, RARITY_META, getSeasonName } = require('./config');
+const { CONFIG, RARITY_ORDER, RARITY_META, SEASON_NAMES, getSeasonName, getActiveSeason } = require('./config');
 const { renderBookImage } = require('./bookImage');
 const { getMonster, getMonstersBySeason, isEnabled, loadOverrides } = require('./monsters');
 const { startSeasonScheduler } = require('./season');
@@ -87,10 +87,21 @@ async function buildBookSummaryPayload(runnerId, targetUser, season, seasonName)
   return { embeds: [embed], components: [row], files: attachment ? [attachment] : [] };
 }
 
+// Season dropdown on /stickers book and /stickers missing. Defaults to the guild's current season;
+// members can look at any season that has started (so a closed season stays viewable).
+function resolveViewSeason(interaction, cfg) {
+  const picked = interaction.options.getInteger('season');
+  if (picked === null || picked === undefined) return { season: cfg.current_season };
+  if (picked > getActiveSeason()) return { error: `<:wrong:1495666083594502174> **${getSeasonName(picked)}** hasn't started yet.` };
+  return { season: picked };
+}
+
 async function cmdBook(interaction, targetUser) {
-  await interaction.deferReply();
   const cfg = await A.getConfig(interaction.guild.id);
-  const season = cfg.current_season;
+  const resolved = resolveViewSeason(interaction, cfg);
+  if (resolved.error) return interaction.reply({ content: resolved.error, ephemeral: true });
+  await interaction.deferReply();
+  const season = resolved.season;
   const seasonName = getSeasonName(season);
   const payload = await buildBookSummaryPayload(interaction.user.id, targetUser, season, seasonName);
   return interaction.editReply(payload);
@@ -153,8 +164,10 @@ async function handleBookBackButton(interaction) {
 // ── /stickers missing ────────────────────────────────────────────────────
 async function cmdMissing(interaction) {
   const cfg = await A.getConfig(interaction.guild.id);
-  const seasonName = getSeasonName(cfg.current_season);
-  const missing = await getMissing(interaction.user.id, cfg.current_season);
+  const resolved = resolveViewSeason(interaction, cfg);
+  if (resolved.error) return interaction.reply({ content: resolved.error, ephemeral: true });
+  const seasonName = getSeasonName(resolved.season);
+  const missing = await getMissing(interaction.user.id, resolved.season);
 
   if (!missing.length) {
     return interaction.reply(`<:checkmark:1495666088417956002> You have every sticker available in **${seasonName}**. Impressive.`);
@@ -258,19 +271,20 @@ async function cmdMemberGift(interaction, targetUser, monsterId) {
   }
   if (targetUser.id === interaction.user.id) return interaction.reply({ content: `<:wrong:1495666083594502174> Can't gift yourself.`, ephemeral: true });
 
-  const cfg = await A.getConfig(guildId);
   const monster = getMonster(monsterId);
   if (!monster) return interaction.reply({ content: `<:wrong:1495666083594502174> Unknown sticker.`, ephemeral: true });
+  // The sticker itself decides the season, so closed-season spares can be gifted too.
+  if (monster.season > getActiveSeason()) return interaction.reply({ content: `<:wrong:1495666083594502174> **${getSeasonName(monster.season)}** hasn't started yet.`, ephemeral: true });
 
-  const spareCount = await getSpareCount(interaction.user.id, monsterId, cfg.current_season);
+  const spareCount = await getSpareCount(interaction.user.id, monsterId, monster.season);
   if (spareCount <= 0) return interaction.reply({ content: `<:wrong:1495666083594502174> You don't have a spare copy of that one to give away.`, ephemeral: true });
 
-  await db.run('UPDATE dropzone_collections SET quantity = quantity - 1 WHERE user_id = ? AND monster_id = ? AND season = ?', [interaction.user.id, monsterId, cfg.current_season]);
+  await db.run('UPDATE dropzone_collections SET quantity = quantity - 1 WHERE user_id = ? AND monster_id = ? AND season = ?', [interaction.user.id, monsterId, monster.season]);
   await db.run(
     `INSERT INTO dropzone_collections (user_id, monster_id, season, quantity, first_caught_at)
      VALUES (?, ?, ?, 1, NOW())
      ON CONFLICT (user_id, monster_id, season) DO UPDATE SET quantity = dropzone_collections.quantity + 1`,
-    [targetUser.id, monsterId, cfg.current_season]
+    [targetUser.id, monsterId, monster.season]
   );
 
   const { embed, attachment } = buildGiftEmbed(monster, targetUser, interaction.user);
@@ -291,6 +305,13 @@ async function cmdLeaderboard(interaction, mode) {
 }
 
 // ── Autocomplete ──────────────────────────────────────────────────────────
+/** Seasons that have started, current season first, then newest-to-oldest. */
+function startedSeasonsCurrentFirst(current) {
+  const live = getActiveSeason();
+  return Object.keys(SEASON_NAMES).map(Number).filter(n => n <= live)
+    .sort((a, b) => (a === current ? -1 : b === current ? 1 : b - a));
+}
+
 async function handleAutocomplete(interaction) {
   const focused = interaction.options.getFocused(true);
   const sub = interaction.options.getSubcommand(false);
@@ -304,10 +325,17 @@ async function handleAutocomplete(interaction) {
 
   if (dupeOnlyFields) {
     const cfg = await A.getConfig(interaction.guild.id);
-    const dupes = await getDuplicates(interaction.user.id, cfg.current_season);
+    // Member gift only: the season dropdown filters the list; with no pick, show spares from every
+    // season that has started (current first) so closed-season spares can still be gifted.
+    const isGift = sub === 'gift' && focused.name === 'sticker';
+    const picked = isGift ? interaction.options.get('season')?.value : undefined;
+    const started = startedSeasonsCurrentFirst(cfg.current_season);
+    const seasons = !isGift ? [cfg.current_season] : (picked != null ? started.filter(n => n === picked) : started);
+    const dupes = (await Promise.all(seasons.map(n => getDuplicates(interaction.user.id, n)))).flat();
+    const badge = isGift && picked == null && started.length > 1;
     const matches = dupes.filter(d => d.monster.name.toLowerCase().includes(query)).slice(0, 25);
     return interaction.respond(matches.map(d => ({
-      name: `#${String(d.monster.number).padStart(3, '0')} ${d.monster.name} — ${d.spareCount} spare${d.spareCount !== 1 ? 's' : ''}`,
+      name: `${badge ? `S${d.monster.season} ` : ''}#${String(d.monster.number).padStart(3, '0')} ${d.monster.name} — ${d.spareCount} spare${d.spareCount !== 1 ? 's' : ''}`,
       value: d.monster.id,
     })));
   }
@@ -348,8 +376,17 @@ async function handleAutocomplete(interaction) {
 async function handleAdminAutocomplete(interaction) {
   const focused = interaction.options.getFocused().toLowerCase();
   const adminCfg = await A.getConfig(interaction.guild.id);
-  const matches = getMonstersBySeason(adminCfg.current_season).filter(m => m.name.toLowerCase().includes(focused)).slice(0, 25); // admin sees disabled ones too
-  return interaction.respond(matches.map(m => ({ name: `#${String(m.number).padStart(3, '0')} ${m.name}${isEnabled(m) ? '' : ' (disabled)'}`, value: m.id })));
+  const sub = interaction.options.getSubcommand(false);
+  // gift / remove: the season dropdown filters the list; with no pick, list every season (current
+  // first) so closed seasons stay giftable. Every other admin subcommand keeps current season only.
+  const seasonAware = sub === 'gift' || sub === 'remove';
+  const picked = seasonAware ? interaction.options.get('season')?.value : undefined;
+  const seasons = !seasonAware ? [adminCfg.current_season]
+    : picked != null ? [picked]
+    : Object.keys(SEASON_NAMES).map(Number).sort((a, b) => (a === adminCfg.current_season ? -1 : b === adminCfg.current_season ? 1 : b - a));
+  const badge = seasonAware && picked == null && seasons.length > 1;
+  const matches = seasons.flatMap(n => getMonstersBySeason(n)).filter(m => m.name.toLowerCase().includes(focused)).slice(0, 25); // admin sees disabled ones too
+  return interaction.respond(matches.map(m => ({ name: `${badge ? `S${m.season} ` : ''}#${String(m.number).padStart(3, '0')} ${m.name}${isEnabled(m) ? '' : ' (disabled)'}`, value: m.id })));
 }
 
 // ── Activity listener (called from index.js's messageCreate) ────────────
