@@ -48,19 +48,21 @@ async function getMissing(userId, season) {
   return allMonsters.filter(m => !collection.has(m.id));
 }
 
-/** Top collectors — by unique count, total catches, or rare+ catches. */
-async function getLeaderboard(season, mode = 'unique', limit = 10) {
+/** Top collectors — by unique count, total catches, or rare+ catches. limit=null means everyone. */
+async function getLeaderboard(season, mode = 'unique', limit = null) {
+  const limitClause = limit ? 'LIMIT ?' : '';
+  const limitParam = limit ? [limit] : [];
   if (mode === 'unique') {
     const rows = await db.all(
-      `SELECT user_id, COUNT(DISTINCT monster_id) AS score FROM dropzone_collections WHERE season = ? GROUP BY user_id ORDER BY score DESC LIMIT ?`,
-      [season, limit]
+      `SELECT user_id, COUNT(DISTINCT monster_id) AS score FROM dropzone_collections WHERE season = ? GROUP BY user_id ORDER BY score DESC ${limitClause}`,
+      [season, ...limitParam]
     );
     return rows;
   }
   if (mode === 'catches') {
     const rows = await db.all(
-      `SELECT user_id, SUM(quantity) AS score FROM dropzone_collections WHERE season = ? GROUP BY user_id ORDER BY score DESC LIMIT ?`,
-      [season, limit]
+      `SELECT user_id, SUM(quantity) AS score FROM dropzone_collections WHERE season = ? GROUP BY user_id ORDER BY score DESC ${limitClause}`,
+      [season, ...limitParam]
     );
     return rows;
   }
@@ -69,8 +71,8 @@ async function getLeaderboard(season, mode = 'unique', limit = 10) {
     if (!rareIds.length) return [];
     const placeholders = rareIds.map(() => '?').join(',');
     const rows = await db.all(
-      `SELECT user_id, SUM(quantity) AS score FROM dropzone_collections WHERE season = ? AND monster_id IN (${placeholders}) GROUP BY user_id ORDER BY score DESC LIMIT ?`,
-      [season, ...rareIds, limit]
+      `SELECT user_id, SUM(quantity) AS score FROM dropzone_collections WHERE season = ? AND monster_id IN (${placeholders}) GROUP BY user_id ORDER BY score DESC ${limitClause}`,
+      [season, ...rareIds, ...limitParam]
     );
     return rows;
   }

@@ -302,16 +302,47 @@ async function cmdMemberGift(interaction, targetUser, monsterId) {
 }
 
 // ── /stickers leaderboard ────────────────────────────────────────────────
+const LB_PAGE_SIZE = 15;
+
+function buildLeaderboardPayload(runnerId, allRows, mode, season, page) {
+  const label = { unique: 'Unique Stickers', catches: 'Total Catches', rare: 'Legendary+ Catches' }[mode];
+  const totalPages = Math.max(1, Math.ceil(allRows.length / LB_PAGE_SIZE));
+  const pageRows = allRows.slice(page * LB_PAGE_SIZE, (page + 1) * LB_PAGE_SIZE);
+  const lines = pageRows.map((r, i) => `**${page * LB_PAGE_SIZE + i + 1}.** <@${r.user_id}> — ${r.score}`);
+
+  const embed = new EmbedBuilder()
+    .setColor(LAVENDER)
+    .setTitle(`<:member:1495666085121491024> ${label} — ${getSeasonName(season)}`)
+    .setDescription(lines.join('\n'))
+    .setFooter({ text: `Page ${page + 1}/${totalPages} • ${allRows.length} member${allRows.length !== 1 ? 's' : ''} total` });
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`dz_lb_page:${runnerId}:${mode}:${season}:${page - 1}`).setLabel('◀ Prev').setStyle(ButtonStyle.Secondary).setDisabled(page <= 0),
+    new ButtonBuilder().setCustomId(`dz_lb_page:${runnerId}:${mode}:${season}:${page + 1}`).setLabel('Next ▶').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1),
+  );
+
+  return { embeds: [embed], components: totalPages > 1 ? [row] : [] };
+}
+
 async function cmdLeaderboard(interaction, mode) {
   const cfg = await A.getConfig(interaction.guild.id);
-  const rows = await getLeaderboard(cfg.current_season, mode || 'unique');
+  mode = mode || 'unique';
+  const rows = await getLeaderboard(cfg.current_season, mode); // no limit — everyone who's caught something
 
   if (!rows.length) return interaction.reply({ content: 'Nobody\'s caught anything yet this season.', ephemeral: true });
 
-  const label = { unique: 'Unique Stickers', catches: 'Total Catches', rare: 'Legendary+ Catches' }[mode || 'unique'];
-  const lines = rows.map((r, i) => `**${i + 1}.** <@${r.user_id}> — ${r.score}`);
+  return interaction.reply(buildLeaderboardPayload(interaction.user.id, rows, mode, cfg.current_season, 0));
+}
 
-  return interaction.reply({ embeds: [new EmbedBuilder().setColor(LAVENDER).setTitle(`<:member:1495666085121491024> ${label} — ${getSeasonName(cfg.current_season)}`).setDescription(lines.join('\n'))] });
+async function handleLeaderboardPageButton(interaction) {
+  const [, runnerId, mode, seasonStr, pageStr] = interaction.customId.split(':');
+  if (interaction.user.id !== runnerId) {
+    return interaction.reply({ content: '<:wrong:1495666083594502174> Only the person who ran this command can use these buttons.', ephemeral: true });
+  }
+  const season = parseInt(seasonStr);
+  const page = parseInt(pageStr);
+  const rows = await getLeaderboard(season, mode);
+  return interaction.update(buildLeaderboardPayload(runnerId, rows, mode, season, page));
 }
 
 // ── Autocomplete ──────────────────────────────────────────────────────────
@@ -432,6 +463,7 @@ async function handleButton(interaction) {
   if (interaction.customId.startsWith('dz_trade_accept:') || interaction.customId.startsWith('dz_trade_decline:')) return resolveTradeButton(interaction);
   if (interaction.customId.startsWith('dz_book_page:')) return handleBookPageButton(interaction);
   if (interaction.customId.startsWith('dz_book_back:')) return handleBookBackButton(interaction);
+  if (interaction.customId.startsWith('dz_lb_page:')) return handleLeaderboardPageButton(interaction);
 }
 
 // ── Slash command dispatch ────────────────────────────────────────────────
