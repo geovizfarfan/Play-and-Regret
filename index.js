@@ -449,6 +449,7 @@ client.once('clientReady', async () => {
   try {
     await dropzoneModule.initTimer(client);
     console.log('[Drop It Like It\'s Hot] initTimer completed');
+    dropzoneModule.initSeasons();
   } catch (e) { console.error('[Drop It Like It\'s Hot] initTimer failed', e); }
 
   // ── Startup refund — refund any players stuck in games from before restart ──

@@ -4,7 +4,7 @@
 // member-level gift permission tier.
 // ─────────────────────────────────────────────────────────────────────────────
 const { db } = require('../../utils/database');
-const { CONFIG } = require('./config');
+const { CONFIG, getActiveSeason } = require('./config');
 const { getMonster, getMonstersBySeason, isEnabled, setOverride } = require('./monsters');
 const { rollMonster } = require('./rarity');
 const { postSpawn } = require('./spawn');
@@ -12,7 +12,7 @@ const { postSpawn } = require('./spawn');
 async function getConfig(guildId) {
   const row = await db.get('SELECT * FROM dropzone_config WHERE guild_id = ?', [guildId]);
   if (row) return row;
-  await db.run('INSERT INTO dropzone_config (guild_id, enabled, current_season) VALUES (?, true, ?) ON CONFLICT (guild_id) DO NOTHING', [guildId, CONFIG.currentSeason]);
+  await db.run('INSERT INTO dropzone_config (guild_id, enabled, current_season) VALUES (?, true, ?) ON CONFLICT (guild_id) DO NOTHING', [guildId, getActiveSeason()]);
   return db.get('SELECT * FROM dropzone_config WHERE guild_id = ?', [guildId]);
 }
 

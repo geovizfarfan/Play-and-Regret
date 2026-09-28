@@ -107,7 +107,9 @@ async function renderBookImage(monsters, ownedIds, title) {
   const cellResults = await Promise.all(tasks);
   for (const r of cellResults) composites.push(...r);
 
-  const cleanTitle = title.replace(/[<>&'"]/g, '');
+  // Text is drawn as glyph outlines, not parsed as XML, so no escaping is needed —
+  // apostrophes/ampersands in usernames render as-is.
+  const cleanTitle = String(title);
   const titleSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${TITLE_H}">
     <rect width="${width}" height="${TITLE_H}" fill="#C9B1FF" rx="6"/>
     ${textPathEl(cleanTitle, width/2, TITLE_H - 15, 16, { bold: true, anchor: 'middle', fill: '#3A0066' })}

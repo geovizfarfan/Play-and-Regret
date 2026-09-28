@@ -47,9 +47,27 @@ const CONFIG = {
 
 const SEASON_NAMES = {
   1: 'Monster Drops',
+  2: 'Fall Drop',
 };
+
+// When each season goes live. Season 1 has always been live (null = from the
+// beginning). Nov 1, 2026 is the day daylight saving ends, but midnight is
+// still EDT (clocks change at 2am), so 12:00am Eastern = 04:00 UTC = -04:00.
+const SEASON_SCHEDULE = [
+  { season: 1, startsAt: null },
+  { season: 2, startsAt: '2026-11-01T00:00:00-04:00' },
+];
+
+/** The highest-numbered season whose start time has passed. */
+function getActiveSeason(now = new Date()) {
+  let active = SEASON_SCHEDULE[0].season;
+  for (const { season, startsAt } of SEASON_SCHEDULE) {
+    if (startsAt === null || new Date(startsAt) <= now) active = Math.max(active, season);
+  }
+  return active;
+}
 function getSeasonName(season) {
   return SEASON_NAMES[season] || `Season ${season}`;
 }
 
-module.exports = { RARITY_ORDER, RARITY_META, CONFIG, SEASON_NAMES, getSeasonName };
+module.exports = { RARITY_ORDER, RARITY_META, CONFIG, SEASON_NAMES, SEASON_SCHEDULE, getActiveSeason, getSeasonName };

@@ -10,7 +10,8 @@ const { db, economy } = require('../../utils/database');
 const guildEconomy = require('../../utils/guildEconomy');
 const { CONFIG, RARITY_ORDER, RARITY_META, getSeasonName } = require('./config');
 const { renderBookImage } = require('./bookImage');
-const { MONSTERS, getMonster, isEnabled, loadOverrides } = require('./monsters');
+const { getMonster, getMonstersBySeason, isEnabled, loadOverrides } = require('./monsters');
+const { startSeasonScheduler } = require('./season');
 const { recordActivity, markSpawned } = require('./activity');
 const { rollMonster } = require('./rarity');
 const { postSpawn, reconcileOnStartup } = require('./spawn');
@@ -72,7 +73,7 @@ async function buildBookSummaryPayload(runnerId, targetUser, season, seasonName)
     );
 
   const ownedIds = new Set(summary.collection.keys());
-  const imgBuffer = await renderBookImage(MONSTERS, ownedIds, `${targetUser.username}'s Sticker Book`);
+  const imgBuffer = await renderBookImage(getMonstersBySeason(season), ownedIds, `${targetUser.username}'s Sticker Book`);
   const attachment = imgBuffer ? new AttachmentBuilder(imgBuffer, { name: 'book.png' }) : null;
   if (attachment) embed.setImage('attachment://book.png');
 
@@ -340,12 +341,14 @@ async function handleAutocomplete(interaction) {
     // no trade partner picked yet — can't filter by ownership, fall through to the generic list below
   }
 
-  const matches = MONSTERS.filter(m => isEnabled(m) && m.name.toLowerCase().includes(query)).slice(0, 25);
+  const seasonCfg = await A.getConfig(interaction.guild.id);
+  const matches = getMonstersBySeason(seasonCfg.current_season).filter(m => isEnabled(m) && m.name.toLowerCase().includes(query)).slice(0, 25);
   return interaction.respond(matches.map(m => ({ name: `#${String(m.number).padStart(3, '0')} ${m.name}`, value: m.id })));
 }
 async function handleAdminAutocomplete(interaction) {
   const focused = interaction.options.getFocused().toLowerCase();
-  const matches = MONSTERS.filter(m => m.name.toLowerCase().includes(focused)).slice(0, 25); // admin sees disabled ones too
+  const adminCfg = await A.getConfig(interaction.guild.id);
+  const matches = getMonstersBySeason(adminCfg.current_season).filter(m => m.name.toLowerCase().includes(focused)).slice(0, 25); // admin sees disabled ones too
   return interaction.respond(matches.map(m => ({ name: `#${String(m.number).padStart(3, '0')} ${m.name}${isEnabled(m) ? '' : ' (disabled)'}`, value: m.id })));
 }
 
@@ -522,4 +525,5 @@ module.exports = {
   handleAutocomplete, handleAdminAutocomplete,
   reconcileOnStartup, loadOverrides,
   initTimer: T.init,
+  initSeasons: startSeasonScheduler,
 };

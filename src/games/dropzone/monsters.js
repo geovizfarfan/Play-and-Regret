@@ -69,16 +69,86 @@ const SEASON_1 = [
   { id: 'the_first_monster', number: 50, name: 'The First Monster', rarity: 'mythic', flavorText: "Everything on this list came from it. It came from nothing." },
 ];
 
+// ── SEASON 2 — FALL DROP (starts Nov 1, 2026 12:00am Eastern — see config.js SEASON_SCHEDULE) ──
+const SEASON_2 = [
+  // ── Common ──────────────────────────────────────────────────────────────
+  { id: 'pumpkin_patch', number: 1, name: 'Pumpkin Patch', rarity: 'common', flavorText: "Grown with love. Photographed by everyone." },
+  { id: 'apple_harvest', number: 2, name: 'Apple Harvest', rarity: 'common', flavorText: "One for the basket, two for the crisp." },
+  { id: 'cozy_cabin', number: 3, name: 'Cozy Cabin', rarity: 'common', flavorText: "Zero bars of signal. Zero regrets." },
+  { id: 'fall_coffee', number: 4, name: 'Fall Coffee', rarity: 'common', flavorText: "Not a personality, but it's carrying yours." },
+  { id: 'pecan_pie', number: 5, name: 'Pecan Pie', rarity: 'common', flavorText: "Pronounce it however you want. Just pass it." },
+  { id: 'pumpkin_pie', number: 6, name: 'Pumpkin Pie', rarity: 'common', flavorText: "Whipped cream is not optional." },
+  { id: 'hay_ride', number: 7, name: 'Hay Ride', rarity: 'common', flavorText: "Bumpy, itchy, and somehow the best part of the day." },
+  { id: 'corn_maze', number: 8, name: 'Corn Maze', rarity: 'common', flavorText: "You said you knew the way. Twenty minutes ago." },
+  { id: 'leaf_pile', number: 9, name: 'Leaf Pile', rarity: 'common', flavorText: "Raked with care. Destroyed in four seconds." },
+  { id: 'sweater_weather', number: 10, name: 'Sweater Weather', rarity: 'common', flavorText: "The temperature dropped. Your standards did not." },
+
+  // ── Uncommon ────────────────────────────────────────────────────────────
+  { id: 'football_season', number: 11, name: 'Football Season', rarity: 'uncommon', flavorText: "Your weekends belong to the couch now." },
+  { id: 'tailgate_time', number: 12, name: 'Tailgate Time', rarity: 'uncommon', flavorText: "Arrived at 8 AM for a 4 PM kickoff. Worth it." },
+  { id: 'grill_master', number: 13, name: 'Grill Master', rarity: 'uncommon', flavorText: "Says he's 'almost done' for an hour and a half." },
+  { id: 'sunday_funday', number: 14, name: 'Sunday Funday', rarity: 'uncommon', flavorText: "Monday is a rumor. Nobody's confirmed it." },
+  { id: 'game_day_grub', number: 15, name: 'Game Day Grub', rarity: 'uncommon', flavorText: "Nobody watched the game. Everybody ate." },
+  { id: 'touchdown', number: 16, name: 'Touchdown', rarity: 'uncommon', flavorText: "Somebody just spilled a whole dip. Worth it." },
+  { id: 'basketball_vibes', number: 17, name: 'Basketball Vibes', rarity: 'uncommon', flavorText: "Wet court, big dreams, zero jump shot." },
+  { id: 'golf_season', number: 18, name: 'Golf Season', rarity: 'uncommon', flavorText: "A long walk ruined on purpose." },
+  { id: 'hockey_nights', number: 19, name: 'Hockey Nights', rarity: 'uncommon', flavorText: "Cold rink, hot takes, missing teeth." },
+  { id: 'soccer_season', number: 20, name: 'Soccer Season', rarity: 'uncommon', flavorText: "Ninety minutes for one goal. Cinema." },
+
+  // ── Rare ────────────────────────────────────────────────────────────────
+  { id: 'hunting_season', number: 21, name: 'Hunting Season', rarity: 'rare', flavorText: "Sat in a tree for six hours. Saw a squirrel." },
+  { id: 'fishing_trip', number: 22, name: 'Fishing Trip', rarity: 'rare', flavorText: "The fish were never the point. There were no fish." },
+  { id: 'mud_life', number: 23, name: 'Mud Life', rarity: 'rare', flavorText: "It was clean this morning. It was a mistake." },
+  { id: 'motorcycle_season', number: 24, name: 'Motorcycle Season', rarity: 'rare', flavorText: "Last ride before the snow. He says that every week." },
+  { id: 'uggs_and_coffee', number: 25, name: 'Uggs & Coffee', rarity: 'rare', flavorText: "The unofficial uniform of every October." },
+  { id: 'brown_stanley', number: 26, name: 'Brown Stanley', rarity: 'rare', flavorText: "Holds forty ounces and every opinion you have." },
+  { id: 'pumpkin_spice', number: 27, name: 'Pumpkin Spice', rarity: 'rare', flavorText: "Judge it all you want. You're still ordering it." },
+  { id: 'dunkin_run', number: 28, name: "Dunkin' Run", rarity: 'rare', flavorText: "Just a quick stop. It was never a quick stop." },
+  { id: 'starbies_run', number: 29, name: 'Starbies Run', rarity: 'rare', flavorText: "Your name is spelled wrong again. You answered anyway." },
+  { id: 'dutch_run', number: 30, name: 'Dutch Run', rarity: 'rare', flavorText: "The line is thirty cars deep and nobody's leaving." },
+
+  // ── Epic ────────────────────────────────────────────────────────────────
+  { id: 'fall_kicks', number: 31, name: 'Fall Kicks', rarity: 'epic', flavorText: "Too clean to wear. Wearing them anyway." },
+  { id: 'hoodie_season', number: 32, name: 'Hoodie Season', rarity: 'epic', flavorText: "Officially a lifestyle from now until March." },
+  { id: 'gaming_mode', number: 33, name: 'Gaming Mode', rarity: 'epic', flavorText: "Do not disturb. This includes dinner." },
+  { id: 'cozy_gamer', number: 34, name: 'Cozy Gamer', rarity: 'epic', flavorText: "Rain outside. Blanket on. Nobody leaves." },
+  { id: 'camp_crystal', number: 35, name: 'Camp Crystal', rarity: 'epic', flavorText: "The counselors were warned. Repeatedly." },
+  { id: 'dream_stalker', number: 36, name: 'Dream Stalker', rarity: 'epic', flavorText: "Falling asleep at a scary movie was a mistake." },
+  { id: 'the_shape', number: 37, name: 'The Shape', rarity: 'epic', flavorText: "Never runs. Always arrives." },
+  { id: 'bonfire_nights', number: 38, name: 'Bonfire Nights', rarity: 'epic', flavorText: "Smells like smoke, tastes like s'mores, lasts until 2 AM." },
+
+  // ── Legendary ───────────────────────────────────────────────────────────
+  { id: 'thanksgiving_feast', number: 39, name: 'Thanksgiving Feast', rarity: 'legendary', flavorText: "Pants were a choice you made this morning." },
+  { id: 'autumn_horsepower', number: 40, name: 'Autumn Horsepower', rarity: 'legendary', flavorText: "Parked at the overlook. Sunset is just the backdrop." },
+  { id: 'sunday_legend', number: 41, name: 'Sunday Legend', rarity: 'legendary', flavorText: "Ten seconds left. Nobody breathes." },
+  { id: 'fall_baking', number: 42, name: 'Fall Baking', rarity: 'legendary', flavorText: "The kitchen is a disaster. The results are not." },
+
+  // ── Mythic (Staff) ──────────────────────────────────────────────────────
+  { id: 'jess_gobblin_screamin', number: 43, name: "Jess Gobblin' & Screamin'", rarity: 'mythic', flavorText: "Haunting the Kirbys since day one. No refunds." },
+  { id: 'shorty_mcgobble', number: 44, name: 'Shorty McGobble', rarity: 'mythic', flavorText: "Small in stature. Follows Jess anyway." },
+  { id: 'silent_but_turkey', number: 45, name: 'Silent But Turkey', rarity: 'mythic', flavorText: "Appeared after hours of silence. Has one question." },
+  { id: 'vale_the_pipe_gobbler', number: 46, name: 'Vale the Pipe Gobbler', rarity: 'mythic', flavorText: "Here to fix your pipes. Or bother you. Both." },
+  { id: 'wuera_never_sleeps', number: 47, name: 'Wuera Never Sleeps', rarity: 'mythic', flavorText: "It's 3 AM. Another raffle just started." },
+  { id: 'yasmin_crafty_clucker', number: 48, name: 'Yasmin Crafty Clucker', rarity: 'mythic', flavorText: "Lesson plans by day. Designs for fun by night." },
+  { id: 'nicole_on_the_gobble', number: 49, name: 'Nicole on the Gobble', rarity: 'mythic', flavorText: "Checklist done. Next game already queued." },
+  { id: 'geoviz_exe_has_vanished', number: 50, name: 'Geoviz.exe Has Vanished', rarity: 'mythic', flavorText: "Mid-fix. Mid-pixel. Back in five. Maybe." },
+];
+
 // season, enabled, limitedEdition, eventTag, image path — applied uniformly here
-// rather than repeated 50 times above.
-const MONSTERS = SEASON_1.map(m => ({
-  ...m,
-  season: 1,
-  enabled: true,
-  limitedEdition: false,
-  eventTag: null,
-  image: `assets/season-${1}/${String(m.number).padStart(3, '0')}.png`,
-}));
+// rather than repeated on every entry above. Each season's art lives in
+// assets/season-N/NNN.png (numbers restart at 001 every season).
+function withDefaults(list, season) {
+  return list.map(m => ({
+    ...m,
+    season,
+    enabled: true,
+    limitedEdition: false,
+    eventTag: null,
+    image: `assets/season-${season}/${String(m.number).padStart(3, '0')}.png`,
+  }));
+}
+
+const MONSTERS = [...withDefaults(SEASON_1, 1), ...withDefaults(SEASON_2, 2)];
 
 function getMonster(id) {
   return MONSTERS.find(m => m.id === id) || null;
