@@ -223,11 +223,17 @@ async function cmdTrade(interaction, targetUser, offerId, requestId) {
 // ── /stickers exchange ───────────────────────────────────────────────────
 async function cmdExchange(interaction) {
   const cfg = await A.getConfig(interaction.guild.id);
+  const resolved = resolveViewSeason(interaction, cfg);
+  if (resolved.error) return interaction.reply({ content: resolved.error, ephemeral: true });
   const monsterId = interaction.options.getString('sticker');
   const amount = interaction.options.getInteger('amount');
+  const seasonNote = resolved.season !== cfg.current_season ? ` (${getSeasonName(resolved.season)})` : '';
 
   if (monsterId) {
-    const result = await exchangeSpecificSticker(interaction.user.id, monsterId, cfg.current_season, amount);
+    // A specific sticker always exchanges from its own season, whatever the dropdown says.
+    const target = getMonster(monsterId);
+    if (target && target.season > getActiveSeason()) return interaction.reply({ content: `<:wrong:1495666083594502174> **${getSeasonName(target.season)}** hasn't started yet.`, ephemeral: true });
+    const result = await exchangeSpecificSticker(interaction.user.id, monsterId, target ? target.season : resolved.season, amount);
     if (result.error === 'unknown_sticker') return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown sticker.', ephemeral: true });
     if (result.error === 'no_duplicates') return interaction.reply({ content: `<a:Warning:1497476844860215366> You don't have any spare copies of that one.`, ephemeral: true });
 
@@ -238,7 +244,7 @@ async function cmdExchange(interaction) {
     });
   }
 
-  const result = await exchangeDuplicates(interaction.user.id, cfg.current_season);
+  const result = await exchangeDuplicates(interaction.user.id, resolved.season);
   if (!result.itemsExchanged) {
     return interaction.reply({ content: `<a:Warning:1497476844860215366> No duplicates to exchange right now.`, ephemeral: true });
   }
@@ -246,7 +252,7 @@ async function cmdExchange(interaction) {
   const breakdown = RARITY_ORDER.filter(r => result.breakdown[r]).map(r => `${RARITY_META[r].emoji} ${result.breakdown[r]}× ${RARITY_META[r].label}`).join('\n');
 
   return interaction.reply({
-    content: `<:checkmark:1495666088417956002> Exchanged **${result.itemsExchanged}** duplicates for **${result.sinsEarned.toLocaleString()} sins**.\n\n${breakdown}`,
+    content: `<:checkmark:1495666088417956002> Exchanged **${result.itemsExchanged}** duplicates${seasonNote} for **${result.sinsEarned.toLocaleString()} sins**.\n\n${breakdown}`,
     ephemeral: true,
   });
 }
@@ -254,11 +260,14 @@ async function cmdExchange(interaction) {
 // ── /stickers duplicates ─────────────────────────────────────────────────
 async function cmdDuplicates(interaction) {
   const cfg = await A.getConfig(interaction.guild.id);
-  const dupes = await getDuplicates(interaction.user.id, cfg.current_season);
+  const resolved = resolveViewSeason(interaction, cfg);
+  if (resolved.error) return interaction.reply({ content: resolved.error, ephemeral: true });
+  const seasonNote = resolved.season !== cfg.current_season ? ` -- ${getSeasonName(resolved.season)}` : '';
+  const dupes = await getDuplicates(interaction.user.id, resolved.season);
   if (!dupes.length) return interaction.reply({ content: `<a:Warning:1497476844860215366> You don't have any duplicates right now.`, ephemeral: true });
 
   const lines = dupes.map(d => `${RARITY_META[d.monster.rarity].emoji} #${String(d.monster.number).padStart(3, '0')} ${d.monster.name} — **${d.spareCount}** spare${d.spareCount !== 1 ? 's' : ''}`);
-  const embed = new EmbedBuilder().setColor(LAVENDER).setTitle('👀 Your Duplicates').setDescription(lines.join('\n').slice(0, 4000));
+  const embed = new EmbedBuilder().setColor(LAVENDER).setTitle(`👀 Your Duplicates${seasonNote}`).setDescription(lines.join('\n').slice(0, 4000));
   return interaction.reply({ embeds: [embed], ephemeral: true });
 }
 
@@ -306,6 +315,13 @@ async function cmdLeaderboard(interaction, mode) {
 }
 
 // ── Autocomplete ──────────────────────────────────────────────────────────
+/** Seasons that have started, current season first, then newest-to-oldest. */
+function startedSeasonsCurrentFirst(current) {
+  const live = getActiveSeason();
+  return Object.keys(SEASON_NAMES).map(Number).filter(n => n <= live)
+    .sort((a, b) => (a === current ? -1 : b === current ? 1 : b - a));
+}
+
 async function handleAutocomplete(interaction) {
   const focused = interaction.options.getFocused(true);
   const sub = interaction.options.getSubcommand(false);
@@ -319,10 +335,17 @@ async function handleAutocomplete(interaction) {
 
   if (dupeOnlyFields) {
     const cfg = await A.getConfig(interaction.guild.id);
-    const dupes = await getDuplicates(interaction.user.id, cfg.current_season);
+    // Exchange's sticker field only: the season dropdown filters the list; with no pick, show spares
+    // from every started season (current first) so older-season spares can be cashed in too.
+    const isExchange = sub === 'exchange' && focused.name === 'sticker';
+    const picked = isExchange ? interaction.options.get('season')?.value : undefined;
+    const started = startedSeasonsCurrentFirst(cfg.current_season);
+    const seasons = !isExchange ? [cfg.current_season] : (picked != null ? started.filter(n => n === picked) : started);
+    const dupes = (await Promise.all(seasons.map(n => getDuplicates(interaction.user.id, n)))).flat();
+    const badge = isExchange && picked == null && started.length > 1;
     const matches = dupes.filter(d => d.monster.name.toLowerCase().includes(query)).slice(0, 25);
     return interaction.respond(matches.map(d => ({
-      name: `#${String(d.monster.number).padStart(3, '0')} ${d.monster.name} — ${d.spareCount} spare${d.spareCount !== 1 ? 's' : ''}`,
+      name: `${badge ? `S${d.monster.season} ` : ''}#${String(d.monster.number).padStart(3, '0')} ${d.monster.name} — ${d.spareCount} spare${d.spareCount !== 1 ? 's' : ''}`,
       value: d.monster.id,
     })));
   }
