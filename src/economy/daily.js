@@ -13,6 +13,9 @@ const guildEconomy = require('../utils/guildEconomy');
 const CURRENCY = 'sins';
 const CLEANSE_COOLDOWN_MS = 12 * 3_600_000;
 const CONFESS_COOLDOWN_MS =  6 * 3_600_000;
+// A /confess "disaster" costs this share of the member's balance — it used to
+// wipe the whole balance, which could erase tens of thousands of sins in one roll.
+const CONFESS_DISASTER_LOSS_PCT = 0.25;
 
 // ─── STREAK MESSAGE POOLS ─────────────────────────────────────────────────────
 // Indexed by tier. Pick random from matching tier.
@@ -227,12 +230,14 @@ const CONFESS_PUNISHMENT = [
   (sins, reg) => `you told the truth. the truth punished you. **-${sins.toLocaleString()} ${CURRENCY}** | **+${reg.toLocaleString()} regret** 😐`,
   (sins, reg) => `bad confession. worse outcome. **-${sins.toLocaleString()} ${CURRENCY}** | **+${reg.toLocaleString()} regret** <a:pepeclownwave84:1495665629649436672>`,
 ];
+// Each takes the sins actually lost (0 if the member had none to lose).
+const disasterLoss = (sins) => sins > 0 ? `**-${sins.toLocaleString()} ${CURRENCY}**` : `**no ${CURRENCY} to lose**`;
 const CONFESS_DISASTER = [
-  () => `you confessed… loudly. everyone heard <a:hmmdevil:1495665623219306647>\n**sins wiped** <a:pray:1495665631775817778> | **+1000 regret**`,
-  () => `full disaster. everything went wrong. 🩸 **sins wiped** | **+1000 regret**`,
-  () => `you pushed your luck. luck said no. **sins wiped** <a:pray:1495665631775817778> | **+1000 regret** <a:hmmdevil:1495665623219306647>`,
-  () => `the confession destroyed you. that's on you. **sins wiped** | **+1000 regret** 🩸`,
-  () => `catastrophic confess. you had a good run. <a:pray:1495665631775817778> **sins wiped** | **+1000 regret**`,
+  (sins) => `you confessed… loudly. everyone heard <a:hmmdevil:1495665623219306647>\n${disasterLoss(sins)} <a:pray:1495665631775817778> | **+1000 regret**`,
+  (sins) => `full disaster. everything went wrong. 🩸 ${disasterLoss(sins)} | **+1000 regret**`,
+  (sins) => `you pushed your luck. luck said no. ${disasterLoss(sins)} <a:pray:1495665631775817778> | **+1000 regret** <a:hmmdevil:1495665623219306647>`,
+  (sins) => `the confession destroyed you. that's on you. ${disasterLoss(sins)} | **+1000 regret** 🩸`,
+  (sins) => `catastrophic confess. you had a good run. <a:pray:1495665631775817778> ${disasterLoss(sins)} | **+1000 regret**`,
 ];
 
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -430,10 +435,11 @@ async function handleConfess(guildId, userId, username, replyFn) {
     description = pick(CONFESS_PUNISHMENT)(actualLoss, regGain);
     color = '#7B2FBE';
   } else {
-    // Disaster — wipe sins
-    if (currentBal > 0) await guildEconomy.removeFunds(guildId, userId, username, currentBal, 'Confess disaster');
+    // Disaster — costs a share of the balance (never a full wipe)
+    const sinLoss = Math.max(0, Math.floor(Number(currentBal) * CONFESS_DISASTER_LOSS_PCT));
+    if (sinLoss > 0) await guildEconomy.removeFunds(guildId, userId, username, sinLoss, 'Confess disaster');
     await economy.addRegret(userId, 1000);
-    description = pick(CONFESS_DISASTER)();
+    description = pick(CONFESS_DISASTER)(sinLoss);
     color = '#4B0082';
   }
 
