@@ -397,8 +397,10 @@ async function handleSlash(interaction) {
   }
   if (sub === 'cancel') {
     const member = interaction.member;
+    await interaction.deferReply({ ephemeral: true });          // refunding many players takes longer than Discord's 3s limit
     const r = await cancel(interaction.channel, interaction.user.id, member);
-    return interaction.reply({ content: r.msg, ephemeral: !r.ok });
+    if (r.ok) await interaction.channel.send(r.msg).catch(() => {});
+    return interaction.editReply({ content: r.ok ? '<:checkmark:1495666088417956002> Cancelled.' : r.msg });
   }
   if (sub === 'host') {
     if (!hasHostRole(interaction.member)) return interaction.reply({ content: '<:wrong:1495666083594502174> Only Event Hosts and admins can host Squid Games.', ephemeral: true });
