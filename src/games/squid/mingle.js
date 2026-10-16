@@ -45,7 +45,7 @@ async function playRound(channel, alive, size, round, ctx, label) {
   const endsAt = Math.floor((Date.now() + ms) / 1000);
 
   const embed = (locked = false) => new EmbedBuilder().setColor(COLORS.purple)
-    .setTitle(`🎠 MINGLE! MINGLE!${label ? ` — ${label}` : ''}`)
+    .setTitle(`<a:door:1560782409040011274> MINGLE! MINGLE!${label ? ` — ${label}` : ''}`)
     .setDescription(
       `# GROUPS OF ${size}!\n${locked ? '🔒 **Doors locked!**' : `Get into a room with **exactly ${size}** — you can switch until <t:${endsAt}:R>.`}\n\n` +
       members.map((m, k) => `${m.length === size ? '✅' : '🚪'} **Room ${k + 1}** — ${m.length}/${size}`).join('\n'))
@@ -139,7 +139,7 @@ async function run(channel, players, ctx) {
   const eliminated = [];
   const rounds = ctx.mode === 'standalone' ? 4 : randBetween(2, 4);
 
-  await channel.send({ embeds: [new EmbedBuilder().setColor(COLORS.purple).setTitle('🎠 MINGLE! MINGLE!')
+  await channel.send({ embeds: [new EmbedBuilder().setColor(COLORS.purple).setTitle('<a:door:1560782409040011274> MINGLE! MINGLE!')
     .setDescription(`**${alive.length} sinners** step onto the carousel.\nA group size is announced — run into a room with **exactly** that many people before the doors lock. Full rooms live. Everyone else is out.\n\n*Up to ${rounds} rounds. Starting in 6 seconds…*`).setFooter({ text: BRAND })] });
   await sleep(ctx.fast ? 50 : 6000);
 
@@ -160,13 +160,13 @@ async function run(channel, players, ctx) {
     alive = alive.filter(p => surviveIds.includes(p.id));
     eliminated.push(...out.map(p => p.id));
     await channel.send({ embeds: [new EmbedBuilder().setColor(out.length ? COLORS.red : COLORS.green)
-      .setTitle(`🎠 Round ${round} result`)
+      .setTitle(`<a:door:1560782409040011274> Round ${round} result`)
       .setDescription(`✅ **${alive.length}** survive${out.length ? `\n💀 Out: ${names(players, out.map(p => p.id))}` : ''}${note}`).setFooter({ text: BRAND })] });
     await sleep(ctx.fast ? 50 : 2500);
   }
 
   if (ctx.mode === 'standalone' && alive.length > 1 && !ctx.state.cancelled) {
-    await channel.send('🎠 The carousel stops with more than one sinner standing — **sudden death!**');
+    await channel.send('<a:door:1560782409040011274> The carousel stops with more than one sinner standing — **sudden death!**');
     const before = alive.map(p => p.id);
     alive = await doorsToOne(channel, alive, ctx);
     eliminated.push(...before.filter(id => !alive.some(p => p.id === id)));

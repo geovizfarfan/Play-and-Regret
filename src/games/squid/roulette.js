@@ -32,7 +32,7 @@ async function groupRound(channel, field, bullets, round, ctx, speed) {
   const gid = `${channel.id}_${Date.now()}_g${round}`;
   const ids = new Set(field.map(p => p.id));
   const picked = new Set();
-  const msg = await channel.send({ embeds: [new EmbedBuilder().setColor(COLORS.red).setTitle(`🎰 THE FINAL REGRET — Group Spin ${round}`)
+  const msg = await channel.send({ embeds: [new EmbedBuilder().setColor(COLORS.red).setTitle(`<a:russianroulette:1560790984839790732> THE FINAL REGRET — Group Spin ${round}`)
     .setDescription(`**${field.length} sinners.** Everyone spins at once — **${bullets} in 6** chambers is regret.\nPick a chamber within **${Math.round(10000 / speed / 1000)}s** (or fate picks for you).`).setFooter({ text: BRAND })],
     components: chamberButtons(gid) });
   const col = msg.createMessageComponentCollector({ filter: i => i.customId.startsWith(`rr_${gid}_`), time: 10000 / speed });
@@ -54,7 +54,7 @@ async function groupRound(channel, field, bullets, round, ctx, speed) {
   const safe = field.filter(p => !out.includes(p));
   await sleep(ctx.fast ? 20 : 2000);
   await channel.send({ embeds: [new EmbedBuilder().setColor(out.length ? COLORS.red : COLORS.green)
-    .setTitle(`🎰 Group Spin ${round} — results`)
+    .setTitle(`<a:russianroulette:1560790984839790732> Group Spin ${round} — results`)
     .setDescription(`🟢 **CLICK** — **${safe.length}** survive\n🔴 **BANG** — **${out.length}** eliminated${out.length ? `: ${names(field, out.map(p => p.id), 15)}` : ''}${note}`).setFooter({ text: BRAND })] });
   return { out, safe };
 }
@@ -65,7 +65,7 @@ async function run(channel, players, ctx) {
   const eliminated = [];
   if (field.length === 1) return { survivors: [field[0].id], eliminated };
 
-  await channel.send({ embeds: [new EmbedBuilder().setColor(COLORS.red).setTitle('🎰 THE FINAL REGRET')
+  await channel.send({ embeds: [new EmbedBuilder().setColor(COLORS.red).setTitle('<a:russianroulette:1560790984839790732> THE FINAL REGRET')
     .setDescription(`**${field.length} sinners** left. A wheel with six chambers of fate.\nEvery spin is independent and equal — your pick of chamber is just for show. **Last one standing wins.**\n\n*Starting in 5 seconds…*`).setFooter({ text: BRAND })] });
   await sleep(ctx.fast ? 50 : 5000);
 
@@ -87,7 +87,7 @@ async function run(channel, players, ctx) {
     turns++;
     const bullets = bulletsFor(field.length);
     const gid = `${channel.id}_${Date.now()}_t${turns}`;
-    const msg = await channel.send({ embeds: [new EmbedBuilder().setColor(COLORS.purple).setTitle('🎰 THE FINAL REGRET')
+    const msg = await channel.send({ embeds: [new EmbedBuilder().setColor(COLORS.purple).setTitle('<a:russianroulette:1560790984839790732> THE FINAL REGRET')
       .setDescription(`**${p.username}'s turn!**\nCHOOSE YOUR FATE!\n\n🎲 Odds: **${bullets} in 6** • Sinners left: **${field.length}**\nYou have **${Math.round(TURN_MS / speed / 1000)} seconds**.`).setFooter({ text: BRAND })],
       components: chamberButtons(gid) });
     let chosen = null;
@@ -104,7 +104,7 @@ async function run(channel, players, ctx) {
     if (ctx.state.cancelled) break;
     const auto = chosen === null;
     if (auto) chosen = 1 + secureInt(6);
-    await msg.edit({ embeds: [new EmbedBuilder().setColor(COLORS.purple).setTitle('🎰 THE FINAL REGRET')
+    await msg.edit({ embeds: [new EmbedBuilder().setColor(COLORS.purple).setTitle('<a:russianroulette:1560790984839790732> THE FINAL REGRET')
       .setDescription(`**${p.username}** ${auto ? 'froze — fate picked' : 'picked'} chamber **${chosen}**…\n\n🎡 The wheel spins…`).setFooter({ text: BRAND })], components: [] }).catch(() => {});
     await sleep(ctx.fast ? 20 : 2200);
     const bang = spin(bullets);
@@ -121,7 +121,7 @@ async function run(channel, players, ctx) {
   }
   if (field.length > 1 && !ctx.state.cancelled) {            // safety valve — never loop forever
     const keep = field[secureInt(field.length)];
-    await channel.send(`🎰 The wheel gives up — **${keep.username}** is drawn at random as the survivor.`);
+    await channel.send(`<a:russianroulette:1560790984839790732> The wheel gives up — **${keep.username}** is drawn at random as the survivor.`);
     eliminated.push(...field.filter(p => p.id !== keep.id).map(p => p.id));
     field = [keep];
   }

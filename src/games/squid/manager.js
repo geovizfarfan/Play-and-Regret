@@ -21,13 +21,13 @@ const TAX = 0.10;
 
 const ENGINES = {
   redlight:    { label: 'Red Light, Green Light', emoji: '<a:semaforo:1560779249248641095>', run: redlight.playRedLight,
-    rules: '🚦 **Red Light, Green Light** — GREEN: every *original* message you type = 1 step (max 1/sec; repeats, copy-paste and tiny edits earn nothing). RED: send *anything* and you\'re eliminated. Reach the finish line!' },
-  mingle:      { label: 'Mingle', emoji: '🎠', run: mingle.run,
-    rules: '🎠 **Mingle** — a group size is announced. Run into a room with **exactly** that many people before the doors lock (you can switch rooms). Full rooms survive, everyone else is out.' },
-  glassbridge: { label: 'Glass Bridge', emoji: '🌉', run: glassbridge.run,
-    rules: '🌉 **Glass Bridge** — go one at a time in random order, picking LEFT or RIGHT. One panel per row shatters. Revealed rows stay revealed. Early players get one free private scan.' },
-  roulette:    { label: 'The Final Regret', emoji: '🎰', run: roulette.run,
-    rules: '🎰 **The Final Regret** — a six-chamber wheel of fate. Every spin is an independent, equal draw. Last sinner standing wins.' },
+    rules: '<a:semaforo:1560779249248641095> **Red Light, Green Light** — GREEN: every *original* message you type = 1 step (max 1/sec; repeats, copy-paste and tiny edits earn nothing). RED: send *anything* and you\'re eliminated. Reach the finish line!' },
+  mingle:      { label: 'Mingle', emoji: '<a:door:1560782409040011274>', run: mingle.run,
+    rules: '<a:door:1560782409040011274> **Mingle** — a group size is announced. Run into a room with **exactly** that many people before the doors lock (you can switch rooms). Full rooms survive, everyone else is out.' },
+  glassbridge: { label: 'Glass Bridge', emoji: '<a:bridge:1560789535330144286>', run: glassbridge.run,
+    rules: '<a:bridge:1560789535330144286> **Glass Bridge** — go one at a time in random order, picking LEFT or RIGHT. One panel per row shatters. Revealed rows stay revealed. Early players get one free private scan.' },
+  roulette:    { label: 'The Final Regret', emoji: '<a:russianroulette:1560790984839790732>', run: roulette.run,
+    rules: '<a:russianroulette:1560790984839790732> **The Final Regret** — a six-chamber wheel of fate. Every spin is an independent, equal draw. Last sinner standing wins.' },
 };
 const TOURNAMENT = ['redlight', 'mingle', 'glassbridge', 'roulette'];
 
@@ -205,7 +205,7 @@ function blank(channel, o) {
     gameLabel: `Squid Games — ${modeLabel(mode)}`,
     title: `SQUID GAMES: ${mode === 'tournament' ? '👑' : ENGINES[mode].emoji} ${modeLabel(mode)}`,
     blurb: mode === 'tournament'
-      ? 'Four games, one champion: 🚦 Red Light, Green Light → 🎠 Mingle → 🌉 Glass Bridge → 🎰 The Final Regret.\nRegister once — survivors advance automatically.'
+      ? 'Four games, one champion: <a:semaforo:1560779249248641095> Red Light, Green Light → <a:door:1560782409040011274> Mingle → <a:bridge:1560789535330144286> Glass Bridge → <a:russianroulette:1560790984839790732> The Final Regret.\nRegister once — survivors advance automatically.'
       : ENGINES[mode].rules,
     rules: mode === 'tournament'
       ? `👑 **Full Tournament** — register once, survive four games, one champion.\n\n${TOURNAMENT.map(k => ENGINES[k].rules).join('\n\n')}`

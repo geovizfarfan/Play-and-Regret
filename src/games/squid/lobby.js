@@ -17,6 +17,14 @@ function hasHostRole(member) {
   return member.roles.cache.some(r => r.name === EVENT_HOST_ROLE);
 }
 
+// Join-button emoji per mode
+const JOIN_EMOJI = {
+  mingle: { id: '1560787248902053958', name: 'thanos', animated: true },
+  glassbridge: { id: '1560789535330144286', name: 'bridge', animated: true },
+  roulette: { id: '1560790984839790732', name: 'russianroulette', animated: true },
+};
+const SEMAFORO = { id: '1560779249248641095', name: 'semaforo', animated: true };
+
 const ids = s => ({ join: `sq_join_${s.channel.id}`, leave: `sq_leave_${s.channel.id}`, rules: `sq_rules_${s.channel.id}`, start: `sq_start_${s.channel.id}` });
 
 function lobbyEmbed(s) {
@@ -34,7 +42,7 @@ function lobbyButtons(s, closed = false) {
   const i = ids(s);
   if (closed) return [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(i.join).setLabel('Closed').setStyle(ButtonStyle.Secondary).setDisabled(true))];
   return [new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(i.join).setLabel('Join').setEmoji({ id: '1560779249248641095', name: 'semaforo', animated: true }).setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(i.join).setLabel('Join').setEmoji(JOIN_EMOJI[s.mode] || SEMAFORO).setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId(i.rules).setLabel('Rules').setEmoji({ id: '1511510712986632352', name: 'rules', animated: true }).setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setCustomId(i.start).setLabel('Start Game').setEmoji({ id: '1532595713010040972', name: 'CheckCheckmarkSticker', animated: true }).setStyle(ButtonStyle.Success),
     new ButtonBuilder().setCustomId(i.leave).setLabel('Leave').setEmoji({ id: '1552118083777208420', name: 'escape', animated: true }).setStyle(ButtonStyle.Danger))];

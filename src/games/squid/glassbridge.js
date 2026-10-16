@@ -85,7 +85,7 @@ async function turnLoop(channel, players, game, ctx, speed) {
   while (!game.done() && !ctx.state.cancelled) {
     const cur = game.current();
     const canScan = game.canScan(cur);
-    const embed = (extra = '') => new EmbedBuilder().setColor(COLORS.purple).setTitle('🌉 GLASS BRIDGE')
+    const embed = (extra = '') => new EmbedBuilder().setColor(COLORS.purple).setTitle('<a:bridge:1560789535330144286> GLASS BRIDGE')
       .setDescription(`**${nameOf(cur)}'s turn!**\nBridge progress: **${game.revealed}/${game.rows}** rows revealed\n\n${drawBridge(game, cur)}\n\n${extra}Choose carefully — **${Math.round(TURN_MS / speed / 1000)} seconds**.`)
       .addFields({ name: 'Standing', value: String(game.active().length), inline: true }, { name: 'Fallen', value: String(game.fallOrder.length), inline: true })
       .setFooter({ text: BRAND });
@@ -124,7 +124,7 @@ async function turnLoop(channel, players, game, ctx, speed) {
     else line = `💥 **${nameOf(res.id)}** ${timedOut ? 'ran out of time — fate picked ' : 'stepped '}**${side}** — the glass **SHATTERS!** They fall…`;
     await msg.edit({ embeds: [embed(`${line}\n\n`).setColor(res.safe ? COLORS.green : COLORS.red)], components: [] }).catch(() => {});
     if (game.revealed >= game.rows && game.crossed().length) {
-      await channel.send(`🌉 The whole bridge is revealed — **${game.crossed().length}** sinner${game.crossed().length === 1 ? '' : 's'} walk across.`);
+      await channel.send(`<a:bridge:1560789535330144286> The whole bridge is revealed — **${game.crossed().length}** sinner${game.crossed().length === 1 ? '' : 's'} walk across.`);
     }
     await sleep(ctx.fast ? 20 : 1800);
   }
@@ -138,7 +138,7 @@ async function suddenDeath(channel, players, ctx, speed) {
     n++;
     const gid = `${channel.id}_${Date.now()}_sd${n}`;
     const picks = new Map(); const ids = new Set(field.map(p => p.id));
-    const msg = await channel.send({ embeds: [new EmbedBuilder().setColor(COLORS.red).setTitle('🌉 SUDDEN DEATH GLASS')
+    const msg = await channel.send({ embeds: [new EmbedBuilder().setColor(COLORS.red).setTitle('<a:bridge:1560789535330144286> SUDDEN DEATH GLASS')
       .setDescription(`**${field.length} sinners** crossed — only one may win.\nOne panel is safe. Pick within **${Math.round(10000 / speed / 1000)}s** (no pick = eliminated).`).setFooter({ text: BRAND })],
       components: [new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId(`gbs_${gid}_L`).setLabel('LEFT').setEmoji('⬅️').setStyle(ButtonStyle.Primary),
@@ -175,7 +175,7 @@ async function run(channel, players, ctx) {
   const rows = rowsFor(players.length);
   const game = new BridgeGame(order, rows);
 
-  await channel.send({ embeds: [new EmbedBuilder().setColor(COLORS.purple).setTitle('🌉 GLASS BRIDGE')
+  await channel.send({ embeds: [new EmbedBuilder().setColor(COLORS.purple).setTitle('<a:bridge:1560789535330144286> GLASS BRIDGE')
     .setDescription(
       `**${players.length} sinners**, **${rows} rows**. Each row has one safe panel and one that shatters.\n` +
       `You go one at a time in a random order. Once a row is revealed it stays revealed — so the brave go first… and the lucky go last.\n\n` +
@@ -191,11 +191,11 @@ async function run(channel, players, ctx) {
   if (crossed.length === 0) {
     // Everyone fell → announced tiebreak: whoever fell last (made it furthest) gets pulled back up
     const last = fallen[fallen.length - 1];
-    await channel.send(`🌉 Every sinner fell! **Tiebreak:** the last to fall — **${names(players, [last])}** — clings to the edge and survives.`);
+    await channel.send(`<a:bridge:1560789535330144286> Every sinner fell! **Tiebreak:** the last to fall — **${names(players, [last])}** — clings to the edge and survives.`);
     crossed = [last]; fallen.pop();
   }
   await channel.send({ embeds: [new EmbedBuilder().setColor(crossed.length ? COLORS.green : COLORS.red)
-    .setTitle('🌉 Bridge complete')
+    .setTitle('<a:bridge:1560789535330144286> Bridge complete')
     .setDescription(`🏁 **${crossed.length}** crossed: ${names(players, crossed)}\n💀 **${fallen.length}** fell${fallen.length ? `: ${names(players, fallen)}` : ''}`).setFooter({ text: BRAND })] });
 
   if (ctx.mode === 'standalone' && crossed.length > 1) {
