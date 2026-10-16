@@ -114,6 +114,23 @@ async function editBoard(g, payload) {
   }
 }
 
+// Every light change is a NEW message at the bottom of the channel (so it can't get lost in the chat above);
+// the previous board message is removed. Progress updates and the GIF→still swap edit the newest one.
+async function postLight(g, payload) {
+  const old = g.message;
+  let sent = null;
+  try { sent = await g.channel.send(payload); }
+  catch {
+    if (payload.files) { g.imageName = null; try { sent = await g.channel.send({ embeds: [lightEmbed(g)] }); } catch {} }
+  }
+  if (sent) {
+    g.message = sent; g.lastEdit = Date.now();
+    try { await old?.delete?.(); } catch {}
+  } else if (old) {
+    await editBoard(g, { ...payload, attachments: [] });      // couldn't post → fall back to editing the old one
+  }
+}
+
 async function showLight(g, light) {
   g.light = light;
   if (g.swapTimer) clearTimeout(g.swapTimer);
@@ -123,7 +140,7 @@ async function showLight(g, light) {
 
   if (assetOk(gif)) {
     g.imageName = gif;
-    await editBoard(g, { embeds: [lightEmbed(g)], files: [att(gif)], attachments: [] });
+    await postLight(g, { embeds: [lightEmbed(g)], files: [att(gif)] });
     // GIFs loop in Discord — replace with the still once it has played, if this light is still on
     g.swapTimer = setTimeout(async () => {
       if (g.over || g.light !== light || g.imageName !== gif || !assetOk(still)) return;
@@ -132,7 +149,7 @@ async function showLight(g, light) {
     }, GIF_MS);
   } else {
     g.imageName = null;
-    await editBoard(g, { embeds: [lightEmbed(g)], attachments: [] });
+    await postLight(g, { embeds: [lightEmbed(g)] });
   }
 }
 
@@ -221,6 +238,7 @@ async function runGame(channel, g) {
         ? `*Reach **${finish} steps** to qualify for the next game. Max ${rounds} rounds — then the top half of whoever is still racing qualifies.*`
         : `*First to ${finish} wins. Max ${rounds} rounds — then most steps wins.*`))
     .setFooter({ text: 'Starting in 8 seconds…' });
+  g.channel = channel;
   g.message = await channel.send({ embeds: [intro] });
   await sleep(CFG.introMs);
 
