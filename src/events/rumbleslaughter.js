@@ -1318,6 +1318,7 @@ async function fireGame(channel) {
 // ─── MODULE EXPORTS ───────────────────────────────────────────────────────────
 module.exports = {
   name: 'rumbleslaughter',
+  activeGames,
 
   // Called from index.js on ready — restores scheduled games + registers button handler
   async init(client) {

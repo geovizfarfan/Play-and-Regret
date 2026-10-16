@@ -1,9 +1,9 @@
 /**
  * guineapig.js — Find the Cuy!
  * ─────────────────────────────────────────────────────────────────────────────
- * Cuy hides randomly in a grid of buttons.
- * First player to click the right button wins the round.
- * Random delay + random position keeps everyone guessing!
+ * A cuy hides in a random cell of a 3x3 grid each round. First to click it scores.
+ * A wrong click locks that player out for the round and marks the cell for everyone.
+ * Rounds keep going until someone reaches the target number of cuys.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -15,9 +15,12 @@ const jackpot = require('../utils/jackpot');
 const EVENT_HOST_ROLE = process.env.EVENT_HOST_ROLE || 'Event Host';
 const activeGames     = new Map();
 
-const CUY_EMOJI   = '🐹';
-const DECOY_EMOJIS = ['🌿', '🥕', '🌀', '⬛', '🎋', '🪨', '🍃', '🌾', '🪵', '🫙'];
-const GRID_SIZE   = 9; // 3x3 grid
+const CUY            = '<a:GuineaPig_tbpbots:1544900084410490910>';
+const CUY_EMOJI_OBJ  = { id: '1544900084410490910', name: 'GuineaPig_tbpbots', animated: true };
+const GRID_SIZE      = 9;    // 3x3
+const MAX_DRY_ROUNDS = 5;    // this many rounds in a row with no find → game ends
+const MAX_TOTAL_ROUNDS = 150; // hard safety cap
+const ROUND_MS       = 10000;
 
 const WAITING_MSGS = [
   'The cuy is hiding... 👀',
@@ -31,23 +34,14 @@ const WAITING_MSGS = [
 ];
 
 const WHACK_MSGS = [
-  (u) => `💥 **${u}** WHACKED the cuy first!`,
+  (u) => `💥 **${u}** found the cuy first!`,
   (u) => `🔨 **${u}** found it! Lightning fast!`,
-  (u) => `👊 **${u}** absolutely destroyed the cuy!`,
-  (u) => `🐹💨 **${u}** was too fast — the cuy never stood a chance!`,
+  (u) => `👊 **${u}** sniffed out the cuy!`,
   (u) => `⚡ **${u}** clicked so fast it broke the laws of physics!`,
-  (u) => `<a:trophies:1507765453299122387> **${u}** whacked it before anyone blinked!`,
+  (u) => `<a:trophies:1507765453299122387> **${u}** got there before anyone blinked!`,
 ];
 
-const WRONG_MSGS = [
-  '<:wrong:1495666083594502174> Not there! Keep looking!',
-  '<:wrong:1495666083594502174> Wrong spot! The cuy laughs at you.',
-  '<:wrong:1495666083594502174> Nope! Try again!',
-  '<:wrong:1495666083594502174> The cuy wasn\'t hiding there!',
-  '<:wrong:1495666083594502174> Miss! The cuy is mocking you.',
-];
-
-const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const pick  = arr => arr[Math.floor(Math.random() * arr.length)];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function hasHostRole(member) {
@@ -56,226 +50,203 @@ function hasHostRole(member) {
   return member.roles.cache.some(r => r.name === EVENT_HOST_ROLE);
 }
 
-// ─── Build grid ───────────────────────────────────────────────────────────────
-function buildGrid(gameId, round, cuyPos, revealed = false) {
+// ─── Grid ─────────────────────────────────────────────────────────────────────
+// wrongCells: cells somebody already clicked this round (shown ❌ for everyone)
+function buildGrid(gameId, round, cuyPos, { revealed = false, wrongCells = new Set(), disabled = false } = {}) {
   const rows = [];
-  const cols = 3;
-
   for (let r = 0; r < 3; r++) {
     const btns = [];
-    for (let c2 = 0; c2 < cols; c2++) {
-      const idx   = r * cols + c2;
-      const isCuy = idx === cuyPos;
-
-      if (!revealed) {
-        // All buttons show ⬜ — cuy is invisible
-        btns.push(
-          new ButtonBuilder()
-            .setCustomId(`cuy_${gameId}_${round}_${idx}`)
-            .setLabel('⬜')
-            .setStyle(ButtonStyle.Secondary)
-        );
+    for (let c = 0; c < 3; c++) {
+      const idx = r * 3 + c;
+      const b = new ButtonBuilder().setCustomId(`cuy_${gameId}_${round}_${idx}`);
+      if (revealed && idx === cuyPos) {
+        b.setEmoji(CUY_EMOJI_OBJ).setStyle(ButtonStyle.Success).setDisabled(true);
+      } else if (wrongCells.has(idx)) {
+        b.setLabel('❌').setStyle(ButtonStyle.Danger).setDisabled(true);
       } else {
-        // Reveal — show the cuy where it was hiding, ⬜ elsewhere
-        btns.push(
-          new ButtonBuilder()
-            .setCustomId(`cuy_done_${idx}`)
-            .setLabel(isCuy ? CUY_EMOJI : '⬜')
-            .setStyle(isCuy ? ButtonStyle.Danger : ButtonStyle.Secondary)
-            .setDisabled(true)
-        );
+        b.setLabel('⬜').setStyle(ButtonStyle.Secondary).setDisabled(revealed || disabled);
       }
+      btns.push(b);
     }
     rows.push(new ActionRowBuilder().addComponents(btns));
   }
   return rows;
 }
 
+async function refundPlayers(channel, players, bet, reason) {
+  if (bet > 0) {
+    for (const p of players) {
+      await guildEconomy.addFunds(channel.guild.id, p.id, p.username, bet, reason).catch(err => console.error('[cuy refund]', err.message));
+    }
+  }
+  await economy.untrackGameChannel(channel.id).catch(() => {});
+}
+
 // ─── Run game ─────────────────────────────────────────────────────────────────
-async function runCuyGame(channel, players, bet, totalRounds) {
+async function runCuyGame(channel, players, bet, target, points, state) {
   const pot    = bet * players.length;
-  const wins   = new Map(players.map(p => [p.id, 0]));
-  const gameId = `cuy_${channel.id}_${Date.now()}`;
+  const score  = new Map(players.map(p => [p.id, 0]));
+  const gameId = `${channel.id}_${Date.now()}`;
+  const nameOf = id => players.find(p => p.id === id)?.username || 'Someone';
+  const scoreStr = () => players.slice().sort((a, b) => score.get(b.id) - score.get(a.id))
+    .map(p => `**${p.username}** ${score.get(p.id)}/${target}`).join(' • ');
 
   await channel.send({ embeds: [
     new EmbedBuilder()
       .setColor('#C9B1FF')
-      .setTitle('🐹 FIND THE CUY — Game Starting!')
+      .setTitle(`${CUY} FIND THE CUY — Game Starting!`)
       .setDescription(
         `**${players.length} players** entered the arena!\n\n` +
         players.map(p => `• **${p.username}**`).join('\n') +
-        `\n\n<a:moneybag:1479268556687540345> Pot: **${pot.toLocaleString()} sins**\n` +
-        `<a:trophies:1507765453299122387> **${totalRounds} rounds** — most whacks wins the pot!\n\n` +
-        `*The cuy will hide in a random spot in the grid. Click it first to score!*`
+        (bet > 0 ? `\n\n<a:moneybag:1479268556687540345> Pot: **${pot.toLocaleString()} sins**` : '') +
+        `\n<a:trophies:1507765453299122387> First to **${target}** cuy${target !== 1 ? 's' : ''} wins${points > 1 ? ` (each find = ${points})` : ''}!\n\n` +
+        `*A cuy hides in one of 9 cells. Click it first to score — but a wrong click locks you out for the round!*`
       )
   ]});
-
   await sleep(3000);
 
-  for (let round = 1; round <= totalRounds; round++) {
+  let winnerId = null, round = 0, dry = 0;
+
+  while (!winnerId && !state.cancelled && round < MAX_TOTAL_ROUNDS && dry < MAX_DRY_ROUNDS) {
+    round++;
     const delay  = 2000 + Math.floor(Math.random() * 5000);
     const cuyPos = Math.floor(Math.random() * GRID_SIZE);
-    const scoreStr = () => [...wins.entries()].map(([id, w]) => `**${players.find(p=>p.id===id).username}**: ${w}`).join(' • ');
-
-    // Show waiting grid (all hidden, disabled)
-    const waitingGrid = [];
-    for (let r = 0; r < 3; r++) {
-      const btns = [];
-      for (let c2 = 0; c2 < 3; c2++) {
-        btns.push(new ButtonBuilder().setCustomId(`cuy_wait_${round}_${r*3+c2}`).setLabel('⬜').setStyle(ButtonStyle.Secondary).setDisabled(true));
-      }
-      waitingGrid.push(new ActionRowBuilder().addComponents(btns));
-    }
 
     const waitMsg = await channel.send({
-      embeds: [
-        new EmbedBuilder()
-          .setColor('#555555')
-          .setTitle(`🐹 Round ${round}/${totalRounds} — Get Ready!`)
-          .setDescription(`${pick(WAITING_MSGS)}\n\n*Score: ${scoreStr()}*`)
-      ],
-      components: waitingGrid,
+      embeds: [new EmbedBuilder().setColor('#555555')
+        .setTitle(`${CUY} Round ${round} — Get Ready!`)
+        .setDescription(`${pick(WAITING_MSGS)}\n\n${scoreStr()}`)],
+      components: buildGrid(gameId, round, cuyPos, { disabled: true }),
     });
-
     await sleep(delay);
+    if (state.cancelled) break;
 
-    // Reveal grid — cuy is hidden among decoys, all look like ❓ still
-    // Enable buttons so players can click
-    await waitMsg.edit({
-      embeds: [
-        new EmbedBuilder()
-          .setColor('#FF6B6B')
-          .setTitle(`🐹 Round ${round}/${totalRounds} — WHERE IS THE CUY?!`)
-          .setDescription(`# 🐹❓❓❓\n**FIND AND FIND THE CUY!**\n\n*Score: ${scoreStr()}*`)
-      ],
-      components: buildGrid(gameId, round, cuyPos, false),
-    });
+    const wrongCells = new Set();
+    const locked     = new Set();
+    let roundOver = false, finderId = null;
+    const liveEmbed = () => new EmbedBuilder().setColor('#FF6B6B')
+      .setTitle(`${CUY} Round ${round} — WHERE IS THE CUY?!`)
+      .setDescription(`**Click the cell hiding the cuy!** Wrong click = locked out this round.\n\n${scoreStr()}`);
 
+    await waitMsg.edit({ embeds: [liveEmbed()], components: buildGrid(gameId, round, cuyPos, { wrongCells }) }).catch(() => {});
     const roundStart = Date.now();
-    let   roundOver  = false;
-    const wrongClickers = new Set();
 
-    // Collect clicks
     await new Promise((resolve) => {
       const collector = waitMsg.createMessageComponentCollector({
-        filter: i => i.customId.startsWith(`cuy_${gameId}_${round}_`) && players.some(p => p.id === i.user.id),
-        time: 8000,
+        filter: i => i.customId.startsWith(`cuy_${gameId}_${round}_`),
+        time: ROUND_MS,
       });
 
-      collector.on('collect', async (interaction) => {
-        if (roundOver) return interaction.deferUpdate().catch(() => {});
+      collector.on('collect', async (i) => {
+        // ── everything that decides the outcome happens synchronously, before any await ──
+        const clicker = players.find(p => p.id === i.user.id);
+        if (!clicker)      return i.reply({ content: "You're not in this game.", ephemeral: true }).catch(() => {});
+        if (roundOver)     return i.deferUpdate().catch(() => {});
+        if (locked.has(clicker.id)) return i.reply({ content: '❌ You already guessed wrong this round!', ephemeral: true }).catch(() => {});
 
-        const clickedIdx = parseInt(interaction.customId.split('_').pop());
-        const isCuy      = clickedIdx === cuyPos;
-        const ms         = Date.now() - roundStart;
-        const clicker    = players.find(p => p.id === interaction.user.id);
-
-        await interaction.deferUpdate();
-
-        if (isCuy) {
-          // Winner!
-          roundOver = true;
-          wins.set(clicker.id, wins.get(clicker.id) + 1);
+        const idx = parseInt(i.customId.split('_').pop(), 10);
+        if (idx === cuyPos) {
+          roundOver = true; finderId = clicker.id;
+          score.set(clicker.id, score.get(clicker.id) + points);
           collector.stop('found');
-
-          await waitMsg.edit({
-            embeds: [
-              new EmbedBuilder()
-                .setColor('#FFD700')
-                .setTitle(`💥 Round ${round} — CUY WHACKED!`)
-                .setDescription(
-                  `${pick(WHACK_MSGS)(clicker.username)}\n` +
-                  `⚡ Reaction time: **${ms}ms**\n\n` +
-                  `*Score: ${scoreStr()}*`
-                )
-            ],
-            components: buildGrid(gameId, round, cuyPos, true),
-          }).catch(() => {});
+          i.deferUpdate().catch(() => {});
+          return;
         }
-        // Wrong clicks are silently ignored — no hint given, round keeps going
+        locked.add(clicker.id);
+        wrongCells.add(idx);
+        const allOut = locked.size >= players.length;
+        if (allOut) { roundOver = true; collector.stop('allout'); }
+        i.reply({ content: '❌ Not there! You\'re locked out for this round.', ephemeral: true }).catch(() => {});
+        if (!allOut) waitMsg.edit({ embeds: [liveEmbed()], components: buildGrid(gameId, round, cuyPos, { wrongCells }) }).catch(() => {});
       });
 
-      collector.on('end', async (_, reason) => {
-        if (!roundOver) {
-          // Nobody found it — reveal where it was
-          await waitMsg.edit({
-            embeds: [
-              new EmbedBuilder()
-                .setColor('#555555')
-                .setTitle(`🐹 Round ${round} — The Cuy Escaped!`)
-                .setDescription(`Nobody found the cuy in time! It was hiding at the 🐹 button.\n\n*Score: ${scoreStr()}*`)
-            ],
-            components: buildGrid(gameId, round, cuyPos, true),
-          }).catch(() => {});
-        }
-        resolve();
-      });
+      collector.on('end', () => resolve());
     });
 
-    if (round < totalRounds) await sleep(2500);
+    const ms = Date.now() - roundStart;
+    if (finderId) {
+      dry = 0;
+      const total = score.get(finderId);
+      await waitMsg.edit({
+        embeds: [new EmbedBuilder().setColor('#FFD700')
+          .setTitle(`💥 Round ${round} — CUY FOUND!`)
+          .setDescription(`${pick(WHACK_MSGS)(nameOf(finderId))}\n⚡ **${ms}ms**\n\n${scoreStr()}`)],
+        components: buildGrid(gameId, round, cuyPos, { revealed: true, wrongCells }),
+      }).catch(() => {});
+      if (total >= target) winnerId = finderId;
+    } else {
+      dry++;
+      await waitMsg.edit({
+        embeds: [new EmbedBuilder().setColor('#555555')
+          .setTitle(`${CUY} Round ${round} — The Cuy Escaped!`)
+          .setDescription(`Nobody found it! It was hiding where the ${CUY} is.\n\n${scoreStr()}`)],
+        components: buildGrid(gameId, round, cuyPos, { revealed: true, wrongCells }),
+      }).catch(() => {});
+    }
+    if (!winnerId && !state.cancelled) await sleep(2500);
   }
 
-  // ── Final results ──
-  activeGames.delete(channel.id);
+  if (state.cancelled) return;
 
-  const maxWins  = Math.max(...wins.values());
-  const winners  = players.filter(p => wins.get(p.id) === maxWins);
-  const isTie    = winners.length > 1;
-  const tax      = Math.floor(pot * 0.10);
-  const share    = Math.floor((pot - tax) / winners.length);
+  // ── Resolve: target reached → that player; otherwise (cuy kept escaping) → whoever leads; no finds at all → refund ──
+  const max = Math.max(...score.values());
+  let winners = winnerId ? [winnerId] : (max > 0 ? players.filter(p => score.get(p.id) === max).map(p => p.id) : []);
 
-  for (const w of winners) {
-    await guildEconomy.addFunds(channel.guild.id, w.id, w.username, share, 'Cuy win');
-    await economy.untrackGameChannel(channelId).catch(()=>{});
-    stats.increment(w.id, 'cuy_wins').catch(() => {});
+  if (!winners.length) {
+    state.paid = true;
+    await refundPlayers(channel, players, bet, 'Cuy refund (nobody found it)');
+    return channel.send({ embeds: [new EmbedBuilder().setColor('#555555')
+      .setTitle(`${CUY} FIND THE CUY — The Cuy Won`)
+      .setDescription(`Nobody found the cuy in ${round} rounds.${bet > 0 ? ' Everyone has been refunded.' : ''}`)] });
+  }
+
+  const tax   = Math.floor(pot * 0.10);
+  const share = Math.floor((pot - tax) / winners.length);
+  state.paid = true;                              // set before awaiting → no double payout
+  for (const id of winners) {
+    if (share > 0) await guildEconomy.addFunds(channel.guild.id, id, nameOf(id), share, 'Cuy win');
+    stats.increment(id, 'cuy_wins').catch(() => {});
   }
   for (const p of players) {
-    if (!winners.find(w => w.id === p.id)) stats.increment(p.id, 'cuy_losses').catch(() => {});
+    if (!winners.includes(p.id)) stats.increment(p.id, 'cuy_losses').catch(() => {});
     stats.increment(p.id, 'cuy_games').catch(() => {});
   }
-  await jackpot.addToDrawFund(tax);
+  if (tax > 0) await jackpot.addToDrawFund(tax).catch(() => {});
+  await economy.untrackGameChannel(channel.id).catch(() => {});
 
-  const scoreLines = [...wins.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([id, w], i) => {
-      const p     = players.find(p => p.id === id);
-      const medal = ['🥇','🥈','🥉'][i] || `${i+1}.`;
-      return `${medal} **${p.username}** — ${w} whack${w !== 1 ? 's' : ''}`;
-    }).join('\n');
-
-  await channel.send({ embeds: [
-    new EmbedBuilder()
-      .setColor('#FFD700')
-      .setTitle('<a:congrats:1478999022072238222> FIND THE CUY — GAME OVER!')
-      .setDescription(
-        `${scoreLines}\n\n` +
-        `<a:moneybag:1479268556687540345> **${winners.map(w => w.username).join(' & ')}** ${isTie ? 'tie' : 'wins'} **${share.toLocaleString()} sins**!\n` +
-        `<a:jackpot:1479203793806557385> **${tax} sins** → jackpot\n\n` +
-        `*The cuy has been thoroughly whacked. ${totalRounds} times.*`
-      )
-  ]});
+  const lines = players.slice().sort((a, b) => score.get(b.id) - score.get(a.id)).map((p, i) =>
+    `${['🥇','🥈','🥉'][i] || `${i + 1}.`} **${p.username}** — ${score.get(p.id)}/${target} ${CUY}`).join('\n');
+  const tie = winners.length > 1;
+  await channel.send({ embeds: [new EmbedBuilder().setColor('#FFD700')
+    .setTitle('<a:congrats:1478999022072238222> FIND THE CUY — GAME OVER!')
+    .setDescription(
+      `${lines}\n\n` +
+      (winnerId ? '' : `*The cuy kept escaping — highest score wins.*\n`) +
+      (share > 0 ? `<a:moneybag:1479268556687540345> **${winners.map(nameOf).join(' & ')}** ${tie ? 'tie' : 'wins'} **${share.toLocaleString()} sins**!\n` : `👑 **${winners.map(nameOf).join(' & ')}** ${tie ? 'tie' : 'wins'}!\n`) +
+      (tax > 0 ? `<a:jackpot:1479203793806557385> **${tax} sins** → jackpot` : ''))] });
 }
 
 // ─── Launcher ─────────────────────────────────────────────────────────────────
-async function launchCuy(channel, bet, rounds, triggeredBy, hostId) {
+async function launchCuy(channel, bet, target, points, triggeredBy, hostId) {
   const channelId = channel.id;
   if (activeGames.has(channelId)) return channel.send('<:wrong:1495666083594502174> There\'s already a Cuy game running here!');
 
   const joinId  = `cuy_join_${channelId}`;
   const startId = `cuy_start_${channelId}`;
   const rulesId = `cuy_rules_${channelId}`;
-  const game    = { players: [], bet, phase: 'signup', hostId, triggeredBy };
+  const game    = { players: [], bet, phase: 'signup', hostId, triggeredBy, cancelled: false, paid: false };
   activeGames.set(channelId, game);
+
+  const rulesText = `${CUY} **Find the Cuy — Rules**\nA cuy hides in one of 9 cells each round. Click the cell you think it's in — first to find it scores${points > 1 ? ` ${points}` : ' 1'}. A wrong click locks you out for that round. First to **${target}** wins the pot!`;
 
   const makeEmbed = () => new EmbedBuilder()
     .setColor('#C9B1FF')
-    .setTitle('<a:GuineaPig_tbpbots:1544900084410490910> FIND THE CUY — Signups!')
+    .setTitle(`${CUY} FIND THE CUY — Signups!`)
     .setDescription(
-      `**Find and click the 🐹 cuy hiding in the grid before everyone else!**\n\n` +
-      `<a:moneybag:1479268556687540345> Entry: **${bet} sins** per player\n` +
-      `<a:trophies:1507765453299122387> **${rounds} rounds** — most whacks wins the pot!\n` +
-      `<:members:1479293571709534311> Min 2 players\n\n` +
-      `Click **🐹 Join** to enter!`
+      `**Find the cuy hiding in the grid before everyone else!**\n\n` +
+      (bet > 0 ? `<a:moneybag:1479268556687540345> Entry: **${bet} sins** per player\n` : `<a:moneybag:1479268556687540345> Free entry\n`) +
+      `<a:trophies:1507765453299122387> First to **${target}** cuy${target !== 1 ? 's' : ''} wins!\n` +
+      `<:members:1479293571709534311> Min 2 players\n\nClick **Join** to enter!`
     )
     .addFields({
       name: `<:members:1479293571709534311> Signed Up (${game.players.length})`,
@@ -284,14 +255,13 @@ async function launchCuy(channel, bet, rounds, triggeredBy, hostId) {
     .setFooter({ text: `Host: ${triggeredBy} • Host can start once 2+ players join` });
 
   const makeButtons = () => new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(joinId).setEmoji('<a:GuineaPig_tbpbots:1544900084410490910>').setLabel('Join').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(joinId).setEmoji(CUY_EMOJI_OBJ).setLabel('Join').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId(rulesId).setEmoji({ id: '1511510712986632352', name: 'rules', animated: true }).setLabel('Rules').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId(startId).setEmoji({ id: '1511506717584920696', name: 'sparkle', animated: true }).setLabel('Start').setStyle(ButtonStyle.Success),
   );
 
   const gameMsg = await channel.send({ embeds: [makeEmbed()], components: [makeButtons()] });
   game.message  = gameMsg;
-
   const collector = gameMsg.createMessageComponentCollector({ time: 5 * 60 * 1000 });
 
   collector.on('collect', async (interaction) => {
@@ -302,38 +272,29 @@ async function launchCuy(channel, bet, rounds, triggeredBy, hostId) {
       if (interaction.user.id !== g.hostId && !hasHostRole(interaction.member)) {
         return interaction.reply({ content: `<:wrong:1495666083594502174> Only **${g.triggeredBy}** can start!`, ephemeral: true });
       }
-      if (g.players.length < 2) {
-        return interaction.reply({ content: `<:wrong:1495666083594502174> Need at least **2 players**!`, ephemeral: true });
-      }
+      if (g.players.length < 2) return interaction.reply({ content: `<:wrong:1495666083594502174> Need at least **2 players**!`, ephemeral: true });
       await interaction.deferUpdate();
       collector.stop('forcestart');
       return;
     }
-
-    if (interaction.customId === rulesId) {
-      return interaction.reply({
-        content: `🐹 **Find the Cuy — Rules**\nA cuy hides in one of the grid cells. Take turns clicking cells to find it. Whoever finds the cuy wins the pot!\nEntry: **${bet} sins** per player. Need at least 2 players to start.`,
-        ephemeral: true,
-      });
-    }
-
+    if (interaction.customId === rulesId) return interaction.reply({ content: rulesText, ephemeral: true });
     if (interaction.customId !== joinId) return;
     await interaction.deferUpdate();
 
     if (g.players.find(p => p.id === interaction.user.id)) {
       return interaction.followUp({ content: `<a:Warning:1497476844860215366> Already joined!`, ephemeral: true });
     }
-    const bal = await guildEconomy.getBalance(interaction.guild.id, interaction.user.id);
-    if (bal < bet) return interaction.followUp({ content: `<:wrong:1495666083594502174> Need **${bet} sins**!`, ephemeral: true });
-
-    await guildEconomy.removeFunds(interaction.guild.id, interaction.user.id, interaction.user.username, bet, 'Cuy entry');
-    await economy.trackGameEntry(interaction.user.id, interaction.user.username, interaction.channel.id, 'Find the Cuy', bet).catch(()=>{});
+    if (bet > 0) {
+      const ok = await guildEconomy.removeFunds(interaction.guild.id, interaction.user.id, interaction.user.username, bet, 'Cuy entry');
+      if (!ok) return interaction.followUp({ content: `<:wrong:1495666083594502174> Need **${bet} sins**!`, ephemeral: true });
+      await economy.trackGameEntry(interaction.user.id, interaction.user.username, channelId, 'Find the Cuy', bet).catch(() => {});
+    }
     g.players.push({ id: interaction.user.id, username: interaction.user.username });
-    await gameMsg.edit({ embeds: [makeEmbed()], components: [makeButtons()] });
+    await gameMsg.edit({ embeds: [makeEmbed()], components: [makeButtons()] }).catch(() => {});
     await interaction.followUp({ content: `<:purpleverified:1479305124336767147> **${interaction.user.username}** joined! Player **${g.players.length}**`, ephemeral: true });
   });
 
-  collector.on('end', async (_, reason) => {
+  collector.on('end', async () => {
     const g = activeGames.get(channelId);
     if (!g || g.phase !== 'signup') return;
 
@@ -344,13 +305,25 @@ async function launchCuy(channel, bet, rounds, triggeredBy, hostId) {
     await gameMsg.edit({ components: [closed] }).catch(() => {});
 
     if (g.players.length < 2) {
-      for (const p of g.players) await guildEconomy.addFunds(channel.guild.id, p.id, p.username, bet, 'Cuy refund');
+      await refundPlayers(channel, g.players, bet, 'Cuy refund');
       activeGames.delete(channelId);
-      return channel.send(`<:wrong:1495666083594502174> Not enough players. Refunded.`);
+      return channel.send(`<:wrong:1495666083594502174> Not enough players.${bet > 0 ? ' Refunded.' : ''}`);
     }
 
     g.phase = 'running';
-    await runCuyGame(channel, g.players, bet, rounds);
+    try {
+      await runCuyGame(channel, g.players, bet, target, points, g);
+    } catch (err) {
+      console.error('[cuy game error]', err.stack || err);
+      if (!g.paid) {
+        g.paid = true;
+        await refundPlayers(channel, g.players, bet, 'Cuy refund (error)');
+        channel.send('<:wrong:1495666083594502174> Something broke — everyone has been refunded.').catch(() => {});
+      }
+    } finally {
+      await economy.untrackGameChannel(channelId).catch(() => {});   // never leave rows for the startup refund to "recover"
+      activeGames.delete(channelId);
+    }
   });
 }
 
@@ -364,13 +337,14 @@ module.exports = {
       const feeOpt = interaction.options.getBoolean('fee');
       const feeEnabled = feeOpt !== null ? feeOpt : true;
       const bet    = feeEnabled ? (interaction.options.getInteger('bet') || 50) : 0;
-      const rounds = interaction.options.getInteger('rounds') || 5;
+      const target = interaction.options.getInteger('target') || interaction.options.getInteger('rounds') || 5;
+      const points = interaction.options.getInteger('points') || 1;
       try {
         await interaction.deferReply({ ephemeral: true });
-        await launchCuy(interaction.channel, bet, rounds, interaction.user.username, interaction.user.id);
-        await interaction.editReply({ content: `🐹 Find the Cuy game opened!` });
+        await launchCuy(interaction.channel, bet, target, points, interaction.user.username, interaction.user.id);
+        await interaction.editReply({ content: `${CUY} Find the Cuy game opened!` });
       } catch (err) {
-        console.error('[whack error]', err.stack || err);
+        console.error('[cuy error]', err.stack || err);
         await interaction.editReply({ content: `<:wrong:1495666083594502174> Error: ${err.message}` }).catch(() => {});
       }
     }
@@ -380,8 +354,8 @@ module.exports = {
     const feeMatch = args.join(' ').match(/fee:(on|off)/i);
     const feeEnabled = feeMatch ? feeMatch[1].toLowerCase() === 'on' : true;
     const bet    = feeEnabled ? (parseInt(args[0]) || 50) : 0;
-    const rounds = parseInt(args[1]) || 5;
+    const target = parseInt(args[1]) || 5;
     if (feeEnabled && bet < 10) return message.reply('<:wrong:1495666083594502174> Minimum bet is 10 sins!');
-    await launchCuy(message.channel, bet, rounds, message.author.username, message.author.id);
+    await launchCuy(message.channel, bet, target, 1, message.author.username, message.author.id);
   },
 };
