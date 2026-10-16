@@ -20,7 +20,7 @@ const sessions = new Map();   // channelId → session
 const TAX = 0.10;
 
 const ENGINES = {
-  redlight:    { label: 'Red Light, Green Light', emoji: '🚦', run: redlight.playRedLight,
+  redlight:    { label: 'Red Light, Green Light', emoji: '<a:semaforo:1560779249248641095>', run: redlight.playRedLight,
     rules: '🚦 **Red Light, Green Light** — GREEN: every *original* message you type = 1 step (max 1/sec; repeats, copy-paste and tiny edits earn nothing). RED: send *anything* and you\'re eliminated. Reach the finish line!' },
   mingle:      { label: 'Mingle', emoji: '🎠', run: mingle.run,
     rules: '🎠 **Mingle** — a group size is announced. Run into a room with **exactly** that many people before the doors lock (you can switch rooms). Full rooms survive, everyone else is out.' },
@@ -203,7 +203,7 @@ function blank(channel, o) {
     startAt: o.startAt || null, phase: 'lobby', players: [], alive: null, history: [], stageIndex: 0,
     reminded: {}, settings: o.steps ? { steps: o.steps } : {}, state: { cancelled: false, onCancel: null }, paid: false, fast: !!o.fast,
     gameLabel: `Squid Games — ${modeLabel(mode)}`,
-    title: `SQUID GAMES: ${modeLabel(mode)}`,
+    title: `SQUID GAMES: ${mode === 'tournament' ? '👑' : ENGINES[mode].emoji} ${modeLabel(mode)}`,
     blurb: mode === 'tournament'
       ? 'Four games, one champion: 🚦 Red Light, Green Light → 🎠 Mingle → 🌉 Glass Bridge → 🎰 The Final Regret.\nRegister once — survivors advance automatically.'
       : ENGINES[mode].rules,
