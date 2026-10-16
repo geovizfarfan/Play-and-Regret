@@ -24,21 +24,20 @@ function lobbyEmbed(s) {
   return new EmbedBuilder().setColor(COLORS.purple)
     .setTitle(`😈 ${s.title} — Signups!`)
     .setDescription(
-      `${s.blurb}\n\n` +
       (s.bet > 0 ? `<a:moneybag:1479268556687540345> Entry: **${s.bet} sins** (refunded if you leave or it's cancelled)\n` : `<a:moneybag:1479268556687540345> Free entry\n`) +
       (s.prize > 0 ? `<a:trophies:1507765453299122387> Host prize: **${s.prize.toLocaleString()} sins**\n` : '') +
-      `Players: **${s.minPlayers}–${s.maxPlayers}** • ${ts ? `Starts <t:${ts}:F> (<t:${ts}:R>)` : 'Starts when the host presses **Start** — everyone who joined gets pinged'}`)
-    .addFields({ name: `Signed up (${s.players.length})`, value: s.players.length ? s.players.map(p => `• **${p.username}**`).slice(0, 40).join('\n') : 'Nobody yet…' })
+      `Players: **${s.minPlayers}–${s.maxPlayers}** • ${ts ? `Starts <t:${ts}:F> (<t:${ts}:R>)` : 'Starts when the host presses **Start Game** — everyone who joined gets pinged'}`)
+    .addFields({ name: `<:member:1495666085121491024> Signed up (${s.players.length})`, value: s.players.length ? s.players.map(p => `• **${p.username}**`).slice(0, 40).join('\n') : 'Nobody yet…' })
     .setFooter({ text: `Host: ${s.hostName} • ${BRAND}` });
 }
 function lobbyButtons(s, closed = false) {
   const i = ids(s);
   if (closed) return [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(i.join).setLabel('Closed').setStyle(ButtonStyle.Secondary).setDisabled(true))];
   return [new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(i.join).setLabel('Join').setEmoji('😈').setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId(i.leave).setLabel('Leave').setEmoji('🚪').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(i.rules).setLabel('Rules').setEmoji('📜').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(i.start).setLabel('Start').setEmoji('▶️').setStyle(ButtonStyle.Primary))];
+    new ButtonBuilder().setCustomId(i.join).setLabel('Join').setEmoji({ id: '1560779249248641095', name: 'semaforo', animated: true }).setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(i.rules).setLabel('Rules').setEmoji({ id: '1511510712986632352', name: 'rules', animated: true }).setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId(i.start).setLabel('Start Game').setEmoji({ id: '1532595713010040972', name: 'CheckCheckmarkSticker', animated: true }).setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(i.leave).setLabel('Leave').setEmoji({ id: '1552118083777208420', name: 'escape', animated: true }).setStyle(ButtonStyle.Danger))];
 }
 
 /** Post a fresh lobby message (or re-use `msg`) and listen for clicks. */

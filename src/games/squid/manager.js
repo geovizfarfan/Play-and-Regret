@@ -203,7 +203,7 @@ function blank(channel, o) {
     startAt: o.startAt || null, phase: 'lobby', players: [], alive: null, history: [], stageIndex: 0,
     reminded: {}, settings: o.steps ? { steps: o.steps } : {}, state: { cancelled: false, onCancel: null }, paid: false, fast: !!o.fast,
     gameLabel: `Squid Games — ${modeLabel(mode)}`,
-    title: `PLAY & REGRET — SQUID GAMES: ${modeLabel(mode)}`,
+    title: `SQUID GAMES: ${modeLabel(mode)}`,
     blurb: mode === 'tournament'
       ? 'Four games, one champion: 🚦 Red Light, Green Light → 🎠 Mingle → 🌉 Glass Bridge → 🎰 The Final Regret.\nRegister once — survivors advance automatically.'
       : ENGINES[mode].rules,
