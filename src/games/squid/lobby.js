@@ -8,6 +8,8 @@ const { economy } = require('../../utils/database');
 const guildEconomy = require('../../utils/guildEconomy');
 const { BRAND, COLORS } = require('./common');
 
+const OPEN_MAX_MS = 3 * 60 * 60 * 1000;   // an untimed lobby that nobody starts is closed (and refunded) after 3 hours
+
 const EVENT_HOST_ROLE = process.env.EVENT_HOST_ROLE || 'Event Host';
 function hasHostRole(member) {
   if (!member) return false;
@@ -24,6 +26,7 @@ async function runLobby(session) {
   const id = channel.id;
   const joinId = `sq_join_${id}`, leaveId = `sq_leave_${id}`, rulesId = `sq_rules_${id}`, startId = `sq_start_${id}`;
   session.players = [];
+  const timed = signupSec > 0;
   const endsAt = Math.floor((Date.now() + signupSec * 1000) / 1000);
 
   const embed = () => new EmbedBuilder().setColor(COLORS.purple)
@@ -32,7 +35,7 @@ async function runLobby(session) {
       `${session.blurb}\n\n` +
       (bet > 0 ? `<a:moneybag:1479268556687540345> Entry: **${bet} sins**\n` : `<a:moneybag:1479268556687540345> Free entry\n`) +
       (session.prize > 0 ? `<a:trophies:1507765453299122387> Host prize: **${session.prize.toLocaleString()} sins**\n` : '') +
-      `Players: **${minPlayers}–${maxPlayers}** • Signups close <t:${endsAt}:R>`)
+      `Players: **${minPlayers}–${maxPlayers}** • ${timed ? `Signups close <t:${endsAt}:R>` : 'Starts when the host presses **Start** — everyone who joined gets pinged'}`)
     .addFields({ name: `Signed up (${session.players.length})`, value: session.players.length ? session.players.map(p => `• **${p.username}**`).slice(0, 40).join('\n') : 'Nobody yet…' })
     .setFooter({ text: `Host: ${session.hostName} • ${BRAND}` });
   const buttons = () => new ActionRowBuilder().addComponents(
@@ -44,7 +47,7 @@ async function runLobby(session) {
 
   const msg = await channel.send({ embeds: [embed()], components: [buttons()] });
   session.lobbyMessage = msg;
-  const collector = msg.createMessageComponentCollector({ time: signupSec * 1000 });
+  const collector = msg.createMessageComponentCollector({ time: timed ? signupSec * 1000 : OPEN_MAX_MS });
   session.stopLobby = (reason) => collector.stop(reason);
   const refresh = () => msg.edit({ embeds: [embed()], components: [buttons()] }).catch(() => {});
 
@@ -85,10 +88,11 @@ async function runLobby(session) {
     } catch (err) { console.error('[squid lobby]', err); }
   });
 
-  await new Promise(resolve => collector.on('end', resolve));
+  const endReason = await new Promise(resolve => collector.on('end', (_, reason) => resolve(reason)));
+  if (!timed && endReason === 'time') session.expired = true;      // nobody pressed Start in 3 hours
   await msg.edit({ components: [new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(joinId).setLabel('Closed').setStyle(ButtonStyle.Secondary).setDisabled(true))] }).catch(() => {});
-  if (session.cancelled) return false;
+  if (session.cancelled || session.expired) return false;
   return session.players.length >= minPlayers;
 }
 

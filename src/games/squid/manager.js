@@ -8,7 +8,7 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('
 const { economy } = require('../../utils/database');
 const guildEconomy = require('../../utils/guildEconomy');
 const jackpot = require('../../utils/jackpot');
-const { BRAND, COLORS, sleep, secureInt, names } = require('./common');
+const { BRAND, COLORS, sleep, secureInt, names, ping } = require('./common');
 const { runLobby, refundEveryone, hasHostRole } = require('./lobby');
 const registry = require('./registry');
 const redlight = require('../redlight/redlight');
@@ -51,6 +51,7 @@ async function between(session, finished, nextKey, res, alive, all) {
   const buttons = () => new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`sqm_go_${channel.id}`).setLabel('Start next game').setEmoji('▶️').setStyle(ButtonStyle.Success),
     new ButtonBuilder().setCustomId(`sqm_pause_${channel.id}`).setLabel(paused ? 'Resume' : 'Pause').setEmoji(paused ? '⏯️' : '⏸️').setStyle(ButtonStyle.Secondary));
+  await ping(channel, alive.map(p => p.id), `🔔 **${next.label}** is next — qualified sinners, get ready!`);
   const msg = await channel.send({ embeds: [mk()], components: [buttons()] });
   const col = msg.createMessageComponentCollector({ time: 60 * 60 * 1000 });
   col.on('collect', async (i) => {
@@ -95,6 +96,8 @@ async function runSession(session) {
   let alive = session.players.slice();
   const all = session.players.slice();
   session.phase = 'running';
+  await ping(channel, alive.map(p => p.id), `🚨 **${modeLabel(session.mode)} is starting in 10 seconds!** Get to this channel, sinners.`);
+  await sleep(session.fast ? 30 : 10000);
 
   for (let i = 0; i < sequence.length && !session.state.cancelled; i++) {
     const key = sequence[i];
@@ -165,7 +168,9 @@ async function startSession(interaction, opts) {
     if (session.state.cancelled) return;
     if (!ok) {
       await refundEveryone(session, `${session.gameLabel} refund`);
-      await channel.send(`<:wrong:1495666083594502174> Not enough players (need ${session.minPlayers}).${session.bet > 0 ? ' Entries refunded.' : ''}`).catch(() => {});
+      await channel.send(session.expired
+        ? `<:wrong:1495666083594502174> Nobody started the lobby within 3 hours, so it was closed.${session.bet > 0 ? ' Entries refunded.' : ''}`
+        : `<:wrong:1495666083594502174> Not enough players (need ${session.minPlayers}).${session.bet > 0 ? ' Entries refunded.' : ''}`).catch(() => {});
       return;
     }
     await runSession(session);
@@ -226,7 +231,7 @@ async function handleSlash(interaction) {
       mode: interaction.options.getString('game') || 'tournament',
       bet: feeOpt === false ? 0 : (interaction.options.getInteger('bet') || 50),
       prize: interaction.options.getInteger('prize') || 0,
-      signup: interaction.options.getInteger('signup') || 90,
+      signup: interaction.options.getInteger('signup') || 0,
       min, max,
       auto: interaction.options.getBoolean('auto') !== false,
     });

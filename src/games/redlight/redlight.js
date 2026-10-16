@@ -394,6 +394,7 @@ async function launchRedLight(channel, { bet, signupSec, steps, hostId, triggere
   };
   activeGames.set(channelId, g);
 
+  const timed = signupSec > 0;
   const endsAt = Math.floor((Date.now() + signupSec * 1000) / 1000);
   const makeEmbed = () => new EmbedBuilder()
     .setColor('#7B2CBF')
@@ -402,7 +403,7 @@ async function launchRedLight(channel, { bet, signupSec, steps, hostId, triggere
       `🟢 **Green:** type original messages to run.\n🔴 **Red:** type *anything* and you're eliminated.\n` +
       `First to the finish line wins!\n\n` +
       (bet > 0 ? `<a:moneybag:1479268556687540345> Entry: **${bet} sins**\n` : `<a:moneybag:1479268556687540345> Free entry\n`) +
-      `Min 2 players • Signups close <t:${endsAt}:R>`)
+      `Min 2 players • ${timed ? `Signups close <t:${endsAt}:R>` : 'Starts when the host presses **Start** — everyone who joined gets pinged'}`)
     .addFields({ name: `Signed up (${g.players.size})`, value: g.players.size ? [...g.players.values()].map(p => `• **${p.username}**`).slice(0, 40).join('\n') : 'Nobody yet…' })
     .setFooter({ text: `Host: ${triggeredBy} • Play & Regret by TBP — Squid Games` });
   const makeButtons = () => new ActionRowBuilder().addComponents(
@@ -413,7 +414,7 @@ async function launchRedLight(channel, { bet, signupSec, steps, hostId, triggere
 
   const signupMsg = await channel.send({ embeds: [makeEmbed()], components: [makeButtons()] });
   g.signupMessage = signupMsg;
-  const collector = signupMsg.createMessageComponentCollector({ time: signupSec * 1000 });
+  const collector = signupMsg.createMessageComponentCollector({ time: timed ? signupSec * 1000 : 3 * 60 * 60 * 1000 });
 
   collector.on('collect', async (i) => {
     if (g.phase !== 'SIGNUP') return i.reply({ content: 'Signups are closed.', ephemeral: true }).catch(() => {});
@@ -441,17 +442,23 @@ async function launchRedLight(channel, { bet, signupSec, steps, hostId, triggere
     } catch (err) { console.error('[redlight signup]', err); }
   });
 
-  collector.on('end', async () => {
+  collector.on('end', async (_, reason) => {
     if (g.phase !== 'SIGNUP') return;
     await signupMsg.edit({ components: [new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(joinId).setLabel('Closed').setStyle(ButtonStyle.Secondary).setDisabled(true))] }).catch(() => {});
     if (g.cancelled) return;
-    if (g.players.size < 2) {
+    if (g.players.size < 2 || (!timed && reason === 'time')) {
       await refundAll(channel, g, 'Red Light Green Light refund');
       activeGames.delete(channelId);
-      return channel.send('<:wrong:1495666083594502174> Not enough players. Entries refunded.').catch(() => {});
+      return channel.send(`<:wrong:1495666083594502174> ${g.players.size < 2 ? 'Not enough players.' : 'Nobody started the game within 3 hours.'} Entries refunded.`).catch(() => {});
     }
     g.phase = 'GREEN_TRANSITION';
+    { const ids = [...g.players.keys()];
+      for (let k = 0; k < ids.length; k += 50) {
+        const chunk = ids.slice(k, k + 50);
+        await channel.send({ content: `${k === 0 ? '🚨 **Red Light, Green Light is starting!** Get to this channel, sinners.\n' : ''}${chunk.map(id => `<@${id}>`).join(' ')}`, allowedMentions: { users: chunk } }).catch(() => {});
+      }
+      await sleep(g.fast ? 30 : 8000); }
     try { await runGame(channel, g); }
     catch (err) {
       console.error('[redlight error]', err.stack || err);
@@ -496,7 +503,7 @@ module.exports = {
     }
     const feeOpt = interaction.options.getBoolean('fee');
     const bet = (feeOpt === false) ? 0 : (interaction.options.getInteger('bet') || 50);
-    const signupSec = interaction.options.getInteger('signup') || 60;
+    const signupSec = interaction.options.getInteger('signup') || 0;
     const steps = interaction.options.getInteger('steps') || null;
     try {
       await interaction.deferReply({ ephemeral: true });

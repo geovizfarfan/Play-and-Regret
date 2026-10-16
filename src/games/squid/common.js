@@ -29,4 +29,12 @@ async function waitFor(state, ms, tick, stop) {
   }
 }
 
-module.exports = { BRAND, COLORS, sleep, secureInt, randBetween, shuffle, names, waitFor };
+/** Ping a list of users (in chunks, so no message tops Discord's limits). Only those users are mentioned. */
+async function ping(channel, ids, text) {
+  for (let i = 0; i < ids.length; i += 50) {
+    const chunk = ids.slice(i, i + 50);
+    await channel.send({ content: `${i === 0 ? `${text}\n` : ''}${chunk.map(id => `<@${id}>`).join(' ')}`, allowedMentions: { users: chunk } }).catch(() => {});
+  }
+}
+
+module.exports = { ping, BRAND, COLORS, sleep, secureInt, randBetween, shuffle, names, waitFor };

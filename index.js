@@ -183,7 +183,7 @@ const slashCommands = [
   new SlashCommandBuilder().setName('redlight').setDescription('Host Red Light, Green Light — type to run, freeze on red!')
     .addIntegerOption(o => o.setName('bet').setDescription('Entry fee in sins (default 50)').setMinValue(10))
     .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: on'))
-    .addIntegerOption(o => o.setName('signup').setDescription('Signup time in seconds (default 60)').setMinValue(15).setMaxValue(600))
+    .addIntegerOption(o => o.setName('signup').setDescription('Optional: auto-start after N seconds (default: open until you press Start)').setMinValue(15).setMaxValue(600))
     .addIntegerOption(o => o.setName('steps').setDescription('Finish line in steps (default: auto by player count)').setMinValue(10).setMaxValue(200)),
 
   // Squid Games — tournament + standalone games
@@ -198,7 +198,7 @@ const slashCommands = [
         .addIntegerOption(o => o.setName('bet').setDescription('Entry fee in sins (default 50)').setMinValue(10))
         .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: on'))
         .addIntegerOption(o => o.setName('prize').setDescription('Extra prize YOU fund for the winner, in sins').setMinValue(0))
-        .addIntegerOption(o => o.setName('signup').setDescription('Signup time in seconds (default 90)').setMinValue(30).setMaxValue(600))
+        .addIntegerOption(o => o.setName('signup').setDescription('Optional: auto-start after N seconds (default: open until you press Start)').setMinValue(30).setMaxValue(600))
         .addIntegerOption(o => o.setName('min').setDescription('Minimum players (default 2)').setMinValue(2).setMaxValue(50))
         .addIntegerOption(o => o.setName('max').setDescription('Maximum players (default 50)').setMinValue(2).setMaxValue(100))
         .addBooleanOption(o => o.setName('auto').setDescription('Tournament: auto-start the next game? Default: yes (host can pause)')))
