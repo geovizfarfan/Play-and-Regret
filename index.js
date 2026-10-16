@@ -41,6 +41,7 @@ const jackpotModule   = require('./src/economy/jackpot');
 const blackjackModule = require('./src/games/blackjack');
 const cuarentaModule  = require('./src/games/cuarenta');
 const guineaModule    = require('./src/games/guineapig');
+const redlightModule  = require('./src/games/redlight/redlight');
 const loteriaModule   = require('./src/games/loteria');
 const memoryModule    = require('./src/games/memory');
 const tttModule       = require('./src/games/tictactoe/tictactoe');
@@ -174,6 +175,13 @@ const slashCommands = [
     .addIntegerOption(o => o.setName('rounds').setDescription('Number of rounds (default 5)').setMinValue(1).setMaxValue(15))
     .addIntegerOption(o => o.setName('points').setDescription('Points per find (default 1)').setMinValue(1).setMaxValue(100))
     .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: on')),
+
+  // Red Light, Green Light (Squid Games)
+  new SlashCommandBuilder().setName('redlight').setDescription('Host Red Light, Green Light — type to run, freeze on red!')
+    .addIntegerOption(o => o.setName('bet').setDescription('Entry fee in sins (default 50)').setMinValue(10))
+    .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: on'))
+    .addIntegerOption(o => o.setName('signup').setDescription('Signup time in seconds (default 60)').setMinValue(15).setMaxValue(600))
+    .addIntegerOption(o => o.setName('steps').setDescription('Finish line in steps (default: auto by player count)').setMinValue(10).setMaxValue(200)),
 
   // Memory Game
   new SlashCommandBuilder().setName('memory').setDescription('Play the Memory Game!')
@@ -430,6 +438,7 @@ const slashCommands = [
       { name: 'Blackjack', value: 'blackjack' },
       { name: 'Memory', value: 'memory' },
       { name: 'Find the Cuy', value: 'findthecuy' },
+      { name: 'Red Light, Green Light', value: 'redlight' },
       { name: 'Tic-Tac-Bruh', value: 'tictactoe' },
       { name: 'Rigged Numbers', value: 'riggednumbers' },
       { name: 'FAFO', value: 'fafo' },
@@ -724,6 +733,10 @@ client.on('interactionCreate', async (interaction) => {
     if (commandName === 'findthecuy')
       return await guineaModule.handleSlash(interaction, commandName);
 
+    // Red Light, Green Light
+    if (commandName === 'redlight')
+      return await redlightModule.handleSlash(interaction);
+
     // Memory
     if (commandName === 'memory')
       return await memoryModule.handleSlash(interaction, commandName);
@@ -819,6 +832,12 @@ client.on('messageCreate', async (message) => {
   if (itemsModule.isDetonated(message.author.id, message.channel.id)) {
     await message.delete().catch(() => {});
   }
+});
+
+// ── Red Light, Green Light — live typing race (steps on green, eliminated on red) ──
+client.on('messageCreate', (message) => {
+  if (message.author.bot) return;
+  try { redlightModule.onMessage(message); } catch (err) { console.error('[redlight onMessage]', err); }
 });
 
 // ── Rigged Numbers guesses — plain numbers typed in a channel with an active game ──
@@ -937,6 +956,7 @@ const GAME_RULES = {
   blackjack: () => `<a:cards:1511530261551124561> **Blackjack — How to Play**\nStandard blackjack rules. Everyone antes the entry fee, cards are dealt, hit or stand to get as close to 21 without going over. Beat the dealer's hand to win your bet back plus more. Solo mode plays just you vs the dealer; Multiplayer lets several people join the same table.`,
   memory: () => `<a:brain:1511530555588612126> **Memory Game — How to Play**\nA grid of face-down emoji cards. Flip two at a time trying to find a matching pair. Solo mode races the clock; Multiplayer takes turns — whoever finds the most pairs by the end wins the pot.`,
   findthecuy: () => `<a:GuineaPig_tbpbots:1544900084410490910> **Find the Cuy — How to Play**\nA cuy is hiding in one of the grid cells each round. Click the cell you think it's in — whoever finds it first that round scores a point. Most points across all rounds wins the pot.`,
+  redlight: () => `😈 **Red Light, Green Light — How to Play**\n🟢 GREEN: every *original* message you type is 1 step (max 1 per second). Repeats, copy-paste and tiny edits don't count.\n🔴 RED: send *anything* and you're eliminated.\nFirst to the finish line wins the pot; if rounds run out, most steps wins.`,
   tictactoe: () => `⚔️ **Tic-Tac-Bruh — How to Play**\nClassic tic-tac-toe, wagered. Challenge a specific player or open it up for anyone to accept. Get three in a row to win the bet — or play against the bot if nobody's around.`,
   riggednumbers: () => `<a:guess:1542348901217075200> **Rigged Numbers — How to Play**\nHost sets a number range and privately picks a secret number nobody else sees. Once the host clicks Start, anyone can guess by typing a number in chat. Wrong guesses get a higher/lower hint reaction — first correct guess wins.`,
   fafo: () => `<a:devil:1544848380805513266> **FAFO (Fuck Around & Find Out) — How to Play**\nWager your sins. Each round, decide to Cash Out (lock in your current pot safely) or Fuck Around (push your luck for a bigger pot, with a real chance of losing it all). The risk climbs every round. If you get caught, you lose your original wager and gain regret — but you keep whatever you already cashed out. Last player standing gets an optional Final FAFO for a bonus jackpot.`,
@@ -1017,6 +1037,7 @@ function buildHelpEmbeds() {
         '`/help rules:cuarenta` — How to play',
       ].join('\n') },
       { name: '🐹 Find the Cuy', value: '`/findthecuy` — Click the hidden cuy to win!' },
+      { name: '😈 Red Light, Green Light', value: '`/redlight` — Type to run, freeze on red! (Event Hosts)' },
       { name: '<a:brain:1511530555588612126> Memory', value: '`/memory` — Match emoji pairs (solo or multiplayer)' },
       { name: '🎲 Rigged Numbers', value: '`/riggednumbers min max` — Secretly pick a number, first correct guess wins' },
       { name: '🧨 Fuck Around & Find Out', value: '`/fafo` — *(Admin)* Push-your-luck wagering game' },
@@ -1179,6 +1200,15 @@ async function tryCancelAll(channel, userId, username, replyFn, guildId = null) 
       }
       cancelMsg = bjReply || '<:checkmark:1495666088417956002> Blackjack cancelled and refunded.';
       cancelled = true;
+    }
+  } catch(e) {}
+
+  // Try Red Light, Green Light
+  try {
+    if (!cancelled && redlightModule.activeGames.has(channelId)) {
+      const member = channel.guild ? await channel.guild.members.fetch(userId).catch(() => null) : null;
+      const r = await redlightModule.cancel(channel, userId, member);
+      return replyFn(r.msg);
     }
   } catch(e) {}
 
