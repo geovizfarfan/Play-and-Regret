@@ -19,6 +19,7 @@ function hasHostRole(member) {
 
 // Join-button emoji per mode
 const JOIN_EMOJI = {
+  tournament: { id: '1560791854981709877', name: 'pot', animated: true },
   mingle: { id: '1560787248902053958', name: 'thanos', animated: true },
   glassbridge: { id: '1560789535330144286', name: 'bridge', animated: true },
   roulette: { id: '1560790984839790732', name: 'russianroulette', animated: true },

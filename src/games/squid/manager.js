@@ -203,7 +203,7 @@ function blank(channel, o) {
     startAt: o.startAt || null, phase: 'lobby', players: [], alive: null, history: [], stageIndex: 0,
     reminded: {}, settings: o.steps ? { steps: o.steps } : {}, state: { cancelled: false, onCancel: null }, paid: false, fast: !!o.fast,
     gameLabel: `Squid Games — ${modeLabel(mode)}`,
-    title: `SQUID GAMES: ${mode === 'tournament' ? '👑' : ENGINES[mode].emoji} ${modeLabel(mode)}`,
+    title: `SQUID GAMES: ${mode === 'tournament' ? '<a:pot:1560791854981709877>' : ENGINES[mode].emoji} ${modeLabel(mode)}`,
     blurb: mode === 'tournament'
       ? 'Four games, one champion: <a:semaforo:1560779249248641095> Red Light, Green Light → <a:door:1560782409040011274> Mingle → <a:bridge:1560789535330144286> Glass Bridge → <a:russianroulette:1560790984839790732> The Final Regret.\nRegister once — survivors advance automatically.'
       : ENGINES[mode].rules,
