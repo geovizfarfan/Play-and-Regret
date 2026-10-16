@@ -380,99 +380,6 @@ async function playRedLight(channel, players, ctx) {
   finally { activeGames.delete(channel.id); if (g.swapTimer) clearTimeout(g.swapTimer); if (g.elimTimer) clearTimeout(g.elimTimer); }
 }
 
-// ─── Launcher / signup ────────────────────────────────────────────────────────
-async function launchRedLight(channel, { bet, signupSec, steps, hostId, triggeredBy }) {
-  const channelId = channel.id;
-  if (activeGames.has(channelId) || require('../squid/registry').busy.has(channelId)) return channel.send('<:wrong:1495666083594502174> There\'s already a game running here!');
-
-  const joinId = `rl_join_${channelId}`, startId = `rl_start_${channelId}`, rulesId = `rl_rules_${channelId}`;
-  const g = {
-    players: new Map(), bet, phase: 'SIGNUP', hostId, triggeredBy, over: false, paid: false,
-    overrides: steps ? { finish: steps } : null,
-    eliminatedOrder: [], elimQueue: [], lastWave: [], roundElims: [], light: 'green',
-    mode: 'standalone', qualified: [], roundQual: [],
-  };
-  activeGames.set(channelId, g);
-
-  const timed = signupSec > 0;
-  const endsAt = Math.floor((Date.now() + signupSec * 1000) / 1000);
-  const makeEmbed = () => new EmbedBuilder()
-    .setColor('#7B2CBF')
-    .setTitle('😈 RED LIGHT, GREEN LIGHT — Signups!')
-    .setDescription(
-      `🟢 **Green:** type original messages to run.\n🔴 **Red:** type *anything* and you're eliminated.\n` +
-      `First to the finish line wins!\n\n` +
-      (bet > 0 ? `<a:moneybag:1479268556687540345> Entry: **${bet} sins**\n` : `<a:moneybag:1479268556687540345> Free entry\n`) +
-      `Min 2 players • ${timed ? `Signups close <t:${endsAt}:R>` : 'Starts when the host presses **Start** — everyone who joined gets pinged'}`)
-    .addFields({ name: `Signed up (${g.players.size})`, value: g.players.size ? [...g.players.values()].map(p => `• **${p.username}**`).slice(0, 40).join('\n') : 'Nobody yet…' })
-    .setFooter({ text: `Host: ${triggeredBy} • Play & Regret by TBP — Squid Games` });
-  const makeButtons = () => new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(joinId).setLabel('Join').setEmoji('😈').setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId(rulesId).setLabel('Rules').setEmoji('📜').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(startId).setLabel('Start').setEmoji('▶️').setStyle(ButtonStyle.Primary),
-  );
-
-  const signupMsg = await channel.send({ embeds: [makeEmbed()], components: [makeButtons()] });
-  g.signupMessage = signupMsg;
-  const collector = signupMsg.createMessageComponentCollector({ time: timed ? signupSec * 1000 : 3 * 60 * 60 * 1000 });
-
-  collector.on('collect', async (i) => {
-    if (g.phase !== 'SIGNUP') return i.reply({ content: 'Signups are closed.', ephemeral: true }).catch(() => {});
-    try {
-      if (i.customId === rulesId) {
-        return i.reply({ content: `😈 **Red Light, Green Light**\n🟢 GREEN: every *original* message = 1 step (max 1/sec). Repeats, copy-paste and tiny edits don't count.\n🔴 RED: any message = eliminated.\nFirst to the finish line wins; if time runs out, most steps wins.`, ephemeral: true });
-      }
-      if (i.customId === startId) {
-        if (i.user.id !== g.hostId && !hasHostRole(i.member)) return i.reply({ content: `<:wrong:1495666083594502174> Only **${g.triggeredBy}** or an Event Host can start.`, ephemeral: true });
-        if (g.players.size < 2) return i.reply({ content: '<:wrong:1495666083594502174> Need at least **2 players**!', ephemeral: true });
-        await i.deferUpdate();
-        return collector.stop('forcestart');
-      }
-      if (i.customId !== joinId) return;
-      await i.deferUpdate();
-      if (g.players.has(i.user.id)) return i.followUp({ content: '<a:Warning:1497476844860215366> Already joined!', ephemeral: true });
-      if (g.bet > 0) {
-        const ok = await guildEconomy.removeFunds(i.guild.id, i.user.id, i.user.username, g.bet, 'Red Light Green Light entry');
-        if (!ok) return i.followUp({ content: `<:wrong:1495666083594502174> Need **${g.bet} sins**!`, ephemeral: true });
-        await economy.trackGameEntry(i.user.id, i.user.username, channelId, 'Red Light Green Light', g.bet).catch(() => {});
-      }
-      g.players.set(i.user.id, { id: i.user.id, username: i.member?.displayName || i.user.username, steps: 0, status: 'active', lastStepAt: 0 });
-      await signupMsg.edit({ embeds: [makeEmbed()], components: [makeButtons()] }).catch(() => {});
-      await i.followUp({ content: `😈 You're in, **${i.member?.displayName || i.user.username}**! Don't blink.`, ephemeral: true });
-    } catch (err) { console.error('[redlight signup]', err); }
-  });
-
-  collector.on('end', async (_, reason) => {
-    if (g.phase !== 'SIGNUP') return;
-    await signupMsg.edit({ components: [new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(joinId).setLabel('Closed').setStyle(ButtonStyle.Secondary).setDisabled(true))] }).catch(() => {});
-    if (g.cancelled) return;
-    if (g.players.size < 2 || (!timed && reason === 'time')) {
-      await refundAll(channel, g, 'Red Light Green Light refund');
-      activeGames.delete(channelId);
-      return channel.send(`<:wrong:1495666083594502174> ${g.players.size < 2 ? 'Not enough players.' : 'Nobody started the game within 3 hours.'} Entries refunded.`).catch(() => {});
-    }
-    g.phase = 'GREEN_TRANSITION';
-    { const ids = [...g.players.keys()];
-      for (let k = 0; k < ids.length; k += 50) {
-        const chunk = ids.slice(k, k + 50);
-        await channel.send({ content: `${k === 0 ? '🚨 **Red Light, Green Light is starting!** Get to this channel, sinners.\n' : ''}${chunk.map(id => `<@${id}>`).join(' ')}`, allowedMentions: { users: chunk } }).catch(() => {});
-      }
-      await sleep(g.fast ? 30 : 8000); }
-    try { await runGame(channel, g); }
-    catch (err) {
-      console.error('[redlight error]', err.stack || err);
-      g.over = true;
-      if (!g.paid) {
-        await refundAll(channel, g, 'Red Light Green Light refund (error)');
-        channel.send('<:wrong:1495666083594502174> Something broke — everyone has been refunded.').catch(() => {});
-      }
-      activeGames.delete(channelId);
-    }
-  });
-  g.collector = collector;
-}
-
 // ─── Cancel (host/admin; works in signup or mid-game, refunds everyone) ──────
 async function cancel(channel, userId, member) {
   const g = activeGames.get(channel.id);
@@ -497,21 +404,6 @@ module.exports = {
   playRedLight,
   _test: { runGame, CFG },   // used by the simulation tests only
 
-  async handleSlash(interaction) {
-    if (!hasHostRole(interaction.member)) {
-      return interaction.reply({ content: `<:wrong:1495666083594502174> Only Event Hosts and admins can start this game.`, ephemeral: true });
-    }
-    const feeOpt = interaction.options.getBoolean('fee');
-    const bet = (feeOpt === false) ? 0 : (interaction.options.getInteger('bet') || 50);
-    const signupSec = interaction.options.getInteger('signup') || 0;
-    const steps = interaction.options.getInteger('steps') || null;
-    try {
-      await interaction.deferReply({ ephemeral: true });
-      await launchRedLight(interaction.channel, { bet, signupSec, steps, hostId: interaction.user.id, triggeredBy: interaction.member?.displayName || interaction.user.username });
-      await interaction.editReply({ content: '😈 Red Light, Green Light opened!' });
-    } catch (err) {
-      console.error('[redlight slash]', err.stack || err);
-      await interaction.editReply({ content: `<:wrong:1495666083594502174> Error: ${err.message}` }).catch(() => {});
-    }
-  },
+  // /redlight is Squid Games' Red Light mode now (saved in the database, survives restarts)
+  async handleSlash(interaction) { return require('../squid/manager').handleRedlightSlash(interaction); },
 };

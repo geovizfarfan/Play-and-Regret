@@ -183,7 +183,8 @@ const slashCommands = [
   new SlashCommandBuilder().setName('redlight').setDescription('Host Red Light, Green Light — type to run, freeze on red!')
     .addIntegerOption(o => o.setName('bet').setDescription('Entry fee in sins (default 50)').setMinValue(10))
     .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: on'))
-    .addIntegerOption(o => o.setName('signup').setDescription('Optional: auto-start after N seconds (default: open until you press Start)').setMinValue(15).setMaxValue(600))
+    .addStringOption(o => o.setName('start').setDescription('Optional scheduled start, e.g. 30m, 2h, 3d, 1w (default: open until you press Start)'))
+    .addIntegerOption(o => o.setName('signup').setDescription('Optional: auto-start after N seconds (use "start" for longer)').setMinValue(15).setMaxValue(600))
     .addIntegerOption(o => o.setName('steps').setDescription('Finish line in steps (default: auto by player count)').setMinValue(10).setMaxValue(200)),
 
   // Squid Games — tournament + standalone games
@@ -198,11 +199,13 @@ const slashCommands = [
         .addIntegerOption(o => o.setName('bet').setDescription('Entry fee in sins (default 50)').setMinValue(10))
         .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: on'))
         .addIntegerOption(o => o.setName('prize').setDescription('Extra prize YOU fund for the winner, in sins').setMinValue(0))
-        .addIntegerOption(o => o.setName('signup').setDescription('Optional: auto-start after N seconds (default: open until you press Start)').setMinValue(30).setMaxValue(600))
+        .addStringOption(o => o.setName('start').setDescription('Optional scheduled start, e.g. 30m, 2h, 3d, 1w — signups stay open until then (default: until you press Start)'))
+        .addIntegerOption(o => o.setName('signup').setDescription('Optional: auto-start after N seconds (use "start" for longer)').setMinValue(30).setMaxValue(600))
         .addIntegerOption(o => o.setName('min').setDescription('Minimum players (default 2)').setMinValue(2).setMaxValue(50))
         .addIntegerOption(o => o.setName('max').setDescription('Maximum players (default 50)').setMinValue(2).setMaxValue(100))
         .addBooleanOption(o => o.setName('auto').setDescription('Tournament: auto-start the next game? Default: yes (host can pause)')))
       .addSubcommand(sc => sc.setName('status').setDescription('Show the Squid Games session in this channel'))
+      .addSubcommand(sc => sc.setName('leaderboard').setDescription('Squid Games champions'))
       .addSubcommand(sc => sc.setName('rules').setDescription('How a Squid Game works').addStringOption(o => o.setName('game').setDescription('Which game').addChoices(...games)))
       .addSubcommand(sc => sc.setName('cancel').setDescription('Cancel the Squid Games session here and refund everyone (host/admin)'));
   })(),
@@ -481,6 +484,9 @@ client.once('clientReady', async () => {
 
   rsModule.init(client);
   autodropModule.init(client);
+
+  // ── Squid Games / Red Light — bring every saved lobby & in-progress game back after a restart ──
+  try { await squidModule.restore(client); } catch (e) { console.error('[Squid] restore failed', e); }
 
   // ── Drop It Like It's Hot — load enable/disable overrides, resolve any spawns left mid-flight ──
   const { db: dzDb } = require('./src/utils/database');

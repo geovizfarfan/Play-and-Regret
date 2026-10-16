@@ -1,14 +1,14 @@
 /**
- * lobby.js — one signup lobby for every Squid Games mode.
- * Players join with a button (once), pay the optional entry fee (tracked so a crash refunds them),
- * and the host (or the timer) starts it. Returns the players or null if it fell through.
+ * lobby.js — the signup lobby for every Squid Games mode (persistent version).
+ * The lobby is just a message + a collector with NO timer of its own: the manager's scheduler decides
+ * when it starts / expires, and after a restart the same message is re-attached (attachLobby).
+ * Entry fees are taken at join and recorded in the database (NOT in the crash-refund table), so a
+ * restart never refunds or loses anyone.
  */
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { economy } = require('../../utils/database');
 const guildEconomy = require('../../utils/guildEconomy');
 const { BRAND, COLORS } = require('./common');
-
-const OPEN_MAX_MS = 3 * 60 * 60 * 1000;   // an untimed lobby that nobody starts is closed (and refunded) after 3 hours
+const store = require('./store');
 
 const EVENT_HOST_ROLE = process.env.EVENT_HOST_ROLE || 'Event Host';
 function hasHostRole(member) {
@@ -17,99 +17,121 @@ function hasHostRole(member) {
   return member.roles.cache.some(r => r.name === EVENT_HOST_ROLE);
 }
 
-/**
- * @param session  { channel, hostId, hostName, bet, signupSec, minPlayers, maxPlayers, title, blurb, gameLabel, players:[], cancelled }
- * @returns {Promise<boolean>} true → enough players, ready to run
- */
-async function runLobby(session) {
-  const { channel, bet, signupSec, minPlayers, maxPlayers } = session;
-  const id = channel.id;
-  const joinId = `sq_join_${id}`, leaveId = `sq_leave_${id}`, rulesId = `sq_rules_${id}`, startId = `sq_start_${id}`;
-  session.players = [];
-  const timed = signupSec > 0;
-  const endsAt = Math.floor((Date.now() + signupSec * 1000) / 1000);
+const ids = s => ({ join: `sq_join_${s.channel.id}`, leave: `sq_leave_${s.channel.id}`, rules: `sq_rules_${s.channel.id}`, start: `sq_start_${s.channel.id}` });
 
-  const embed = () => new EmbedBuilder().setColor(COLORS.purple)
-    .setTitle(`😈 ${session.title} — Signups!`)
+function lobbyEmbed(s) {
+  const ts = s.startAt ? Math.floor(s.startAt / 1000) : null;
+  return new EmbedBuilder().setColor(COLORS.purple)
+    .setTitle(`😈 ${s.title} — Signups!`)
     .setDescription(
-      `${session.blurb}\n\n` +
-      (bet > 0 ? `<a:moneybag:1479268556687540345> Entry: **${bet} sins**\n` : `<a:moneybag:1479268556687540345> Free entry\n`) +
-      (session.prize > 0 ? `<a:trophies:1507765453299122387> Host prize: **${session.prize.toLocaleString()} sins**\n` : '') +
-      `Players: **${minPlayers}–${maxPlayers}** • ${timed ? `Signups close <t:${endsAt}:R>` : 'Starts when the host presses **Start** — everyone who joined gets pinged'}`)
-    .addFields({ name: `Signed up (${session.players.length})`, value: session.players.length ? session.players.map(p => `• **${p.username}**`).slice(0, 40).join('\n') : 'Nobody yet…' })
-    .setFooter({ text: `Host: ${session.hostName} • ${BRAND}` });
-  const buttons = () => new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(joinId).setLabel('Join').setEmoji('😈').setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId(leaveId).setLabel('Leave').setEmoji('🚪').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(rulesId).setLabel('Rules').setEmoji('📜').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(startId).setLabel('Start').setEmoji('▶️').setStyle(ButtonStyle.Primary),
-  );
+      `${s.blurb}\n\n` +
+      (s.bet > 0 ? `<a:moneybag:1479268556687540345> Entry: **${s.bet} sins** (refunded if you leave or it's cancelled)\n` : `<a:moneybag:1479268556687540345> Free entry\n`) +
+      (s.prize > 0 ? `<a:trophies:1507765453299122387> Host prize: **${s.prize.toLocaleString()} sins**\n` : '') +
+      `Players: **${s.minPlayers}–${s.maxPlayers}** • ${ts ? `Starts <t:${ts}:F> (<t:${ts}:R>)` : 'Starts when the host presses **Start** — everyone who joined gets pinged'}`)
+    .addFields({ name: `Signed up (${s.players.length})`, value: s.players.length ? s.players.map(p => `• **${p.username}**`).slice(0, 40).join('\n') : 'Nobody yet…' })
+    .setFooter({ text: `Host: ${s.hostName} • ${BRAND}` });
+}
+function lobbyButtons(s, closed = false) {
+  const i = ids(s);
+  if (closed) return [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(i.join).setLabel('Closed').setStyle(ButtonStyle.Secondary).setDisabled(true))];
+  return [new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(i.join).setLabel('Join').setEmoji('😈').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(i.leave).setLabel('Leave').setEmoji('🚪').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(i.rules).setLabel('Rules').setEmoji('📜').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(i.start).setLabel('Start').setEmoji('▶️').setStyle(ButtonStyle.Primary))];
+}
 
-  const msg = await channel.send({ embeds: [embed()], components: [buttons()] });
-  session.lobbyMessage = msg;
-  const collector = msg.createMessageComponentCollector({ time: timed ? signupSec * 1000 : OPEN_MAX_MS });
-  session.stopLobby = (reason) => collector.stop(reason);
-  const refresh = () => msg.edit({ embeds: [embed()], components: [buttons()] }).catch(() => {});
+/** Post a fresh lobby message (or re-use `msg`) and listen for clicks. */
+async function attachLobby(s, msg) {
+  if (!msg) {
+    msg = await s.channel.send({ embeds: [lobbyEmbed(s)], components: lobbyButtons(s) });
+    s.lobbyMessageId = msg.id;
+  } else {
+    await msg.edit({ embeds: [lobbyEmbed(s)], components: lobbyButtons(s) }).catch(() => {});
+  }
+  s.lobbyMessage = msg;
+  const i = ids(s);
+  const collector = msg.createMessageComponentCollector();          // no timer — the scheduler owns time
+  s.lobbyCollector = collector;
+  const refresh = () => msg.edit({ embeds: [lobbyEmbed(s)], components: lobbyButtons(s) }).catch(() => {});
+  s.refreshLobby = refresh;
 
-  collector.on('collect', async (i) => {
-    if (session.phase !== 'lobby') return i.reply({ content: 'Signups are closed.', ephemeral: true }).catch(() => {});
+  collector.on('collect', async (ix) => {
+    if (s.phase !== 'lobby') return ix.reply({ content: 'Signups are closed.', ephemeral: true }).catch(() => {});
     try {
-      if (i.customId === rulesId) return i.reply({ content: session.rules, ephemeral: true });
-      if (i.customId === startId) {
-        if (i.user.id !== session.hostId && !hasHostRole(i.member)) return i.reply({ content: `<:wrong:1495666083594502174> Only **${session.hostName}** or an Event Host can start.`, ephemeral: true });
-        if (session.players.length < minPlayers) return i.reply({ content: `<:wrong:1495666083594502174> Need at least **${minPlayers} players**!`, ephemeral: true });
-        await i.deferUpdate();
-        return collector.stop('forcestart');
+      if (ix.customId === i.rules) return ix.reply({ content: s.rules, ephemeral: true });
+      if (ix.customId === i.start) {
+        if (ix.user.id !== s.hostId && !hasHostRole(ix.member)) return ix.reply({ content: `<:wrong:1495666083594502174> Only **${s.hostName}** or an Event Host can start.`, ephemeral: true });
+        if (s.players.length < s.minPlayers) return ix.reply({ content: `<:wrong:1495666083594502174> Need at least **${s.minPlayers} players**!`, ephemeral: true });
+        await ix.deferUpdate();
+        return s.onStart && s.onStart();
       }
-      if (i.customId === leaveId) {
-        const idx = session.players.findIndex(p => p.id === i.user.id);
-        if (idx === -1) return i.reply({ content: "You're not signed up.", ephemeral: true });
-        const [p] = session.players.splice(idx, 1);
-        await i.deferUpdate();
-        if (bet > 0) {
-          await guildEconomy.addFunds(i.guild.id, p.id, p.username, bet, `${session.gameLabel} leave refund`);
-          await economy.untrackGameEntry(p.id, id).catch(() => {});
-        }
+      if (ix.customId === i.leave) {
+        const idx = s.players.findIndex(p => p.id === ix.user.id);
+        if (idx === -1) return ix.reply({ content: "You're not signed up.", ephemeral: true });
+        const [p] = s.players.splice(idx, 1);
+        await ix.deferUpdate();
+        await store.save(s);                                         // saved first: leaving is final
+        if (s.bet > 0) await guildEconomy.addFunds(s.guildId, p.id, p.username, s.bet, `${s.gameLabel} leave refund #${s.id}`);
         await refresh();
-        return i.followUp({ content: `🚪 You left${bet > 0 ? ` and got **${bet} sins** back` : ''}.`, ephemeral: true });
+        return ix.followUp({ content: `🚪 You left${s.bet > 0 ? ` and got **${s.bet} sins** back` : ''}.`, ephemeral: true });
       }
-      if (i.customId !== joinId) return;
-      await i.deferUpdate();
-      if (session.players.find(p => p.id === i.user.id)) return i.followUp({ content: '<a:Warning:1497476844860215366> Already joined!', ephemeral: true });
-      if (session.players.length >= maxPlayers) return i.followUp({ content: '<:wrong:1495666083594502174> The lobby is full.', ephemeral: true });
-      if (bet > 0) {
-        const ok = await guildEconomy.removeFunds(i.guild.id, i.user.id, i.user.username, bet, `${session.gameLabel} entry`);
-        if (!ok) return i.followUp({ content: `<:wrong:1495666083594502174> Need **${bet} sins**!`, ephemeral: true });
-        await economy.trackGameEntry(i.user.id, i.user.username, id, session.gameLabel, bet).catch(() => {});
+      if (ix.customId !== i.join) return;
+      await ix.deferUpdate();
+      if (s.players.find(p => p.id === ix.user.id)) return ix.followUp({ content: '<a:Warning:1497476844860215366> Already joined!', ephemeral: true });
+      if (s.players.length >= s.maxPlayers) return ix.followUp({ content: '<:wrong:1495666083594502174> The lobby is full.', ephemeral: true });
+      const player = { id: ix.user.id, username: ix.member?.displayName || ix.user.username };
+      if (s.bet > 0) {
+        const ok = await guildEconomy.removeFunds(s.guildId, player.id, ix.user.username, s.bet, `${s.gameLabel} entry #${s.id}`);
+        if (!ok) return ix.followUp({ content: `<:wrong:1495666083594502174> Need **${s.bet} sins**!`, ephemeral: true });
       }
-      session.players.push({ id: i.user.id, username: i.member?.displayName || i.user.username });
+      s.players.push(player);
+      await store.save(s);                                           // fee taken → record it right away
       await refresh();
-      await i.followUp({ content: `😈 You're in! Don't blink.`, ephemeral: true });
+      await ix.followUp({ content: `😈 You're in! Don't blink.`, ephemeral: true });
     } catch (err) { console.error('[squid lobby]', err); }
   });
-
-  const endReason = await new Promise(resolve => collector.on('end', (_, reason) => resolve(reason)));
-  if (!timed && endReason === 'time') session.expired = true;      // nobody pressed Start in 3 hours
-  await msg.edit({ components: [new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(joinId).setLabel('Closed').setStyle(ButtonStyle.Secondary).setDisabled(true))] }).catch(() => {});
-  if (session.cancelled || session.expired) return false;
-  return session.players.length >= minPlayers;
+  return msg;
 }
 
-/** Refund every entry fee (once) and clear crash-tracking for the channel. */
-async function refundEveryone(session, reason) {
-  if (session.refunded || session.paid) return;
-  session.refunded = true;
-  if (session.bet > 0) {
-    for (const p of session.players) {
-      await guildEconomy.addFunds(session.channel.guild.id, p.id, p.username, session.bet, reason).catch(err => console.error('[squid refund]', err.message));
+function closeLobby(s) {
+  try { s.lobbyCollector?.stop('closed'); } catch {}
+  return s.lobbyMessage?.edit({ components: lobbyButtons(s, true) }).catch(() => {});
+}
+
+/** Has this user already got a ledger row with this exact reason since the session began? (idempotent payouts) */
+async function hasTx(s, userId, reason) {
+  try {
+    const rows = await guildEconomy.getHistory(s.guildId, userId, 50);
+    const since = s.createdAt ? new Date(s.createdAt).getTime() - 60000 : 0;
+    return rows.some(r => r.reason === reason && new Date(r.created_at).getTime() >= since);
+  } catch { return false; }
+}
+
+/** Refund every entry fee + the host prize, exactly once each, surviving a crash half-way. */
+async function refundEveryone(s, reason) {
+  if (s.paid) return;
+  s.phase = 'cancelling';
+  s.settings.refunded = s.settings.refunded || [];
+  await store.save(s);
+  if (s.bet > 0) {
+    for (const p of s.players) {
+      if (s.settings.refunded.includes(p.id)) continue;
+      const why = `${reason} #${s.id}`;
+      if (!(await hasTx(s, p.id, why))) {
+        await guildEconomy.addFunds(s.guildId, p.id, p.username, s.bet, why).catch(err => console.error('[squid refund]', err.message));
+      }
+      s.settings.refunded.push(p.id);
+      await store.save(s);
     }
   }
-  if (session.prize > 0 && !session.prizeReturned) {
-    session.prizeReturned = true;
-    await guildEconomy.addFunds(session.channel.guild.id, session.hostId, session.hostName, session.prize, `${session.gameLabel} prize returned`).catch(() => {});
+  if (s.prize > 0 && s.prizeHeld) {
+    const why = `${s.gameLabel} prize returned #${s.id}`;
+    if (!(await hasTx(s, s.hostId, why))) await guildEconomy.addFunds(s.guildId, s.hostId, s.hostName, s.prize, why).catch(() => {});
+    s.prizeHeld = false;
   }
-  await economy.untrackGameChannel(session.channel.id).catch(() => {});
+  s.phase = 'cancelled';
+  await store.save(s);
 }
 
-module.exports = { runLobby, refundEveryone, hasHostRole };
+module.exports = { attachLobby, closeLobby, refundEveryone, hasHostRole, hasTx, lobbyEmbed };
