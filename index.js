@@ -42,6 +42,7 @@ const blackjackModule = require('./src/games/blackjack');
 const cuarentaModule  = require('./src/games/cuarenta');
 const guineaModule    = require('./src/games/guineapig');
 const redlightModule  = require('./src/games/redlight/redlight');
+const squidModule     = require('./src/games/squid/manager');
 const guildEconomy    = require('./src/utils/guildEconomy');
 const { economy }     = require('./src/utils/database');
 const loteriaModule   = require('./src/games/loteria');
@@ -184,6 +185,27 @@ const slashCommands = [
     .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: on'))
     .addIntegerOption(o => o.setName('signup').setDescription('Signup time in seconds (default 60)').setMinValue(15).setMaxValue(600))
     .addIntegerOption(o => o.setName('steps').setDescription('Finish line in steps (default: auto by player count)').setMinValue(10).setMaxValue(200)),
+
+  // Squid Games — tournament + standalone games
+  (() => {
+    const games = [
+      { name: 'Full Tournament', value: 'tournament' }, { name: 'Red Light, Green Light', value: 'redlight' },
+      { name: 'Mingle', value: 'mingle' }, { name: 'Glass Bridge', value: 'glassbridge' }, { name: 'The Final Regret (Roulette)', value: 'roulette' },
+    ];
+    return new SlashCommandBuilder().setName('squid').setDescription('Play & Regret Squid Games — Red Light, Mingle, Glass Bridge, The Final Regret')
+      .addSubcommand(sc => sc.setName('host').setDescription('Host a Squid Games tournament or a single game (Event Hosts)')
+        .addStringOption(o => o.setName('game').setDescription('What to host (default: Full Tournament)').addChoices(...games))
+        .addIntegerOption(o => o.setName('bet').setDescription('Entry fee in sins (default 50)').setMinValue(10))
+        .addBooleanOption(o => o.setName('fee').setDescription('Charge an entry fee? Default: on'))
+        .addIntegerOption(o => o.setName('prize').setDescription('Extra prize YOU fund for the winner, in sins').setMinValue(0))
+        .addIntegerOption(o => o.setName('signup').setDescription('Signup time in seconds (default 90)').setMinValue(30).setMaxValue(600))
+        .addIntegerOption(o => o.setName('min').setDescription('Minimum players (default 2)').setMinValue(2).setMaxValue(50))
+        .addIntegerOption(o => o.setName('max').setDescription('Maximum players (default 50)').setMinValue(2).setMaxValue(100))
+        .addBooleanOption(o => o.setName('auto').setDescription('Tournament: auto-start the next game? Default: yes (host can pause)')))
+      .addSubcommand(sc => sc.setName('status').setDescription('Show the Squid Games session in this channel'))
+      .addSubcommand(sc => sc.setName('rules').setDescription('How a Squid Game works').addStringOption(o => o.setName('game').setDescription('Which game').addChoices(...games)))
+      .addSubcommand(sc => sc.setName('cancel').setDescription('Cancel the Squid Games session here and refund everyone (host/admin)'));
+  })(),
 
   // Memory Game
   new SlashCommandBuilder().setName('memory').setDescription('Play the Memory Game!')
@@ -441,6 +463,7 @@ const slashCommands = [
       { name: 'Memory', value: 'memory' },
       { name: 'Find the Cuy', value: 'findthecuy' },
       { name: 'Red Light, Green Light', value: 'redlight' },
+      { name: 'Squid Games', value: 'squid' },
       { name: 'Tic-Tac-Bruh', value: 'tictactoe' },
       { name: 'Rigged Numbers', value: 'riggednumbers' },
       { name: 'FAFO', value: 'fafo' },
@@ -739,6 +762,10 @@ client.on('interactionCreate', async (interaction) => {
     if (commandName === 'findthecuy')
       return await guineaModule.handleSlash(interaction, commandName);
 
+    // Squid Games
+    if (commandName === 'squid')
+      return await squidModule.handleSlash(interaction);
+
     // Red Light, Green Light
     if (commandName === 'redlight')
       return await redlightModule.handleSlash(interaction);
@@ -962,6 +989,7 @@ const GAME_RULES = {
   blackjack: () => `<a:cards:1511530261551124561> **Blackjack — How to Play**\nStandard blackjack rules. Everyone antes the entry fee, cards are dealt, hit or stand to get as close to 21 without going over. Beat the dealer's hand to win your bet back plus more. Solo mode plays just you vs the dealer; Multiplayer lets several people join the same table.`,
   memory: () => `<a:brain:1511530555588612126> **Memory Game — How to Play**\nA grid of face-down emoji cards. Flip two at a time trying to find a matching pair. Solo mode races the clock; Multiplayer takes turns — whoever finds the most pairs by the end wins the pot.`,
   findthecuy: () => `<a:GuineaPig_tbpbots:1544900084410490910> **Find the Cuy — How to Play**\nA cuy hides in one of 9 cells each round. Click the cell you think it's in — whoever finds it first scores. A wrong click locks you out for that round. Rounds keep going until someone reaches the target number of cuys and wins the pot.`,
+  squid: () => `😈 **Play & Regret — Squid Games**\nHosts run \`/squid host\`: a **Full Tournament** (🚦 Red Light, Green Light → 🎠 Mingle → 🌉 Glass Bridge → 🎰 The Final Regret, one champion) or any single game.\nRegister with the Join button once — survivors advance automatically. Use \`/squid rules\` for each game's rules.`,
   redlight: () => `😈 **Red Light, Green Light — How to Play**\n🟢 GREEN: every *original* message you type is 1 step (max 1 per second). Repeats, copy-paste and tiny edits don't count.\n🔴 RED: send *anything* and you're eliminated.\nFirst to the finish line wins the pot; if rounds run out, most steps wins.`,
   tictactoe: () => `⚔️ **Tic-Tac-Bruh — How to Play**\nClassic tic-tac-toe, wagered. Challenge a specific player or open it up for anyone to accept. Get three in a row to win the bet — or play against the bot if nobody's around.`,
   riggednumbers: () => `<a:guess:1542348901217075200> **Rigged Numbers — How to Play**\nHost sets a number range and privately picks a secret number nobody else sees. Once the host clicks Start, anyone can guess by typing a number in chat. Wrong guesses get a higher/lower hint reaction — first correct guess wins.`,
@@ -1044,6 +1072,7 @@ function buildHelpEmbeds() {
       ].join('\n') },
       { name: '🐹 Find the Cuy', value: '`/findthecuy` — Click the hidden cuy to win!' },
       { name: '😈 Red Light, Green Light', value: '`/redlight` — Type to run, freeze on red! (Event Hosts)' },
+      { name: '🦑 Squid Games', value: '`/squid host` — Tournament or single game (Event Hosts) • `/squid rules`' },
       { name: '<a:brain:1511530555588612126> Memory', value: '`/memory` — Match emoji pairs (solo or multiplayer)' },
       { name: '🎲 Rigged Numbers', value: '`/riggednumbers min max` — Secretly pick a number, first correct guess wins' },
       { name: '🧨 Fuck Around & Find Out', value: '`/fafo` — *(Admin)* Push-your-luck wagering game' },
@@ -1206,6 +1235,15 @@ async function tryCancelAll(channel, userId, username, replyFn, guildId = null) 
       }
       cancelMsg = bjReply || '<:checkmark:1495666088417956002> Blackjack cancelled and refunded.';
       cancelled = true;
+    }
+  } catch(e) {}
+
+  // Try Squid Games
+  try {
+    if (!cancelled && squidModule.sessions.has(channelId)) {
+      const member = channel.guild ? await channel.guild.members.fetch(userId).catch(() => null) : null;
+      const r = await squidModule.cancel(channel, userId, member);
+      return replyFn(r.msg);
     }
   } catch(e) {}
 

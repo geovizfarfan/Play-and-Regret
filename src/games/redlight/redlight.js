@@ -180,10 +180,17 @@ function onMessage(message) {
     p.steps++;
     p.lastStepAt = Date.now();
     g.dirty = true;
-    if (p.steps >= g.finish && !g.over) {                       // atomic: first to cross wins
-      g.over = true;
-      g.winnerId = p.id;
-      g.endReason = 'finish';
+    if (p.steps >= g.finish && !g.over) {                       // atomic: decided synchronously, in message order
+      if (g.mode === 'tournament') {                            // qualify: immune from now on, race continues for everyone else
+        p.status = 'finished';
+        g.qualified.push(p.id);
+        g.roundQual.push(p.username);
+        if (activePlayers(g).length === 0) { g.over = true; g.endReason = 'allresolved'; }
+      } else {                                                  // standalone: first to cross wins immediately
+        g.over = true;
+        g.winnerId = p.id;
+        g.endReason = 'finish';
+      }
     }
   } else if (res.warn || res.locked) {
     message.react(res.locked ? '⏳' : '⚠️').catch(() => {});     // discreet notice, no channel spam
@@ -210,7 +217,9 @@ async function runGame(channel, g) {
       `🔴 **RED** — type **anything** and you're out.\n\n` +
       `Repeats, copy-paste and tiny edits (\`hello\`, \`HELLO!\`, \`hello2\`) earn **nothing**. 1 step per second max.\n` +
       `Right after a light changes there's a short grace window — nothing counts until the board says so.\n\n` +
-      `*First to ${finish} wins. Max ${rounds} rounds — then most steps wins.*`)
+      (g.mode === 'tournament'
+        ? `*Reach **${finish} steps** to qualify for the next game. Max ${rounds} rounds — then the top half of whoever is still racing qualifies.*`
+        : `*First to ${finish} wins. Max ${rounds} rounds — then most steps wins.*`))
     .setFooter({ text: 'Starting in 8 seconds…' });
   g.message = await channel.send({ embeds: [intro] });
   await sleep(CFG.introMs);
@@ -226,6 +235,8 @@ async function runGame(channel, g) {
     if (g.over) break;
     g.phase = 'GREEN_ACTIVE';
     await waitFor(g, rand(CFG.greenMin, CFG.greenMax), () => (g.dirty ? refreshBoard(g) : null));
+    if (g.over && g.mode !== 'tournament') break;
+    if (g.roundQual.length) { await channel.send(`🏁 **${g.roundQual.splice(0).join(', ')}** reached the finish line and qualified!`).catch(() => {}); }
     if (g.over) break;
     await refreshBoard(g, true);
 
@@ -246,13 +257,18 @@ async function runGame(channel, g) {
     }
 
     const alive = activePlayers(g);
-    if (alive.length === 1) { g.over = true; g.winnerId = alive[0].id; g.endReason = 'last'; }
+    if (g.mode === 'tournament') {
+      if (alive.length === 0) { g.over = true; g.endReason = g.qualified.length ? 'allresolved' : 'wipe'; }
+      else if (alive.length === 1 && g.qualified.length === 0) { g.over = true; g.winnerId = alive[0].id; g.endReason = 'last'; }
+    } else if (alive.length === 1) { g.over = true; g.winnerId = alive[0].id; g.endReason = 'last'; }
     else if (alive.length === 0) { g.over = true; g.endReason = 'wipe'; }
   }
 
   g.phase = 'GAME_FINISHED';
   if (g.swapTimer) clearTimeout(g.swapTimer);
   if (g.cancelled) return;
+
+  if (g.mode === 'tournament') return tournamentResult(channel, g);
 
   // ── Resolve the winner (always exactly one) ──
   let how;
@@ -270,7 +286,40 @@ async function runGame(channel, g) {
     g.winnerId = pool[0].id;
     how = `had the most steps (**${pool[0].steps}**) after ${g.maxRounds} rounds — *tiebreak: most steps, then who got there first*`;
   }
+  if (g.engine) {                                              // Squid Games manager pays out, not us
+    const win = g.players.get(g.winnerId);
+    await channel.send(`👑 **${win.username}** ${how}!`).catch(() => {});
+    return { survivors: [g.winnerId], eliminated: [...g.players.keys()].filter(id => id !== g.winnerId) };
+  }
   await finishGame(channel, g, how);
+}
+
+/** Tournament: qualifiers advance. If the rounds ran out, the top half of whoever is still racing qualifies. */
+async function tournamentResult(channel, g) {
+  const all = [...g.players.values()];
+  const qualified = new Set(g.qualified);
+  const sorter = (a, b) => b.steps - a.steps || a.lastStepAt - b.lastStepAt;
+  let note = '';
+  if (!qualified.size && g.endReason === 'wipe') {
+    // everyone froze wrong in the same red → the best quarter of that last wave (min 1) qualifies
+    const pool = g.lastWave.map(id => g.players.get(id)).sort(sorter);
+    pool.slice(0, Math.max(1, Math.ceil(pool.length / 4))).forEach(p => qualified.add(p.id));
+    note = '*Everyone got caught on the same red — tiebreak: the best quarter of the last wave by steps qualifies.*';
+  } else if (g.endReason === 'last') {
+    qualified.add(g.winnerId);
+    note = '*Last sinner standing qualifies.*';
+  } else if (g.endReason !== 'allresolved') {
+    const pool = activePlayers(g).sort(sorter);
+    pool.slice(0, Math.max(1, Math.ceil(pool.length / 2))).forEach(p => qualified.add(p.id));
+    if (pool.length) note = `*Out of rounds — tiebreak: the top half of those still racing (by steps) qualifies.*`;
+  }
+  const survivors = all.filter(p => qualified.has(p.id));
+  const out = all.filter(p => !qualified.has(p.id));
+  await channel.send({ embeds: [new EmbedBuilder().setColor('#39FF14').setTitle('🏁 RED LIGHT, GREEN LIGHT — complete')
+    .setDescription(`✅ **${survivors.length}** qualify: ${survivors.map(p => p.username).slice(0, 20).join(', ')}${survivors.length > 20 ? ' …' : ''}\n💀 **${out.length}** eliminated\n${note}`)
+    .setFooter({ text: 'Play & Regret by TBP — Squid Games' })] }).catch(() => {});
+  await refreshBoard(g, true).catch(() => {});
+  return { survivors: survivors.map(p => p.id), eliminated: out.map(p => p.id) };
 }
 
 async function finishGame(channel, g, how) {
@@ -316,16 +365,32 @@ async function refundAll(channel, g, reason) {
   await economy.untrackGameChannel(channel.id).catch(() => {});
 }
 
+/** Engine entry for the Squid Games manager. players = [{id, username}] → { survivors, eliminated } */
+async function playRedLight(channel, players, ctx) {
+  const g = {
+    players: new Map(players.map(p => [p.id, { id: p.id, username: p.username, steps: 0, status: 'active', lastStepAt: 0 }])),
+    bet: 0, phase: 'GREEN_TRANSITION', over: false, paid: true, engine: true, mode: ctx.mode,
+    overrides: null, eliminatedOrder: [], elimQueue: [], lastWave: [], roundElims: [], light: 'green',
+    qualified: [], roundQual: [], cancelled: false,
+  };
+  if (ctx.fast) { g.fast = true; }
+  activeGames.set(channel.id, g);
+  ctx.state.onCancel = () => { g.cancelled = true; g.over = true; };
+  try { return await runGame(channel, g); }
+  finally { activeGames.delete(channel.id); if (g.swapTimer) clearTimeout(g.swapTimer); if (g.elimTimer) clearTimeout(g.elimTimer); }
+}
+
 // ─── Launcher / signup ────────────────────────────────────────────────────────
 async function launchRedLight(channel, { bet, signupSec, steps, hostId, triggeredBy }) {
   const channelId = channel.id;
-  if (activeGames.has(channelId)) return channel.send('<:wrong:1495666083594502174> There\'s already a game running here!');
+  if (activeGames.has(channelId) || require('../squid/registry').busy.has(channelId)) return channel.send('<:wrong:1495666083594502174> There\'s already a game running here!');
 
   const joinId = `rl_join_${channelId}`, startId = `rl_start_${channelId}`, rulesId = `rl_rules_${channelId}`;
   const g = {
     players: new Map(), bet, phase: 'SIGNUP', hostId, triggeredBy, over: false, paid: false,
     overrides: steps ? { finish: steps } : null,
     eliminatedOrder: [], elimQueue: [], lastWave: [], roundElims: [], light: 'green',
+    mode: 'standalone', qualified: [], roundQual: [],
   };
   activeGames.set(channelId, g);
 
@@ -422,6 +487,7 @@ module.exports = {
   onMessage,
   cancel,
   difficultyFor,
+  playRedLight,
   _test: { runGame, CFG },   // used by the simulation tests only
 
   async handleSlash(interaction) {
