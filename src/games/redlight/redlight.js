@@ -164,6 +164,17 @@ async function flushMilestones(g) {
   } finally { g.flushing = false; }
 }
 
+// Clean the channel after each round: delete the players' typed messages (the bot's callouts stay)
+async function purge(g) {
+  const ids = (g.trash || []).splice(0);
+  if (!ids.length || !g.channel?.bulkDelete) return;
+  try {
+    for (let i = 0; i < ids.length; i += 100) await g.channel.bulkDelete(ids.slice(i, i + 100), true);
+  } catch (err) {
+    if (!g.purgeWarned) { g.purgeWarned = true; console.error('[redlight purge] needs Manage Messages:', err.message); }
+  }
+}
+
 async function refreshBoard(g, force = false) {
   if (!force && Date.now() - (g.lastEdit || 0) < CFG.progressEditMs) return;
   g.dirty = false;
@@ -184,6 +195,7 @@ function onMessage(message) {
   if (!g || g.phase === 'SIGNUP' || g.over) return;
   if (message.author.bot || message.webhookId) return;
   const p = g.players.get(message.author.id);
+  if (p && g.trash) g.trash.push(message.id);                    // every player message gets cleaned up after the round
   if (!p || p.status !== 'active') return;
 
   if (g.phase === 'RED_ACTIVE') {
@@ -250,7 +262,7 @@ async function runGame(channel, g) {
         ? `*Reach **${finish} steps** to qualify for the next game. Max ${rounds} rounds — then the top half of whoever is still racing qualifies.*`
         : `*First to ${finish} wins. Max ${rounds} rounds — then most steps wins.*`))
     .setFooter({ text: 'Starting in 8 seconds…' });
-  g.channel = channel;
+  g.channel = channel; g.trash = [];
   g.message = await channel.send({ embeds: [intro] });
   await sleep(CFG.introMs);
 
@@ -285,6 +297,8 @@ async function runGame(channel, g) {
     if (out.length) {
       await channel.send(`💀 **${out.join(', ')}** moved during RED LIGHT. **${activePlayers(g).length}** left.`).catch(() => {});
     }
+
+    await purge(g);
 
     const alive = activePlayers(g);
     if (g.mode === 'tournament') {
@@ -321,6 +335,7 @@ async function runGame(channel, g) {
     await channel.send(`👑 **${win.username}** ${how}!`).catch(() => {});
     return { survivors: [g.winnerId], eliminated: [...g.players.keys()].filter(id => id !== g.winnerId) };
   }
+  await purge(g);
   await finishGame(channel, g, how);
 }
 
