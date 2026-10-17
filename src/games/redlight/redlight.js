@@ -93,8 +93,6 @@ function lightEmbed(g) {
     .addFields(
       { name: 'Round', value: `${g.round}/${g.maxRounds}`, inline: true },
       { name: 'Standing', value: `${activePlayers(g).length}/${g.players.size}`, inline: true },
-      { name: 'Finish line', value: `${g.finish} steps`, inline: true },
-      { name: 'Leaderboard', value: board(g) },
     )
     .setFooter({ text: 'Play & Regret by TBP — Squid Games' });
   if (g.roundElims.length) e.addFields({ name: '💀 Chose regret', value: g.roundElims.slice(-10).join(', ') + (g.roundElims.length > 10 ? ` +${g.roundElims.length - 10} more` : '') });
@@ -153,6 +151,19 @@ async function showLight(g, light) {
   }
 }
 
+// Milestone callouts instead of a leaderboard: "halfway there" and "reached the finish line"
+async function flushMilestones(g) {
+  if (!g.channel || g.flushing) return;
+  const half = (g.halfQueue || []).splice(0);
+  const done = g.mode === 'tournament' ? g.roundQual.splice(0) : [];
+  if (!half.length && !done.length) return;
+  g.flushing = true;
+  try {
+    if (half.length) await g.channel.send(`🏃 **${half.join(', ')}** ${half.length === 1 ? 'is' : 'are'} halfway to the finish line!`).catch(() => {});
+    if (done.length) await g.channel.send(`🏁 **${done.join(', ')}** reached the finish line${g.mode === 'tournament' ? ' and qualified' : ''}!`).catch(() => {});
+  } finally { g.flushing = false; }
+}
+
 async function refreshBoard(g, force = false) {
   if (!force && Date.now() - (g.lastEdit || 0) < CFG.progressEditMs) return;
   g.dirty = false;
@@ -197,6 +208,7 @@ function onMessage(message) {
     p.steps++;
     p.lastStepAt = Date.now();
     g.dirty = true;
+    if (p.steps === Math.ceil(g.finish / 2) && p.steps < g.finish) (g.halfQueue = g.halfQueue || []).push(p.username);
     if (p.steps >= g.finish && !g.over) {                       // atomic: decided synchronously, in message order
       if (g.mode === 'tournament') {                            // qualify: immune from now on, race continues for everyone else
         p.status = 'finished';
@@ -252,9 +264,9 @@ async function runGame(channel, g) {
     await waitFor(g, CFG.graceMs);
     if (g.over) break;
     g.phase = 'GREEN_ACTIVE';
-    await waitFor(g, rand(CFG.greenMin, CFG.greenMax), () => (g.dirty ? refreshBoard(g) : null));
+    await waitFor(g, rand(CFG.greenMin, CFG.greenMax), async () => { await flushMilestones(g); if (g.dirty) await refreshBoard(g); });
     if (g.over && g.mode !== 'tournament') break;
-    if (g.roundQual.length) { await channel.send(`🏁 **${g.roundQual.splice(0).join(', ')}** reached the finish line and qualified!`).catch(() => {}); }
+    await flushMilestones(g);
     if (g.over) break;
     await refreshBoard(g, true);
 

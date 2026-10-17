@@ -96,7 +96,7 @@ async function announceWinner(session, winner, paid) {
     .setTitle(session.mode === 'tournament' ? '👑 SQUID REGRET — ULTIMATE CHAMPION!' : `👑 ${modeLabel(session.mode)} — WINNER!`)
     .setDescription(
       `**${winner.username}** ${session.mode === 'tournament' ? 'survived every game and is the one and only champion' : 'wins'}!\n\n` +
-      session.history.map(h => `${ENGINES[h.game].emoji} ${ENGINES[h.game].label}: ${h.from} → **${h.to}**`).join('\n') +
+      session.history.map(h => `${ENGINES[h.game].emoji} ${ENGINES[h.game].label}: ${h.from} players → **${h.to}** survived`).join('\n') +
       (paid?.prize ? `\n\n<a:moneybag:1479268556687540345> **${paid.prize.toLocaleString()} sins** to the winner` : '') +
       (paid?.tax ? `\n<a:jackpot:1479203793806557385> **${paid.tax.toLocaleString()} sins** → jackpot` : ''))
     .setFooter({ text: BRAND });
@@ -125,10 +125,10 @@ async function runSession(session, resume = false) {
   if (!session.alive) { session.alive = alive.map(p => p.id); }
   await store.save(session);
   if (resume) {
-    await ping(channel, alive.map(p => p.id), `♻️ **The bot restarted — your game was saved!** Resuming ${sequence[session.stageIndex] ? ENGINES[sequence[session.stageIndex]].label : 'now'} with **${alive.length}** sinners in 15 seconds.`);
+    await ping(channel, alive.map(p => p.id), `<a:squidgames:1560865237845147740> **The bot restarted — your game was saved!** Resuming ${sequence[session.stageIndex] ? ENGINES[sequence[session.stageIndex]].label : 'now'} with **${alive.length}** sinners in 15 seconds.`);
     await sleep(session.fast ? 30 : 15000);
   } else {
-    await ping(channel, alive.map(p => p.id), `🚨 **${modeLabel(session.mode)} is starting in 10 seconds!** Get to this channel, sinners.`);
+    await ping(channel, alive.map(p => p.id), `<a:squidgames:1560865237845147740> **${modeLabel(session.mode)} is starting in 10 seconds!** Get to this channel, sinners.`);
     await sleep(session.fast ? 30 : 10000);
   }
 
