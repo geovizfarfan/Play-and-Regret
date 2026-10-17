@@ -164,7 +164,7 @@ async function flushMilestones(g) {
   } finally { g.flushing = false; }
 }
 
-// Clean the channel after each round: delete the players' typed messages (the bot's callouts stay)
+// Clean the channel after each round: delete everyone's typed messages (players and spectators; the bot's callouts stay)
 async function purge(g) {
   const ids = (g.trash || []).splice(0);
   if (!ids.length || !g.channel?.bulkDelete) return;
@@ -195,7 +195,7 @@ function onMessage(message) {
   if (!g || g.phase === 'SIGNUP' || g.over) return;
   if (message.author.bot || message.webhookId) return;
   const p = g.players.get(message.author.id);
-  if (p && g.trash) g.trash.push(message.id);                    // every player message gets cleaned up after the round
+  if (g.trash) g.trash.push(message.id);                         // everyone's messages get cleaned up after the round (players and spectators)
   if (!p || p.status !== 'active') return;
 
   if (g.phase === 'RED_ACTIVE') {
