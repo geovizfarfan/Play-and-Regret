@@ -342,6 +342,8 @@ const slashCommands = [
       .addStringOption(o => o.setName('sticker').setDescription('Which sticker').setRequired(true).setAutocomplete(true))
       .addIntegerOption(o => o.setName('quantity').setDescription('How many (default 1)').setMinValue(1))
       .addIntegerOption(dzSeasonOption))
+    .addSubcommand(sc => sc.setName('missing').setDescription('Which stickers members are missing the most')
+      .addIntegerOption(dzSeasonOption))
     .addSubcommand(sc => sc.setName('spawn').setDescription('Force a manual spawn')
       .addStringOption(o => o.setName('sticker').setDescription('Specific sticker (leave blank for random)').setAutocomplete(true))
       .addChannelOption(o => o.setName('channel').setDescription('Where to spawn it (default: here)')))

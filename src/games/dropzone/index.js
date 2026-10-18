@@ -592,6 +592,26 @@ async function handleSlash(interaction, commandName) {
       await A.revokeGiftPermission(interaction.guild.id, target.id);
       return interaction.reply(`<:checkmark:1495666088417956002> <@${target.id}>'s gift permission has been revoked.`);
     }
+    if (sub === 'missing') {
+      await interaction.deferReply();
+      const cfg = await A.getConfig(interaction.guild.id);
+      const season = interaction.options.getInteger('season') || cfg.current_season;
+      const monsters = getMonstersBySeason(season).filter(isEnabled);
+      const rows = await db.all(`SELECT monster_id, COUNT(DISTINCT user_id) AS owners FROM dropzone_collections WHERE season = ? AND quantity > 0 GROUP BY monster_id`, [season]);
+      const ownerMap = new Map(rows.map(r => [r.monster_id, Number(r.owners)]));
+      const total = await db.get(`SELECT COUNT(DISTINCT user_id) AS n FROM dropzone_collections WHERE season = ? AND quantity > 0`, [season]);
+      const collectors = Number(total?.n || 0);
+      if (!monsters.length || !collectors) return interaction.editReply('No collection data for that season yet.');
+      const ranked = monsters.map(m => ({ m, owners: ownerMap.get(m.id) || 0 }))
+        .map(x => ({ ...x, missing: collectors - x.owners }))
+        .sort((a, b) => b.missing - a.missing || a.m.number - b.m.number).slice(0, 20);
+      const lines = ranked.map((x, i) => `**${i + 1}.** ${RARITY_META[x.m.rarity].emoji} #${String(x.m.number).padStart(3, '0')} ${x.m.name} — missing for **${x.missing}** of ${collectors} (${x.owners} own it)`);
+      const embed = new EmbedBuilder().setColor(LAVENDER)
+        .setTitle(`<a:guess:1542348901217075200> Most-missing stickers — ${getSeasonName(season)}`)
+        .setDescription(lines.join('\n').slice(0, 4000))
+        .setFooter({ text: `Counts members who have caught at least one sticker this season (${collectors})` });
+      return interaction.editReply({ embeds: [embed] });
+    }
     if (sub === 'stats') {
       const cfg = await A.getConfig(interaction.guild.id);
       const stats = await A.getStats(interaction.guild.id, cfg.current_season);
