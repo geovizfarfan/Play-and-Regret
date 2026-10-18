@@ -1,8 +1,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Drop It Like It's Hot — collection queries.
-// Shared logic for /stickers book, /stickers missing, /stickers leaderboard,
+// Shared logic for /drops book, /drops missing, /drops leaderboard,
 // trading (duplicate-only, with counts), and the duplicate → sins exchange
-// (either all duplicates at once, or one specific sticker).
+// (either all duplicates at once, or one specific drop).
 // ─────────────────────────────────────────────────────────────────────────────
 const { db } = require('../../utils/database');
 const { RARITY_ORDER, RARITY_META, CONFIG } = require('./config');
@@ -14,7 +14,7 @@ async function getUserCollection(userId, season) {
   return map;
 }
 
-/** Full breakdown for /stickers book — per-rarity counts, total unique, completion %. */
+/** Full breakdown for /drops book — per-rarity counts, total unique, completion %. */
 async function buildCollectionSummary(userId, season) {
   const collection = await getUserCollection(userId, season);
   const allMonsters = getMonstersBySeason(season).filter(isEnabled);
@@ -79,7 +79,7 @@ async function getLeaderboard(season, mode = 'unique', limit = null) {
   return [];
 }
 
-/** List of the user's duplicates (quantity > 1) with exact counts — for the trade offer picker and /stickers duplicates. */
+/** List of the user's duplicates (quantity > 1) with exact counts — for the trade offer picker and /drops duplicates. */
 async function getDuplicates(userId, season) {
   const collection = await getUserCollection(userId, season);
   const dupes = [];
@@ -92,13 +92,13 @@ async function getDuplicates(userId, season) {
   return dupes.sort((a, b) => a.monster.number - b.monster.number);
 }
 
-/** How many spare (duplicate) copies of one specific sticker a user has beyond their first. */
+/** How many spare (duplicate) copies of one specific drop a user has beyond their first. */
 async function getSpareCount(userId, monsterId, season) {
   const row = await db.get('SELECT quantity FROM dropzone_collections WHERE user_id = ? AND monster_id = ? AND season = ?', [userId, monsterId, season]);
   return row ? Math.max(0, row.quantity - 1) : 0;
 }
 
-/** Exchange every duplicate (quantity > 1) of a user's stickers for sins, for the given season. */
+/** Exchange every duplicate (quantity > 1) of a user's drops for sins, for the given season. */
 async function exchangeDuplicates(userId, season) {
   const collection = await getUserCollection(userId, season);
   let sinsEarned = 0;
@@ -124,7 +124,7 @@ async function exchangeDuplicates(userId, season) {
   return { sinsEarned, itemsExchanged, breakdown };
 }
 
-/** Exchange duplicates of ONE specific sticker for sins — up to `amount` spares (defaults to all spares of that sticker). */
+/** Exchange duplicates of ONE specific drop for sins — up to `amount` spares (defaults to all spares of that drop). */
 async function exchangeSpecificSticker(userId, monsterId, season, amount = null) {
   const monster = getMonster(monsterId);
   if (!monster) return { error: 'unknown_sticker' };

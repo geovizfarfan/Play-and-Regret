@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Drop It Like It's Hot — sticker book grid image.
-// Renders all of a season's stickers as one image: full color + checkmark for
+// Drop It Like It's Hot — drop book grid image.
+// Renders all of a season's drops as one image: full color + checkmark for
 // owned ones, greyed-out silhouette for missing ones. Same sharp-composite
 // pattern already used for Lotería's board rendering.
 // ─────────────────────────────────────────────────────────────────────────────

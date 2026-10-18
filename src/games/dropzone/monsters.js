@@ -1,8 +1,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Drop It Like It's Hot — monster/sticker data.
-// One centralized table. Add a new sticker by adding an entry here — nothing
-// else needs to change. `enabled: false` keeps a sticker hidden from natural
-// drops and from /stickers missing until you flip it on.
+// Drop It Like It's Hot — monster/drop data.
+// One centralized table. Add a new drop by adding an entry here — nothing
+// else needs to change. `enabled: false` keeps a drop hidden from natural
+// drops and from /drops missing until you flip it on.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SEASON_1 = [

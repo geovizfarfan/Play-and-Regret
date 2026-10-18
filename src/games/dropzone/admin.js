@@ -68,8 +68,8 @@ async function getGiftPermittedUsers(guildId) {
   return db.all('SELECT user_id FROM dropzone_gift_permissions WHERE guild_id = ?', [guildId]);
 }
 
-/** Gift a specific sticker (any season, any enabled state) to a user. Returns full monster data for building a result embed. */
-/** Returns how many of a sticker a user currently owns (0 if none). */
+/** Gift a specific drop (any season, any enabled state) to a user. Returns full monster data for building a result embed. */
+/** Returns how many of a drop a user currently owns (0 if none). */
 async function getOwnedQuantity(userId, monsterId) {
   const monster = getMonster(monsterId);
   if (!monster) return 0;
@@ -90,7 +90,7 @@ async function giftSticker(targetUserId, monsterId, quantity = 1) {
   return { success: true, monster, newQuantity: result.quantity };
 }
 
-/** Remove copies of a sticker from a user — never lets quantity go negative. */
+/** Remove copies of a drop from a user — never lets quantity go negative. */
 async function removeSticker(targetUserId, monsterId, quantity = 1) {
   const monster = getMonster(monsterId);
   if (!monster) return { error: 'unknown_sticker' };
