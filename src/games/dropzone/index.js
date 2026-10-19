@@ -10,7 +10,7 @@ const { db, economy } = require('../../utils/database');
 const guildEconomy = require('../../utils/guildEconomy');
 const { CONFIG, RARITY_ORDER, DISPLAY_ORDER, RARITY_META, SEASON_NAMES, getSeasonName, getActiveSeason } = require('./config');
 const { renderBookImage } = require('./bookImage');
-const { getMonster, getMonstersBySeason, isEnabled, loadOverrides } = require('./monsters');
+const { getMonster, getMonstersBySeason, getCollectorMonsters, isEnabled, loadOverrides } = require('./monsters');
 const { startSeasonScheduler } = require('./season');
 const { recordActivity, markSpawned } = require('./activity');
 const { rollMonster } = require('./rarity');
@@ -77,14 +77,44 @@ async function buildBookSummaryPayload(runnerId, targetUser, season, seasonName)
   const attachment = imgBuffer ? new AttachmentBuilder(imgBuffer, { name: 'book.png' }) : null;
   if (attachment) embed.setImage('attachment://book.png');
 
-  if (!summary.uniqueOwned) {
-    return { embeds: [embed], components: [], files: attachment ? [attachment] : [] };
+  const buttons = [];
+  if (summary.uniqueOwned) {
+    buttons.push(new ButtonBuilder().setCustomId(`dz_book_page:${runnerId}:${targetUser.id}:${season}:0`).setLabel('Inspect a Drop').setEmoji('📖').setStyle(ButtonStyle.Primary));
   }
+  if (getCollectorMonsters().length) {
+    buttons.push(new ButtonBuilder().setCustomId(`dz_collector:${runnerId}:${targetUser.id}:${season}`).setLabel('Collector').setEmoji('👑').setStyle(ButtonStyle.Success));
+  }
+  return { embeds: [embed], components: buttons.length ? [new ActionRowBuilder().addComponents(buttons)] : [], files: attachment ? [attachment] : [] };
+}
 
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`dz_book_page:${runnerId}:${targetUser.id}:${season}:0`).setLabel('Inspect a Drop').setEmoji('📖').setStyle(ButtonStyle.Primary)
-  );
-  return { embeds: [embed], components: [row], files: attachment ? [attachment] : [] };
+// Collector book (season 0): every collector card, owned in colour, unowned greyed out.
+async function buildCollectorPayload(runnerId, targetUser, fromSeason) {
+  const all = getCollectorMonsters().filter(isEnabled);
+  const collection = await getUserCollection(targetUser.id, 0);
+  const ownedIds = new Set(collection.keys());
+  const owned = all.filter(m => ownedIds.has(m.id));
+  const embed = new EmbedBuilder()
+    .setColor('#FFD700')
+    .setTitle(`👑 ${targetUser.username}'s Collector Cards`)
+    .setDescription('Special cards that never drop — only an admin can give them out.')
+    .addFields({ name: 'Collected', value: `${owned.length} / ${all.length}`, inline: true });
+  const imgBuffer = await renderBookImage(all, ownedIds, `${targetUser.username}'s Collector Cards`, 6);
+  const attachment = imgBuffer ? new AttachmentBuilder(imgBuffer, { name: 'collector.png' }) : null;
+  if (attachment) embed.setImage('attachment://collector.png');
+  const buttons = [new ButtonBuilder().setCustomId(`dz_book_back:${runnerId}:${targetUser.id}:${fromSeason}`).setLabel('◀ Back').setEmoji('📕').setStyle(ButtonStyle.Danger)];
+  if (owned.length) buttons.push(new ButtonBuilder().setCustomId(`dz_book_page:${runnerId}:${targetUser.id}:0:0`).setLabel('Inspect a Card').setEmoji('📖').setStyle(ButtonStyle.Primary));
+  return { embeds: [embed], components: [new ActionRowBuilder().addComponents(buttons)], files: attachment ? [attachment] : [] };
+}
+
+async function handleCollectorButton(interaction) {
+  const [, runnerId, targetUserId, seasonStr] = interaction.customId.split(':');
+  if (interaction.user.id !== runnerId) {
+    return interaction.reply({ content: '<:wrong:1495666083594502174> Only the person who ran this command can use these buttons.', ephemeral: true });
+  }
+  await interaction.deferUpdate();
+  const targetUser = await interaction.client.users.fetch(targetUserId).catch(() => null);
+  if (!targetUser) return;
+  return interaction.editReply(await buildCollectorPayload(runnerId, targetUser, parseInt(seasonStr)));
 }
 
 // Season dropdown on /drops book and /drops missing. Defaults to the guild's current season;
@@ -122,7 +152,7 @@ async function buildBookPage(runnerId, targetUserId, season, index) {
   const embed = new EmbedBuilder()
     .setColor(meta.color)
     .setTitle(`#${String(monster.number).padStart(3, '0')} — ${monster.name.toUpperCase()}`)
-    .setDescription(`${meta.emoji} ${meta.label}\n\nOwned: **×${qty}**\n\n*"${monster.flavorText}"*`)
+    .setDescription(`${meta.emoji} ${meta.label}${monster.title ? `\n**${monster.title}**` : ''}\n\nOwned: **×${qty}**\n\n*"${monster.flavorText}"*`)
     .setFooter({ text: `Drop ${safeIndex + 1} of ${owned.length}` });
 
   const attachment = buildMonsterAttachment(monster);
@@ -157,6 +187,10 @@ async function handleBookBackButton(interaction) {
   const seasonName = getSeasonName(season);
   const targetUser = await interaction.client.users.fetch(targetUserId).catch(() => null);
   if (!targetUser) return;
+  if (season === 0) {                       // came from a collector card → back to the collector gallery
+    const cfg = await A.getConfig(interaction.guild.id);
+    return interaction.editReply(await buildCollectorPayload(runnerId, targetUser, cfg.current_season));
+  }
   const payload = await buildBookSummaryPayload(runnerId, targetUser, season, seasonName);
   return interaction.editReply(payload);
 }
@@ -429,8 +463,10 @@ async function handleAdminAutocomplete(interaction) {
     : picked != null ? [picked]
     : Object.keys(SEASON_NAMES).map(Number).sort((a, b) => (a === adminCfg.current_season ? -1 : b === adminCfg.current_season ? 1 : b - a));
   const badge = seasonAware && picked == null && seasons.length > 1;
-  const matches = seasons.flatMap(n => getMonstersBySeason(n)).filter(m => m.name.toLowerCase().includes(focused)).slice(0, 25); // admin sees disabled ones too
-  return interaction.respond(matches.map(m => ({ name: `${badge ? `S${m.season} ` : ''}#${String(m.number).padStart(3, '0')} ${m.name}${isEnabled(m) ? '' : ' (disabled)'}`, value: m.id })));
+  const pool = seasons.flatMap(n => getMonstersBySeason(n));
+  if (seasonAware && picked == null) pool.push(...getCollectorMonsters());       // collector cards are giftable by admins
+  const matches = pool.filter(m => m.name.toLowerCase().includes(focused)).slice(0, 25); // admin sees disabled ones too
+  return interaction.respond(matches.map(m => ({ name: `${m.collector ? '👑 ' : badge ? `S${m.season} ` : ''}#${String(m.number).padStart(3, '0')} ${m.name}${isEnabled(m) ? '' : ' (disabled)'}`, value: m.id })));
 }
 
 // ── Activity listener (called from index.js's messageCreate) ────────────
@@ -479,6 +515,7 @@ async function handleButton(interaction) {
   if (interaction.customId.startsWith('dz_trade_accept:') || interaction.customId.startsWith('dz_trade_decline:')) return resolveTradeButton(interaction);
   if (interaction.customId.startsWith('dz_book_page:')) return handleBookPageButton(interaction);
   if (interaction.customId.startsWith('dz_book_back:')) return handleBookBackButton(interaction);
+  if (interaction.customId.startsWith('dz_collector:')) return handleCollectorButton(interaction);
   if (interaction.customId.startsWith('dz_lb_page:')) return handleLeaderboardPageButton(interaction);
 }
 

@@ -13,7 +13,7 @@ const { isEnabled } = require('./monsters');
 const CELL_W = 80;
 const CELL_H = 120; // matches the 2:3 card art — cover-fits with zero crop
 const GAP = 8;
-const COLS = 10;
+const DEFAULT_COLS = 10;
 const TITLE_H = 44;
 
 // System/embedded fonts aren't reliably rendered by the container's SVG
@@ -56,10 +56,11 @@ function textPathEl(text, x, y, fontSize, { bold = false, anchor = 'start', fill
   return `<path d="${d}" fill="${fill}"/>`;
 }
 
-async function renderBookImage(monsters, ownedIds, title) {
+async function renderBookImage(monsters, ownedIds, title, cols = DEFAULT_COLS) {
   const enabledMonsters = monsters.filter(isEnabled).sort((a, b) => a.number - b.number);
+  const COLS = Math.min(cols, Math.max(1, enabledMonsters.length));
   const rows = Math.ceil(enabledMonsters.length / COLS);
-  const width = COLS * CELL_W + (COLS + 1) * GAP;
+  const width = Math.max(COLS * CELL_W + (COLS + 1) * GAP, 360);
   const height = TITLE_H + rows * CELL_H + (rows + 1) * GAP;
 
   const composites = [];

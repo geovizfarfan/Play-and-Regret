@@ -159,16 +159,26 @@ function withDefaults(list, season) {
 
 // ── Collector drops ──────────────────────────────────────────────────────
 // Special drops that NEVER spawn naturally and can only be given out by an admin
-// (/drops-admin gift). They live in the normal season book. Members can't trade,
+// (/drops-admin gift). They live in their own Collector book (season 0). Members can't trade,
 // gift or exchange them. Add one by adding an entry here + its art file:
 //   { id: 'founder_crown', season: 2, number: 901, name: 'Founder Crown', flavorText: '...' }
 //   art → assets/collector/founder_crown.png  (or set `image:` explicitly)
 const COLLECTOR = [
-  // (none yet)
+  { id: 'rudeboy',  number: 901, name: 'Rudeboy',            title: 'The Kingdom Mischief Maker · OG Member',   flavorText: 'Always keeping the kingdom entertained with chaos, loyalty, and messy vibes.' },
+  { id: 'geovanna', number: 902, name: 'Geovanna',           title: 'The Board Princess · Owner',               flavorText: 'The heart and vision behind the kingdom we call home.' },
+  { id: 'kareena',  number: 903, name: 'Kareena',            title: 'The Midnight Guardian · Moderator',        flavorText: 'A caring heart whose dedication never seems to sleep.' },
+  { id: 'maria',    number: 904, name: 'Maria',              title: 'The Royal Sweetheart · Admin',             flavorText: 'A gentle heart who brings warmth to every royal gathering.' },
+  { id: 'mariela',  number: 905, name: 'Mariela',            title: 'The Unofficial Authority · Royal Legacy',  flavorText: 'She retired from staff, but never from the kingdom.' },
+  { id: 'jessica',  number: 906, name: 'Jessica',            title: 'The Chaos Queen · Co-Owner',               flavorText: 'The chaos, laughter, and energy that keep TBP alive.' },
+  { id: 'nicole',   number: 907, name: 'Nicole',             title: 'The Royal Enigma · Game Host',             flavorText: 'A unique spirit who brings mystery and personality to TBP.' },
+  { id: 'marie',    number: 908, name: 'Marie Wonderwoman',  title: 'The First Guardian · Eternal Court',       flavorText: 'Our first staff member, our forever Wonderwoman.' },
+  { id: 'valorie',  number: 909, name: 'Valorie',            title: 'The Chaos Plumber · Moderator',            flavorText: 'Fixing problems, creating chaos, and keeping everyone laughing.' },
+  { id: 'agustin',  number: 910, name: 'Agustin',            title: 'The Shadow Keeper · Admin',                flavorText: 'Quietly lurking, always protecting the kingdom from the shadows.' },
+  { id: 'yasmin',   number: 911, name: 'Yasmin',             title: 'The Royal Creator · Game Host',            flavorText: 'Turning creativity and kindness into magic for the kingdom.' },
 ];
 function collectorDefaults(list) {
   return list.map(m => ({
-    enabled: true, limitedEdition: true, eventTag: 'collector',
+    season: 0, enabled: true, limitedEdition: true, eventTag: 'collector',      // season 0 = the Collector book, separate from every season
     image: `assets/collector/${m.id}.png`,
     ...m, rarity: 'collector', collector: true,
   }));
@@ -178,6 +188,9 @@ const MONSTERS = [...withDefaults(SEASON_1, 1), ...withDefaults(SEASON_2, 2), ..
 
 function getMonster(id) {
   return MONSTERS.find(m => m.id === id) || null;
+}
+function getCollectorMonsters() {
+  return MONSTERS.filter(m => m.collector);
 }
 function getMonstersBySeason(season) {
   return MONSTERS.filter(m => m.season === season);
@@ -218,6 +231,6 @@ function getEnabledMonstersByRarity(rarity, season) {
 }
 
 module.exports = {
-  MONSTERS, getMonster, getMonstersBySeason, getMonstersByRarity, getEnabledMonstersByRarity,
+  MONSTERS, getMonster, getCollectorMonsters, getMonstersBySeason, getMonstersByRarity, getEnabledMonstersByRarity,
   isEnabled, loadOverrides, setOverride,
 };
