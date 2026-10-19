@@ -10,7 +10,7 @@ const { db, economy } = require('../../utils/database');
 const guildEconomy = require('../../utils/guildEconomy');
 const { CONFIG, RARITY_ORDER, DISPLAY_ORDER, RARITY_META, SEASON_NAMES, getSeasonName, getActiveSeason } = require('./config');
 const { renderBookImage } = require('./bookImage');
-const { getMonster, getMonstersBySeason, getCollectorMonsters, isEnabled, loadOverrides } = require('./monsters');
+const { getMonster, fmtNumber, getMonstersBySeason, getCollectorMonsters, isEnabled, loadOverrides } = require('./monsters');
 const { startSeasonScheduler } = require('./season');
 const { recordActivity, markSpawned } = require('./activity');
 const { rollMonster } = require('./rarity');
@@ -45,7 +45,7 @@ function buildGiftEmbed(monster, recipient, giver, extraFields) {
     .setColor(LAVENDER)
     .setTitle('<a:gift:1552714840861179974> Drop Given')
     .setDescription(
-      `Successfully added **${monster.name}** \`#${String(monster.number).padStart(3, '0')}\` to <@${recipient.id}>'s collection.`
+      `Successfully added **${monster.name}** \`${fmtNumber(monster)}\` to <@${recipient.id}>'s collection.`
     )
     .addFields(
       { name: 'Given By', value: giver ? `<@${giver.id}>` : 'Staff', inline: true },
@@ -151,7 +151,7 @@ async function buildBookPage(runnerId, targetUserId, season, index) {
 
   const embed = new EmbedBuilder()
     .setColor(meta.color)
-    .setTitle(`#${String(monster.number).padStart(3, '0')} — ${monster.name.toUpperCase()}`)
+    .setTitle(`${fmtNumber(monster)} — ${monster.name.toUpperCase()}`)
     .setDescription(`${meta.emoji} ${meta.label}${monster.title ? `\n**${monster.title}**` : ''}\n\nOwned: **×${qty}**\n\n*"${monster.flavorText}"*`)
     .setFooter({ text: `Drop ${safeIndex + 1} of ${owned.length}` });
 
@@ -208,7 +208,7 @@ async function cmdMissing(interaction) {
   }
 
   const sorted = [...missing].sort((a, b) => a.number - b.number);
-  const list = sorted.map(m => `${RARITY_META[m.rarity].emoji} #${String(m.number).padStart(3, '0')} ${m.name}`).join('\n');
+  const list = sorted.map(m => `${RARITY_META[m.rarity].emoji} ${fmtNumber(m)} ${m.name}`).join('\n');
 
   const embed = new EmbedBuilder()
     .setColor(LAVENDER)
@@ -229,7 +229,7 @@ async function cmdView(interaction, monsterId) {
 
   const embed = new EmbedBuilder()
     .setColor(meta.color)
-    .setTitle(`#${String(monster.number).padStart(3, '0')} — ${monster.name.toUpperCase()}`)
+    .setTitle(`${fmtNumber(monster)} — ${monster.name.toUpperCase()}`)
     .setDescription(`${meta.emoji} ${meta.label}\n\nOwned: **×${owned?.quantity || 0}**\n\n*"${monster.flavorText}"*`);
 
   const attachment = buildMonsterAttachment(monster);
@@ -302,7 +302,7 @@ async function cmdDuplicates(interaction) {
   const dupes = await getDuplicates(interaction.user.id, resolved.season);
   if (!dupes.length) return interaction.reply({ content: `<a:Warning:1497476844860215366> You don't have any duplicates right now.`, ephemeral: true });
 
-  const lines = dupes.map(d => `${RARITY_META[d.monster.rarity].emoji} #${String(d.monster.number).padStart(3, '0')} ${d.monster.name} — **${d.spareCount}** spare${d.spareCount !== 1 ? 's' : ''}`);
+  const lines = dupes.map(d => `${RARITY_META[d.monster.rarity].emoji} ${fmtNumber(d.monster)} ${d.monster.name} — **${d.spareCount}** spare${d.spareCount !== 1 ? 's' : ''}`);
   const embed = new EmbedBuilder().setColor(LAVENDER).setTitle(`👀 Your Duplicates${seasonNote}`).setDescription(lines.join('\n').slice(0, 4000));
   return interaction.reply({ embeds: [embed], ephemeral: true });
 }
@@ -413,7 +413,7 @@ async function handleAutocomplete(interaction) {
     const badge = isExchange && picked == null && started.length > 1;
     const matches = dupes.filter(d => d.monster.name.toLowerCase().includes(query)).slice(0, 25);
     return interaction.respond(matches.map(d => ({
-      name: `${badge ? `S${d.monster.season} ` : ''}#${String(d.monster.number).padStart(3, '0')} ${d.monster.name} — ${d.spareCount} spare${d.spareCount !== 1 ? 's' : ''}`,
+      name: `${badge ? `S${d.monster.season} ` : ''}${fmtNumber(d.monster)} ${d.monster.name} — ${d.spareCount} spare${d.spareCount !== 1 ? 's' : ''}`,
       value: d.monster.id,
     })));
   }
@@ -440,7 +440,7 @@ async function handleAutocomplete(interaction) {
         return interaction.respond([{ name: `${targetUsername} has no spare drops to request`, value: 'none' }]);
       }
       return interaction.respond(spares.map(o => ({
-        name: `#${String(o.monster.number).padStart(3, '0')} ${o.monster.name} — ${targetUsername} has ${o.quantity}, ${o.quantity - 1} spare${o.quantity - 1 !== 1 ? 's' : ''}`,
+        name: `${fmtNumber(o.monster)} ${o.monster.name} — ${targetUsername} has ${o.quantity}, ${o.quantity - 1} spare${o.quantity - 1 !== 1 ? 's' : ''}`,
         value: o.monster.id,
       })));
     }
@@ -449,7 +449,7 @@ async function handleAutocomplete(interaction) {
 
   const seasonCfg = await A.getConfig(interaction.guild.id);
   const matches = getMonstersBySeason(seasonCfg.current_season).filter(m => isEnabled(m) && m.name.toLowerCase().includes(query)).slice(0, 25);
-  return interaction.respond(matches.map(m => ({ name: `#${String(m.number).padStart(3, '0')} ${m.name}`, value: m.id })));
+  return interaction.respond(matches.map(m => ({ name: `${fmtNumber(m)} ${m.name}`, value: m.id })));
 }
 async function handleAdminAutocomplete(interaction) {
   const focused = interaction.options.getFocused().toLowerCase();
@@ -466,7 +466,7 @@ async function handleAdminAutocomplete(interaction) {
   const pool = seasons.flatMap(n => getMonstersBySeason(n));
   if (seasonAware && picked == null) pool.push(...getCollectorMonsters());       // collector cards are giftable by admins
   const matches = pool.filter(m => m.name.toLowerCase().includes(focused)).slice(0, 25); // admin sees disabled ones too
-  return interaction.respond(matches.map(m => ({ name: `${m.collector ? '👑 ' : badge ? `S${m.season} ` : ''}#${String(m.number).padStart(3, '0')} ${m.name}${isEnabled(m) ? '' : ' (disabled)'}`, value: m.id })));
+  return interaction.respond(matches.map(m => ({ name: `${m.collector ? '👑 ' : badge ? `S${m.season} ` : ''}${fmtNumber(m)} ${m.name}${isEnabled(m) ? '' : ' (disabled)'}`, value: m.id })));
 }
 
 // ── Activity listener (called from index.js's messageCreate) ────────────
@@ -646,7 +646,7 @@ async function handleSlash(interaction, commandName) {
       const ranked = monsters.map(m => ({ m, owners: ownerMap.get(m.id) || 0 }))
         .map(x => ({ ...x, missing: collectors - x.owners }))
         .sort((a, b) => b.missing - a.missing || a.m.number - b.m.number).slice(0, 20);
-      const lines = ranked.map((x, i) => `**${i + 1}.** ${RARITY_META[x.m.rarity].emoji} #${String(x.m.number).padStart(3, '0')} ${x.m.name} — missing for **${x.missing}** of ${collectors} (${x.owners} own it)`);
+      const lines = ranked.map((x, i) => `**${i + 1}.** ${RARITY_META[x.m.rarity].emoji} ${fmtNumber(x.m)} ${x.m.name} — missing for **${x.missing}** of ${collectors} (${x.owners} own it)`);
       const embed = new EmbedBuilder().setColor(LAVENDER)
         .setTitle(`<a:guess:1542348901217075200> Most-missing drops — ${getSeasonName(season)}`)
         .setDescription(lines.join('\n').slice(0, 4000))

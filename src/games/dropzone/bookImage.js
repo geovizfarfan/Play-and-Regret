@@ -8,7 +8,7 @@ const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
 const opentype = require('opentype.js');
-const { isEnabled } = require('./monsters');
+const { isEnabled, fmtNumber } = require('./monsters');
 
 const CELL_W = 80;
 const CELL_H = 120; // matches the 2:3 card art — cover-fits with zero crop
@@ -71,7 +71,7 @@ async function renderBookImage(monsters, ownedIds, title, cols = DEFAULT_COLS) {
     const y = TITLE_H + GAP + row * (CELL_H + GAP);
     const owned = ownedIds.has(monster.id);
     const results = [];
-    const numLabel = `#${String(monster.number).padStart(3, '0')}`;
+    const numLabel = `${fmtNumber(monster)}`;
 
     const filePath = path.join(__dirname, monster.image);
     if (fs.existsSync(filePath)) {
