@@ -164,17 +164,18 @@ function withDefaults(list, season) {
 //   { id: 'founder_crown', season: 2, number: 1, name: 'Founder Crown', flavorText: '...' }
 //   art → assets/collector/founder_crown.png  (or set `image:` explicitly)
 const COLLECTOR = [
-  { id: 'rudeboy',  number: 1, name: 'Rudeboy',            title: 'The Kingdom Mischief Maker · OG Member',   flavorText: 'Always keeping the kingdom entertained with chaos, loyalty, and messy vibes.' },
-  { id: 'geovanna', number: 2, name: 'Geovanna',           title: 'The Board Princess · Owner',               flavorText: 'The heart and vision behind the kingdom we call home.' },
-  { id: 'kareena',  number: 3, name: 'Kareena',            title: 'The Midnight Guardian · Moderator',        flavorText: 'A caring heart whose dedication never seems to sleep.' },
-  { id: 'maria',    number: 4, name: 'Maria',              title: 'The Royal Sweetheart · Admin',             flavorText: 'A gentle heart who brings warmth to every royal gathering.' },
-  { id: 'mariela',  number: 5, name: 'Mariela',            title: 'The Unofficial Authority · Royal Legacy',  flavorText: 'She retired from staff, but never from the kingdom.' },
-  { id: 'jessica',  number: 6, name: 'Jessica',            title: 'The Chaos Queen · Co-Owner',               flavorText: 'The chaos, laughter, and energy that keep TBP alive.' },
-  { id: 'nicole',   number: 7, name: 'Nicole',             title: 'The Royal Enigma · Game Host',             flavorText: 'A unique spirit who brings mystery and personality to TBP.' },
-  { id: 'marie',    number: 8, name: 'Marie Wonderwoman',  title: 'The First Guardian · Eternal Court',       flavorText: 'Our first staff member, our forever Wonderwoman.' },
-  { id: 'valorie',  number: 9, name: 'Valorie',            title: 'The Chaos Plumber · Moderator',            flavorText: 'Fixing problems, creating chaos, and keeping everyone laughing.' },
-  { id: 'agustin',  number: 10, name: 'Agustin',            title: 'The Shadow Keeper · Admin',                flavorText: 'Quietly lurking, always protecting the kingdom from the shadows.' },
-  { id: 'yasmin',   number: 11, name: 'Yasmin',             title: 'The Royal Creator · Game Host',            flavorText: 'Turning creativity and kindness into magic for the kingdom.' },
+  { id: 'geovanna', number: 1, name: 'Geovanna',           title: 'The Board Princess · Owner',               flavorText: 'The heart and vision behind the kingdom we call home.' },
+  { id: 'jessica',  number: 2, name: 'Jessica',            title: 'The Chaos Queen · Co-Owner',               flavorText: 'The chaos, laughter, and energy that keep TBP alive.' },
+  { id: 'maria',    number: 3, name: 'Maria',              title: 'The Royal Sweetheart · Admin',             flavorText: 'A gentle heart who brings warmth to every royal gathering.' },
+  { id: 'agustin',  number: 4, name: 'Agustin',            title: 'The Shadow Keeper · Admin',                flavorText: 'Quietly lurking, always protecting the kingdom from the shadows.' },
+  { id: 'valorie',  number: 5, name: 'Valorie',            title: 'The Chaos Plumber · Moderator',            flavorText: 'Fixing problems, creating chaos, and keeping everyone laughing.' },
+  { id: 'kareena',  number: 6, name: 'Kareena',            title: 'The Midnight Guardian · Moderator',        flavorText: 'A caring heart whose dedication never seems to sleep.' },
+  { id: 'marie',    number: 7, name: 'Marie Wonderwoman',  title: 'The First Guardian · Eternal Court',       flavorText: 'Our first staff member, our forever Wonderwoman.' },
+  { id: 'yasmin',   number: 8, name: 'Yasmin',             title: 'The Royal Creator · Game Host',            flavorText: 'Turning creativity and kindness into magic for the kingdom.' },
+  { id: 'nicole',   number: 9, name: 'Nicole',             title: 'The Royal Enigma · Game Host',             flavorText: 'A unique spirit who brings mystery and personality to TBP.' },
+  { id: 'nala', number: 10, name: 'Nala', title: 'Royal Collector', flavorText: 'Card art coming soon.' },
+  { id: 'mariela',  number: 11, name: 'Mariela',            title: 'The Unofficial Authority · Royal Legacy',  flavorText: 'She retired from staff, but never from the kingdom.' },
+  { id: 'rudeboy',  number: 12, name: 'Rudeboy',            title: 'The Kingdom Mischief Maker · OG Member',   flavorText: 'Always keeping the kingdom entertained with chaos, loyalty, and messy vibes.' },
 ];
 function collectorDefaults(list) {
   return list.map(m => ({
