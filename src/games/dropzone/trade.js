@@ -21,6 +21,7 @@ async function proposeTrade(guild, channel, fromUser, toUser, offerMonsterId, re
   const offerMonster = getMonster(offerMonsterId);
   const requestMonster = getMonster(requestMonsterId);
   if (!offerMonster || !requestMonster) return { error: 'unknown_sticker' };
+  if (offerMonster.collector || requestMonster.collector) return { error: 'collector' };
 
   const ownOffer = await db.get('SELECT quantity FROM dropzone_collections WHERE user_id = ? AND monster_id = ? AND season = ?', [fromUser.id, offerMonsterId, season]);
   if (!ownOffer || ownOffer.quantity < 1) return { error: 'dont_own_offer' };

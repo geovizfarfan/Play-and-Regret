@@ -157,7 +157,24 @@ function withDefaults(list, season) {
   }));
 }
 
-const MONSTERS = [...withDefaults(SEASON_1, 1), ...withDefaults(SEASON_2, 2)];
+// ── Collector drops ──────────────────────────────────────────────────────
+// Special drops that NEVER spawn naturally and can only be given out by an admin
+// (/drops-admin gift). They live in the normal season book. Members can't trade,
+// gift or exchange them. Add one by adding an entry here + its art file:
+//   { id: 'founder_crown', season: 2, number: 901, name: 'Founder Crown', flavorText: '...' }
+//   art → assets/collector/founder_crown.png  (or set `image:` explicitly)
+const COLLECTOR = [
+  // (none yet)
+];
+function collectorDefaults(list) {
+  return list.map(m => ({
+    enabled: true, limitedEdition: true, eventTag: 'collector',
+    image: `assets/collector/${m.id}.png`,
+    ...m, rarity: 'collector', collector: true,
+  }));
+}
+
+const MONSTERS = [...withDefaults(SEASON_1, 1), ...withDefaults(SEASON_2, 2), ...collectorDefaults(COLLECTOR)];
 
 function getMonster(id) {
   return MONSTERS.find(m => m.id === id) || null;
@@ -166,7 +183,7 @@ function getMonstersBySeason(season) {
   return MONSTERS.filter(m => m.season === season);
 }
 function getMonstersByRarity(rarity, season) {
-  return MONSTERS.filter(m => m.rarity === rarity && (season === undefined || m.season === season));
+  return MONSTERS.filter(m => !m.collector && m.rarity === rarity && (season === undefined || m.season === season));
 }
 
 // ── Runtime enabled/disabled overrides ───────────────────────────────────

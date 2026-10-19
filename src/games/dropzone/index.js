@@ -8,7 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const { db, economy } = require('../../utils/database');
 const guildEconomy = require('../../utils/guildEconomy');
-const { CONFIG, RARITY_ORDER, RARITY_META, SEASON_NAMES, getSeasonName, getActiveSeason } = require('./config');
+const { CONFIG, RARITY_ORDER, DISPLAY_ORDER, RARITY_META, SEASON_NAMES, getSeasonName, getActiveSeason } = require('./config');
 const { renderBookImage } = require('./bookImage');
 const { getMonster, getMonstersBySeason, isEnabled, loadOverrides } = require('./monsters');
 const { startSeasonScheduler } = require('./season');
@@ -59,7 +59,7 @@ function buildGiftEmbed(monster, recipient, giver, extraFields) {
 // ── /drops book ───────────────────────────────────────────────────────
 async function buildBookSummaryPayload(runnerId, targetUser, season, seasonName) {
   const summary = await buildCollectionSummary(targetUser.id, season);
-  const lines = RARITY_ORDER.map(r => `${RARITY_META[r].emoji} ${RARITY_META[r].label}: ${rarityBar(summary.byRarity[r].owned, summary.byRarity[r].total)}`);
+  const lines = DISPLAY_ORDER.filter(r => summary.byRarity[r].total > 0).map(r => `${RARITY_META[r].emoji} ${RARITY_META[r].label}: ${rarityBar(summary.byRarity[r].owned, summary.byRarity[r].total)}`);
 
   const embed = new EmbedBuilder()
     .setColor(LAVENDER)
@@ -213,6 +213,7 @@ async function cmdTrade(interaction, targetUser, offerId, requestId) {
 
   if (result.error === 'self') return interaction.reply({ content: '<:wrong:1495666083594502174> Can\'t trade with yourself.', ephemeral: true });
   if (result.error === 'unknown_sticker') return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown drop.', ephemeral: true });
+  if (result.error === 'collector') return interaction.reply({ content: '<:wrong:1495666083594502174> Collector drops can\'t be traded — only an admin can give them out.', ephemeral: true });
   if (result.error === 'dont_own_offer') return interaction.reply({ content: '<:wrong:1495666083594502174> You don\'t own the drop you\'re offering.', ephemeral: true });
   if (result.error === 'not_a_duplicate') return interaction.reply({ content: '<:wrong:1495666083594502174> That\'s your only copy — you can only trade away spares, not your only one.', ephemeral: true });
   if (result.error === 'they_dont_have_spare') return interaction.reply({ content: `<:wrong:1495666083594502174> ${targetUser.username} doesn't have a spare of that drop to trade away.`, ephemeral: true });
@@ -235,6 +236,7 @@ async function cmdExchange(interaction) {
     if (target && target.season > getActiveSeason()) return interaction.reply({ content: `<:wrong:1495666083594502174> **${getSeasonName(target.season)}** hasn't started yet.`, ephemeral: true });
     const result = await exchangeSpecificSticker(interaction.user.id, monsterId, target ? target.season : resolved.season, amount);
     if (result.error === 'unknown_sticker') return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown drop.', ephemeral: true });
+    if (result.error === 'collector') return interaction.reply({ content: '<:wrong:1495666083594502174> Collector drops can\'t be exchanged for sins.', ephemeral: true });
     if (result.error === 'no_duplicates') return interaction.reply({ content: `<a:Warning:1497476844860215366> You don't have any spare copies of that one.`, ephemeral: true });
 
     await guildEconomy.addFunds(interaction.guild.id, interaction.user.id, interaction.user.username, result.sinsEarned, `Drop It Like It's Hot — exchanged ${result.monster.name}`);
@@ -283,6 +285,7 @@ async function cmdMemberGift(interaction, targetUser, monsterId) {
   const cfg = await A.getConfig(guildId);
   const monster = getMonster(monsterId);
   if (!monster) return interaction.reply({ content: `<:wrong:1495666083594502174> Unknown drop.`, ephemeral: true });
+  if (monster.collector) return interaction.reply({ content: `<:wrong:1495666083594502174> Collector drops can only be given out by an admin.`, ephemeral: true });
   // Members can only gift spares from the current season; older seasons are staff gifts only.
   if (monster.season !== cfg.current_season) return interaction.reply({ content: `<:wrong:1495666083594502174> Only **${getSeasonName(cfg.current_season)}** drops can be gifted by members. Ask staff about older seasons.`, ephemeral: true });
 
@@ -527,6 +530,7 @@ async function handleSlash(interaction, commandName) {
       const channel = interaction.options.getChannel('channel') || interaction.channel;
       const cfg = await A.getConfig(interaction.guild.id);
       const result = await A.manualSpawn(channel, interaction.guild.id, cfg.current_season, monsterId);
+      if (result.error === 'collector') return interaction.reply({ content: '<:wrong:1495666083594502174> Collector drops never spawn — give them out with `/drops-admin gift`.', ephemeral: true });
       if (result.error) return interaction.reply({ content: '<:wrong:1495666083594502174> Nothing available to spawn.', ephemeral: true });
       return interaction.reply({ content: `<:checkmark:1495666088417956002> Spawned **${result.monster.name}** in ${channel}.`, ephemeral: true });
     }

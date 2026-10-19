@@ -14,6 +14,11 @@ const RARITY_META = {
   mythic:    { label: 'Mythic',    emoji: '<a:mythic:1552115282619801652>', weight: 2,  color: '#FF63C4', expireMinutes: 45 },
 };
 
+// Collector drops: admin-gift-only. Not in RARITY_ORDER on purpose — that list is what the
+// natural-drop roll uses, so a collector drop can never spawn. DISPLAY_ORDER is for the book.
+RARITY_META.collector = { label: 'Collector', emoji: '<a:purplesparkle:1479210541691175054>', weight: 0, color: '#FFD700', expireMinutes: 0 };
+const DISPLAY_ORDER = [...RARITY_ORDER, 'collector'];
+
 const CONFIG = {
   enabled: true,               // master on/off switch
   currentSeason: 1,
@@ -70,4 +75,4 @@ function getSeasonName(season) {
   return SEASON_NAMES[season] || `Season ${season}`;
 }
 
-module.exports = { RARITY_ORDER, RARITY_META, CONFIG, SEASON_NAMES, SEASON_SCHEDULE, getActiveSeason, getSeasonName };
+module.exports = { DISPLAY_ORDER, RARITY_ORDER, RARITY_META, CONFIG, SEASON_NAMES, SEASON_SCHEDULE, getActiveSeason, getSeasonName };

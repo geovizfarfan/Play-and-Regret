@@ -5,7 +5,7 @@
 // (either all duplicates at once, or one specific drop).
 // ─────────────────────────────────────────────────────────────────────────────
 const { db } = require('../../utils/database');
-const { RARITY_ORDER, RARITY_META, CONFIG } = require('./config');
+const { DISPLAY_ORDER, RARITY_META, CONFIG } = require('./config');
 const { getMonstersBySeason, getMonster, isEnabled } = require('./monsters');
 
 async function getUserCollection(userId, season) {
@@ -20,7 +20,7 @@ async function buildCollectionSummary(userId, season) {
   const allMonsters = getMonstersBySeason(season).filter(isEnabled);
 
   const byRarity = {};
-  for (const rarity of RARITY_ORDER) {
+  for (const rarity of DISPLAY_ORDER) {
     const monstersOfRarity = allMonsters.filter(m => m.rarity === rarity);
     const owned = monstersOfRarity.filter(m => collection.has(m.id));
     byRarity[rarity] = { owned: owned.length, total: monstersOfRarity.length };
@@ -86,7 +86,7 @@ async function getDuplicates(userId, season) {
   for (const row of collection.values()) {
     if (row.quantity <= 1) continue;
     const monster = getMonster(row.monster_id);
-    if (!monster) continue;
+    if (!monster || monster.collector) continue;
     dupes.push({ monster, quantity: row.quantity, spareCount: row.quantity - 1 });
   }
   return dupes.sort((a, b) => a.monster.number - b.monster.number);
@@ -109,7 +109,7 @@ async function exchangeDuplicates(userId, season) {
     const dupeCount = row.quantity - 1;
     if (dupeCount <= 0) continue;
     const monster = getMonster(row.monster_id);
-    if (!monster) continue;
+    if (!monster || monster.collector) continue;       // collector drops are never exchanged
     const perDupe = CONFIG.dupeSinsValue[monster.rarity] || 0;
     sinsEarned += perDupe * dupeCount;
     itemsExchanged += dupeCount;
@@ -128,6 +128,7 @@ async function exchangeDuplicates(userId, season) {
 async function exchangeSpecificSticker(userId, monsterId, season, amount = null) {
   const monster = getMonster(monsterId);
   if (!monster) return { error: 'unknown_sticker' };
+  if (monster.collector) return { error: 'collector' };
 
   const row = await db.get('SELECT quantity FROM dropzone_collections WHERE user_id = ? AND monster_id = ? AND season = ?', [userId, monsterId, season]);
   const spareCount = row ? Math.max(0, row.quantity - 1) : 0;
