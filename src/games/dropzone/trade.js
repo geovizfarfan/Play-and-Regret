@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Drop It Like It's Hot — trading.
-// One duplicate drop for one drop the other person owns. The offer side
+// One duplicate card for one card the other person owns. The offer side
 // MUST be a spare (quantity > 1) — you can never trade away your only copy.
 // The other person accepts or declines via buttons. Posted to the configured
 // exchange channel if one is set.

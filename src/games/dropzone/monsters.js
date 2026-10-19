@@ -2,7 +2,7 @@
 // Drop It Like It's Hot — monster/drop data.
 // One centralized table. Add a new drop by adding an entry here — nothing
 // else needs to change. `enabled: false` keeps a drop hidden from natural
-// drops and from /drops missing until you flip it on.
+// drops and from /cards missing until you flip it on.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SEASON_1 = [
@@ -159,7 +159,7 @@ function withDefaults(list, season) {
 
 // ── Collector drops ──────────────────────────────────────────────────────
 // Special drops that NEVER spawn naturally and can only be given out by an admin
-// (/drops-admin gift). They live in their own Collector book (season 0). Members can't trade,
+// (/cards-admin gift). They live in their own Collector book (season 0). Members can't trade,
 // gift or exchange them. Add one by adding an entry here + its art file:
 //   { id: 'founder_crown', season: 2, number: 1, name: 'Founder Crown', flavorText: '...' }
 //   art → assets/collector/founder_crown.png  (or set `image:` explicitly)

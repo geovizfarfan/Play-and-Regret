@@ -43,7 +43,7 @@ function buildMonsterAttachment(monster) {
 function buildGiftEmbed(monster, recipient, giver, extraFields) {
   const embed = new EmbedBuilder()
     .setColor(LAVENDER)
-    .setTitle('<a:gift:1552714840861179974> Drop Given')
+    .setTitle('<a:gift:1552714840861179974> Card Given')
     .setDescription(
       `Successfully added **${monster.name}** \`${fmtNumber(monster)}\` to <@${recipient.id}>'s collection.`
     )
@@ -56,14 +56,14 @@ function buildGiftEmbed(monster, recipient, giver, extraFields) {
   return { embed, attachment };
 }
 
-// ── /drops book ───────────────────────────────────────────────────────
+// ── /cards book ───────────────────────────────────────────────────────
 async function buildBookSummaryPayload(runnerId, targetUser, season, seasonName) {
   const summary = await buildCollectionSummary(targetUser.id, season);
   const lines = DISPLAY_ORDER.filter(r => summary.byRarity[r].total > 0).map(r => `${RARITY_META[r].emoji} ${RARITY_META[r].label}: ${rarityBar(summary.byRarity[r].owned, summary.byRarity[r].total)}`);
 
   const embed = new EmbedBuilder()
     .setColor(LAVENDER)
-    .setTitle(`<a:catch:1552115280342421555> ${targetUser.username}'s Drop Book — ${seasonName}`)
+    .setTitle(`<a:catch:1552115280342421555> ${targetUser.username}'s Card Book — ${seasonName}`)
     .addFields(
       { name: 'Unique', value: `${summary.uniqueOwned} / ${summary.totalMonsters}`, inline: true },
       { name: 'Completion', value: `${summary.completionPct.toFixed(1)}%`, inline: true },
@@ -73,13 +73,13 @@ async function buildBookSummaryPayload(runnerId, targetUser, season, seasonName)
     );
 
   const ownedIds = new Set(summary.collection.keys());
-  const imgBuffer = await renderBookImage(getMonstersBySeason(season), ownedIds, `${targetUser.username}'s Drop Book`);
+  const imgBuffer = await renderBookImage(getMonstersBySeason(season), ownedIds, `${targetUser.username}'s Card Book`);
   const attachment = imgBuffer ? new AttachmentBuilder(imgBuffer, { name: 'book.png' }) : null;
   if (attachment) embed.setImage('attachment://book.png');
 
   const buttons = [];
   if (summary.uniqueOwned) {
-    buttons.push(new ButtonBuilder().setCustomId(`dz_book_page:${runnerId}:${targetUser.id}:${season}:0`).setLabel('Inspect a Drop').setEmoji('📖').setStyle(ButtonStyle.Primary));
+    buttons.push(new ButtonBuilder().setCustomId(`dz_book_page:${runnerId}:${targetUser.id}:${season}:0`).setLabel('Inspect a Card').setEmoji('📖').setStyle(ButtonStyle.Primary));
   }
   if (getCollectorMonsters().length) {
     buttons.push(new ButtonBuilder().setCustomId(`dz_collector:${runnerId}:${targetUser.id}:${season}`).setLabel('Collector').setEmoji('👑').setStyle(ButtonStyle.Success));
@@ -117,7 +117,7 @@ async function handleCollectorButton(interaction) {
   return interaction.editReply(await buildCollectorPayload(runnerId, targetUser, parseInt(seasonStr)));
 }
 
-// Season dropdown on /drops book and /drops missing. Defaults to the guild's current season;
+// Season dropdown on /cards book and /cards missing. Defaults to the guild's current season;
 // members can look at any season that has started (so a closed season stays viewable).
 function resolveViewSeason(interaction, cfg) {
   const picked = interaction.options.getInteger('season');
@@ -153,7 +153,7 @@ async function buildBookPage(runnerId, targetUserId, season, index) {
     .setColor(meta.color)
     .setTitle(`${fmtNumber(monster)} — ${monster.name.toUpperCase()}`)
     .setDescription(`${meta.emoji} ${meta.label}${monster.title ? `\n**${monster.title}**` : ''}\n\nOwned: **×${qty}**\n\n*"${monster.flavorText}"*`)
-    .setFooter({ text: `Drop ${safeIndex + 1} of ${owned.length}` });
+    .setFooter({ text: `Card ${safeIndex + 1} of ${owned.length}` });
 
   const attachment = buildMonsterAttachment(monster);
   if (attachment) embed.setImage(`attachment://${String(monster.number).padStart(3, '0')}.png`);
@@ -195,7 +195,7 @@ async function handleBookBackButton(interaction) {
   return interaction.editReply(payload);
 }
 
-// ── /drops missing ────────────────────────────────────────────────────
+// ── /cards missing ────────────────────────────────────────────────────
 async function cmdMissing(interaction) {
   const cfg = await A.getConfig(interaction.guild.id);
   const resolved = resolveViewSeason(interaction, cfg);
@@ -206,7 +206,7 @@ async function cmdMissing(interaction) {
   const collectorMissing = getCollectorMonsters().filter(m => isEnabled(m) && !collectorOwned.has(m.id)).sort((a, b) => a.number - b.number);
 
   if (!missing.length && !collectorMissing.length) {
-    return interaction.reply(`<:checkmark:1495666088417956002> You have every drop available in **${seasonName}** and every collector card. Impressive.`);
+    return interaction.reply(`<:checkmark:1495666088417956002> You have every card available in **${seasonName}** and every collector card. Impressive.`);
   }
 
   const sorted = [...missing].sort((a, b) => a.number - b.number);
@@ -214,8 +214,8 @@ async function cmdMissing(interaction) {
 
   const embed = new EmbedBuilder()
     .setColor(LAVENDER)
-    .setTitle(`<a:guess:1542348901217075200> Missing — ${seasonName} (${missing.length} drop${missing.length !== 1 ? 's' : ''})`)
-    .setDescription((list || `You have every drop in **${seasonName}**.`).slice(0, 4000));
+    .setTitle(`<a:guess:1542348901217075200> Missing — ${seasonName} (${missing.length} card${missing.length !== 1 ? 's' : ''})`)
+    .setDescription((list || `You have every card in **${seasonName}**.`).slice(0, 4000));
   if (collectorMissing.length) {
     embed.addFields({
       name: `👑 Collector cards (${collectorMissing.length} of ${getCollectorMonsters().length} missing)`,
@@ -226,10 +226,10 @@ async function cmdMissing(interaction) {
   return interaction.reply({ embeds: [embed] });
 }
 
-// ── /drops view ───────────────────────────────────────────────────────
+// ── /cards view ───────────────────────────────────────────────────────
 async function cmdView(interaction, monsterId) {
   const monster = getMonster(monsterId);
-  if (!monster) return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown drop.', ephemeral: true });
+  if (!monster) return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown card.', ephemeral: true });
   if (!isEnabled(monster)) return interaction.reply({ content: '<:wrong:1495666083594502174> That one hasn\'t been released yet.', ephemeral: true });
 
   const owned = await db.get('SELECT quantity FROM dropzone_collections WHERE user_id = ? AND monster_id = ? AND season = ?', [interaction.user.id, monster.id, monster.season]);
@@ -248,37 +248,37 @@ async function cmdView(interaction, monsterId) {
   return interaction.reply({ embeds: [embed], ephemeral: true });
 }
 
-// ── /drops trade ──────────────────────────────────────────────────────
+// ── /cards trade ──────────────────────────────────────────────────────
 async function cmdTrade(interaction, targetUser, offerId, requestId) {
   const cfg = await A.getConfig(interaction.guild.id);
   const result = await proposeTrade(interaction.guild, interaction.channel, interaction.user, targetUser, offerId, requestId, cfg.current_season);
 
   if (result.error === 'self') return interaction.reply({ content: '<:wrong:1495666083594502174> Can\'t trade with yourself.', ephemeral: true });
-  if (result.error === 'unknown_sticker') return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown drop.', ephemeral: true });
-  if (result.error === 'collector') return interaction.reply({ content: '<:wrong:1495666083594502174> Collector drops can\'t be traded — only an admin can give them out.', ephemeral: true });
-  if (result.error === 'dont_own_offer') return interaction.reply({ content: '<:wrong:1495666083594502174> You don\'t own the drop you\'re offering.', ephemeral: true });
+  if (result.error === 'unknown_sticker') return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown card.', ephemeral: true });
+  if (result.error === 'collector') return interaction.reply({ content: '<:wrong:1495666083594502174> Collector cards can\'t be traded — only an admin can give them out.', ephemeral: true });
+  if (result.error === 'dont_own_offer') return interaction.reply({ content: '<:wrong:1495666083594502174> You don\'t own the card you\'re offering.', ephemeral: true });
   if (result.error === 'not_a_duplicate') return interaction.reply({ content: '<:wrong:1495666083594502174> That\'s your only copy — you can only trade away spares, not your only one.', ephemeral: true });
-  if (result.error === 'they_dont_have_spare') return interaction.reply({ content: `<:wrong:1495666083594502174> ${targetUser.username} doesn't have a spare of that drop to trade away.`, ephemeral: true });
+  if (result.error === 'they_dont_have_spare') return interaction.reply({ content: `<:wrong:1495666083594502174> ${targetUser.username} doesn't have a spare of that card to trade away.`, ephemeral: true });
 
   return interaction.reply({ content: `<:checkmark:1495666088417956002> Trade proposed in ${result.postedIn}.`, ephemeral: true });
 }
 
-// ── /drops exchange ───────────────────────────────────────────────────
+// ── /cards exchange ───────────────────────────────────────────────────
 async function cmdExchange(interaction) {
   const cfg = await A.getConfig(interaction.guild.id);
   const resolved = resolveViewSeason(interaction, cfg);
   if (resolved.error) return interaction.reply({ content: resolved.error, ephemeral: true });
-  const monsterId = interaction.options.getString('drop');
+  const monsterId = interaction.options.getString('card');
   const amount = interaction.options.getInteger('amount');
   const seasonNote = resolved.season !== cfg.current_season ? ` (${getSeasonName(resolved.season)})` : '';
 
   if (monsterId) {
-    // A specific drop always exchanges from its own season, whatever the dropdown says.
+    // A specific card always exchanges from its own season, whatever the dropdown says.
     const target = getMonster(monsterId);
     if (target && target.season > getActiveSeason()) return interaction.reply({ content: `<:wrong:1495666083594502174> **${getSeasonName(target.season)}** hasn't started yet.`, ephemeral: true });
     const result = await exchangeSpecificSticker(interaction.user.id, monsterId, target ? target.season : resolved.season, amount);
-    if (result.error === 'unknown_sticker') return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown drop.', ephemeral: true });
-    if (result.error === 'collector') return interaction.reply({ content: '<:wrong:1495666083594502174> Collector drops can\'t be exchanged for sins.', ephemeral: true });
+    if (result.error === 'unknown_sticker') return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown card.', ephemeral: true });
+    if (result.error === 'collector') return interaction.reply({ content: '<:wrong:1495666083594502174> Collector cards can\'t be exchanged for sins.', ephemeral: true });
     if (result.error === 'no_duplicates') return interaction.reply({ content: `<a:Warning:1497476844860215366> You don't have any spare copies of that one.`, ephemeral: true });
 
     await guildEconomy.addFunds(interaction.guild.id, interaction.user.id, interaction.user.username, result.sinsEarned, `Drop It Like It's Hot — exchanged ${result.monster.name}`);
@@ -301,7 +301,7 @@ async function cmdExchange(interaction) {
   });
 }
 
-// ── /drops duplicates ─────────────────────────────────────────────────
+// ── /cards duplicates ─────────────────────────────────────────────────
 async function cmdDuplicates(interaction) {
   const cfg = await A.getConfig(interaction.guild.id);
   const resolved = resolveViewSeason(interaction, cfg);
@@ -315,21 +315,21 @@ async function cmdDuplicates(interaction) {
   return interaction.reply({ embeds: [embed], ephemeral: true });
 }
 
-// ── /drops gift — member-to-member, own duplicates only ──────────────
+// ── /cards gift — member-to-member, own duplicates only ──────────────
 async function cmdMemberGift(interaction, targetUser, monsterId) {
   const guildId = interaction.guild.id;
   const permitted = await A.hasGiftPermission(guildId, interaction.user.id);
   if (!isAdmin(interaction.member) && !permitted) {
-    return interaction.reply({ content: `<:wrong:1495666083594502174> You don't have permission to gift drops. Ask an admin to grant it with /drops-admin giftpermission.`, ephemeral: true });
+    return interaction.reply({ content: `<:wrong:1495666083594502174> You don't have permission to gift cards. Ask an admin to grant it with /cards-admin giftpermission.`, ephemeral: true });
   }
   if (targetUser.id === interaction.user.id) return interaction.reply({ content: `<:wrong:1495666083594502174> Can't gift yourself.`, ephemeral: true });
 
   const cfg = await A.getConfig(guildId);
   const monster = getMonster(monsterId);
-  if (!monster) return interaction.reply({ content: `<:wrong:1495666083594502174> Unknown drop.`, ephemeral: true });
-  if (monster.collector) return interaction.reply({ content: `<:wrong:1495666083594502174> Collector drops can only be given out by an admin.`, ephemeral: true });
+  if (!monster) return interaction.reply({ content: `<:wrong:1495666083594502174> Unknown card.`, ephemeral: true });
+  if (monster.collector) return interaction.reply({ content: `<:wrong:1495666083594502174> Collector cards can only be given out by an admin.`, ephemeral: true });
   // Members can only gift spares from the current season; older seasons are staff gifts only.
-  if (monster.season !== cfg.current_season) return interaction.reply({ content: `<:wrong:1495666083594502174> Only **${getSeasonName(cfg.current_season)}** drops can be gifted by members. Ask staff about older seasons.`, ephemeral: true });
+  if (monster.season !== cfg.current_season) return interaction.reply({ content: `<:wrong:1495666083594502174> Only **${getSeasonName(cfg.current_season)}** cards can be gifted by members. Ask staff about older seasons.`, ephemeral: true });
 
   const spareCount = await getSpareCount(interaction.user.id, monsterId, cfg.current_season);
   if (spareCount <= 0) return interaction.reply({ content: `<:wrong:1495666083594502174> You don't have a spare copy of that one to give away.`, ephemeral: true });
@@ -346,11 +346,11 @@ async function cmdMemberGift(interaction, targetUser, monsterId) {
   return interaction.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
 }
 
-// ── /drops leaderboard ────────────────────────────────────────────────
+// ── /cards leaderboard ────────────────────────────────────────────────
 const LB_PAGE_SIZE = 15;
 
 function buildLeaderboardPayload(runnerId, allRows, mode, season, page) {
-  const label = { unique: 'Unique Drops', catches: 'Total Catches', rare: 'Legendary+ Catches' }[mode];
+  const label = { unique: 'Unique Cards', catches: 'Total Catches', rare: 'Legendary+ Catches' }[mode];
   const totalPages = Math.max(1, Math.ceil(allRows.length / LB_PAGE_SIZE));
   const pageRows = allRows.slice(page * LB_PAGE_SIZE, (page + 1) * LB_PAGE_SIZE);
   const lines = pageRows.map((r, i) => `**${page * LB_PAGE_SIZE + i + 1}.** <@${r.user_id}> — ${r.score}`);
@@ -403,17 +403,17 @@ async function handleAutocomplete(interaction) {
   const sub = interaction.options.getSubcommand(false);
   const query = (focused.value || '').toLowerCase();
 
-  // Trade's "offer" field and the member gift's "drop" field, and exchange's optional
-  // "drop" field: only show the user's OWN duplicates, with spare counts shown.
+  // Trade's "offer" field and the member gift's "card" field, and exchange's optional
+  // "card" field: only show the user's OWN duplicates, with spare counts shown.
   const dupeOnlyFields = (sub === 'trade' && focused.name === 'offer')
-    || (sub === 'gift' && focused.name === 'drop')
-    || (sub === 'exchange' && focused.name === 'drop');
+    || (sub === 'gift' && focused.name === 'card')
+    || (sub === 'exchange' && focused.name === 'card');
 
   if (dupeOnlyFields) {
     const cfg = await A.getConfig(interaction.guild.id);
-    // Exchange's drop field only: the season dropdown filters the list; with no pick, show spares
+    // Exchange's card field only: the season dropdown filters the list; with no pick, show spares
     // from every started season (current first) so older-season spares can be cashed in too.
-    const isExchange = sub === 'exchange' && focused.name === 'drop';
+    const isExchange = sub === 'exchange' && focused.name === 'card';
     const picked = isExchange ? interaction.options.get('season')?.value : undefined;
     const started = startedSeasonsCurrentFirst(cfg.current_season);
     const seasons = !isExchange ? [cfg.current_season] : (picked != null ? started.filter(n => n === picked) : started);
@@ -426,7 +426,7 @@ async function handleAutocomplete(interaction) {
     })));
   }
 
-  // Trade's "request" field: once a trade partner is picked, only show drops THEY
+  // Trade's "request" field: once a trade partner is picked, only show cards THEY
   // have a spare of (quantity >= 2) — same rule as the offer side, so nobody ends up
   // traded down to zero of something.
   if (sub === 'trade' && focused.name === 'request') {
@@ -445,7 +445,7 @@ async function handleAutocomplete(interaction) {
         .sort((a, b) => a.monster.number - b.monster.number)
         .slice(0, 25);
       if (!spares.length) {
-        return interaction.respond([{ name: `${targetUsername} has no spare drops to request`, value: 'none' }]);
+        return interaction.respond([{ name: `${targetUsername} has no spare cards to request`, value: 'none' }]);
       }
       return interaction.respond(spares.map(o => ({
         name: `${fmtNumber(o.monster)} ${o.monster.name} — ${targetUsername} has ${o.quantity}, ${o.quantity - 1} spare${o.quantity - 1 !== 1 ? 's' : ''}`,
@@ -529,60 +529,60 @@ async function handleButton(interaction) {
 
 // ── Slash command dispatch ────────────────────────────────────────────────
 async function handleSlash(interaction, commandName) {
-  if (commandName === 'drops') {
+  if (commandName === 'cards') {
     const sub = interaction.options.getSubcommand();
     if (sub === 'book') return cmdBook(interaction, interaction.options.getUser('user') || interaction.user);
     if (sub === 'missing') return cmdMissing(interaction);
-    if (sub === 'view') return cmdView(interaction, interaction.options.getString('drop'));
+    if (sub === 'view') return cmdView(interaction, interaction.options.getString('card'));
     if (sub === 'trade') return cmdTrade(interaction, interaction.options.getUser('user'), interaction.options.getString('offer'), interaction.options.getString('request'));
     if (sub === 'exchange') return cmdExchange(interaction);
     if (sub === 'leaderboard') return cmdLeaderboard(interaction, interaction.options.getString('mode'));
     if (sub === 'duplicates') return cmdDuplicates(interaction);
-    if (sub === 'gift') return cmdMemberGift(interaction, interaction.options.getUser('user'), interaction.options.getString('drop'));
+    if (sub === 'gift') return cmdMemberGift(interaction, interaction.options.getUser('user'), interaction.options.getString('card'));
   }
 
-  if (commandName === 'drops-admin') {
+  if (commandName === 'cards-admin') {
     if (!isAdmin(interaction.member)) return interaction.reply({ content: '<:wrong:1495666083594502174> Admin only.', ephemeral: true });
     const sub = interaction.options.getSubcommand();
 
     if (sub === 'gift') {
       const target = interaction.options.getUser('user');
-      const monsterId = interaction.options.getString('drop');
+      const monsterId = interaction.options.getString('card');
       const qty = interaction.options.getInteger('quantity') || 1;
       if (target.id === interaction.user.id && target.id !== process.env.OWNER_ID) {
-        return interaction.reply({ content: `<:wrong:1495666083594502174> You can't gift drops to yourself.`, ephemeral: true });
+        return interaction.reply({ content: `<:wrong:1495666083594502174> You can't gift cards to yourself.`, ephemeral: true });
       }
       const alreadyOwned = await A.getOwnedQuantity(target.id, monsterId);
       if (alreadyOwned > 0) {
-        return interaction.reply({ content: `<:wrong:1495666083594502174> ${target.username} already owns that drop — staff gifts can't go to drops someone already has.`, ephemeral: true });
+        return interaction.reply({ content: `<:wrong:1495666083594502174> ${target.username} already owns that card — staff gifts can't go to cards someone already has.`, ephemeral: true });
       }
       const result = await A.giftSticker(target.id, monsterId, qty);
-      if (result.error) return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown drop.', ephemeral: true });
+      if (result.error) return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown card.', ephemeral: true });
       const { embed, attachment } = buildGiftEmbed(result.monster, target, interaction.user);
       return interaction.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
     }
     if (sub === 'remove') {
       const target = interaction.options.getUser('user');
-      const monsterId = interaction.options.getString('drop');
+      const monsterId = interaction.options.getString('card');
       const qty = interaction.options.getInteger('quantity') || 1;
       const result = await A.removeSticker(target.id, monsterId, qty);
-      if (result.error === 'unknown_sticker') return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown drop.', ephemeral: true });
-      if (result.error === 'dont_own') return interaction.reply({ content: `<:wrong:1495666083594502174> ${target.username} doesn't own that drop.`, ephemeral: true });
+      if (result.error === 'unknown_sticker') return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown card.', ephemeral: true });
+      if (result.error === 'dont_own') return interaction.reply({ content: `<:wrong:1495666083594502174> ${target.username} doesn't own that card.`, ephemeral: true });
       return interaction.reply(`<:checkmark:1495666088417956002> Removed **${qty}×** ${result.monster.name} from <@${target.id}> (now owns ${result.newQuantity}).`);
     }
     if (sub === 'spawn') {
-      const monsterId = interaction.options.getString('drop');
+      const monsterId = interaction.options.getString('card');
       const channel = interaction.options.getChannel('channel') || interaction.channel;
       const cfg = await A.getConfig(interaction.guild.id);
       const result = await A.manualSpawn(channel, interaction.guild.id, cfg.current_season, monsterId);
-      if (result.error === 'collector') return interaction.reply({ content: '<:wrong:1495666083594502174> Collector drops never spawn — give them out with `/drops-admin gift`.', ephemeral: true });
+      if (result.error === 'collector') return interaction.reply({ content: '<:wrong:1495666083594502174> Collector cards never spawn — give them out with `/cards-admin gift`.', ephemeral: true });
       if (result.error) return interaction.reply({ content: '<:wrong:1495666083594502174> Nothing available to spawn.', ephemeral: true });
       return interaction.reply({ content: `<:checkmark:1495666088417956002> Spawned **${result.monster.name}** in ${channel}.`, ephemeral: true });
     }
     if (sub === 'enable' || sub === 'disable') {
-      const monsterId = interaction.options.getString('drop');
+      const monsterId = interaction.options.getString('card');
       const result = await A.setMonsterEnabled(monsterId, sub === 'enable');
-      if (result.error) return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown drop.', ephemeral: true });
+      if (result.error) return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown card.', ephemeral: true });
       return interaction.reply(`<:checkmark:1495666088417956002> **${result.monster.name}** is now ${sub === 'enable' ? 'enabled' : 'disabled'}.`);
     }
     if (sub === 'spawnchannel') {
@@ -626,7 +626,7 @@ async function handleSlash(interaction, commandName) {
         const cfg = await A.getConfig(interaction.guild.id);
         if (!cfg.timer_enabled) {
           await T.setTimerConfig(interaction.client, interaction.guild.id, true, 30, 90);
-          extra = `\nRandom drops are on too — a collectible will drop roughly every 30-90 minutes on its own, no setup needed. (Adjust anytime with \`/drops-admin timer\`.)`;
+          extra = `\nRandom drops are on too — a collectible will drop roughly every 30-90 minutes on its own, no setup needed. (Adjust anytime with \`/cards-admin timer\`.)`;
         }
       }
       return interaction.reply(`<:checkmark:1495666088417956002> Drop It Like It's Hot is now **${state ? 'ON' : 'OFF'}**.${extra}`);
@@ -636,7 +636,7 @@ async function handleSlash(interaction, commandName) {
       const state = interaction.options.getString('state');
       if (state === 'on') {
         await A.grantGiftPermission(interaction.guild.id, target.id);
-        return interaction.reply(`<:checkmark:1495666088417956002> <@${target.id}> can now gift their duplicate drops to other members with /drops gift.`);
+        return interaction.reply(`<:checkmark:1495666088417956002> <@${target.id}> can now gift their duplicate cards to other members with /cards gift.`);
       }
       await A.revokeGiftPermission(interaction.guild.id, target.id);
       return interaction.reply(`<:checkmark:1495666088417956002> <@${target.id}>'s gift permission has been revoked.`);
@@ -656,9 +656,9 @@ async function handleSlash(interaction, commandName) {
         .sort((a, b) => b.missing - a.missing || a.m.number - b.m.number).slice(0, 20);
       const lines = ranked.map((x, i) => `**${i + 1}.** ${RARITY_META[x.m.rarity].emoji} ${fmtNumber(x.m)} ${x.m.name} — missing for **${x.missing}** of ${collectors} (${x.owners} own it)`);
       const embed = new EmbedBuilder().setColor(LAVENDER)
-        .setTitle(`<a:guess:1542348901217075200> Most-missing drops — ${getSeasonName(season)}`)
+        .setTitle(`<a:guess:1542348901217075200> Most-missing cards — ${getSeasonName(season)}`)
         .setDescription(lines.join('\n').slice(0, 4000))
-        .setFooter({ text: `Counts members who have caught at least one drop this season (${collectors})` });
+        .setFooter({ text: `Counts members who have caught at least one card this season (${collectors})` });
       return interaction.editReply({ embeds: [embed] });
     }
     if (sub === 'stats') {

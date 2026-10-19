@@ -32,7 +32,7 @@ const pickmeModule = require('./src/games/pickme');
 const confessModule = require('./src/economy/confess');
 const dropzoneModule = require('./src/games/dropzone');
 const { SEASON_NAMES: DZ_SEASON_NAMES } = require('./src/games/dropzone/config');
-// Optional season dropdown shared by the drop commands (one choice per season in SEASON_NAMES).
+// Optional season dropdown shared by the card commands (one choice per season in SEASON_NAMES).
 const dzSeasonOption = o => o.setName('season').setDescription('Which season (default: current)')
   .addChoices(...Object.entries(DZ_SEASON_NAMES).map(([n, name]) => ({ name: `Season ${n} - ${name}`, value: Number(n) })));
 const rgModule        = require('./src/games/regretgames');
@@ -304,53 +304,53 @@ const slashCommands = [
     .addChannelOption(o => o.setName('channel').setDescription('Channel for confessions').setRequired(true)),
   new SlashCommandBuilder().setName('confessiondelete').setDescription('Admin: delete a confession by number')
     .addIntegerOption(o => o.setName('number').setDescription('Confession number to delete').setRequired(true)),
-  new SlashCommandBuilder().setName('drops').setDescription('Drop It Like It\'s Hot — your drop collection')
-    .addSubcommand(sc => sc.setName('book').setDescription('View a drop book')
+  new SlashCommandBuilder().setName('cards').setDescription('Drop It Like It\'s Hot — your card collection')
+    .addSubcommand(sc => sc.setName('book').setDescription('View a card book')
       .addUserOption(o => o.setName('user').setDescription('Whose book to view'))
       .addIntegerOption(dzSeasonOption))
     .addSubcommand(sc => sc.setName('missing').setDescription('See what you\'re missing')
       .addIntegerOption(dzSeasonOption))
-    .addSubcommand(sc => sc.setName('view').setDescription('Inspect a drop you own')
-      .addStringOption(o => o.setName('drop').setDescription('Which drop').setRequired(true).setAutocomplete(true)))
+    .addSubcommand(sc => sc.setName('view').setDescription('Inspect a card you own')
+      .addStringOption(o => o.setName('card').setDescription('Which card').setRequired(true).setAutocomplete(true)))
     .addSubcommand(sc => sc.setName('trade').setDescription('Propose a 1-for-1 trade with another member')
       .addUserOption(o => o.setName('user').setDescription('Who to trade with').setRequired(true))
-      .addStringOption(o => o.setName('offer').setDescription('Drop you\'re offering').setRequired(true).setAutocomplete(true))
-      .addStringOption(o => o.setName('request').setDescription('Drop you want from them').setRequired(true).setAutocomplete(true)))
-    .addSubcommand(sc => sc.setName('exchange').setDescription('Trade duplicates for sins — all of them, or just one drop')
-      .addStringOption(o => o.setName('drop').setDescription('Exchange just this drop\'s spares (leave blank for all duplicates)').setAutocomplete(true))
-      .addIntegerOption(o => o.setName('amount').setDescription('How many spares to exchange (only used with drop, default: all spares)').setMinValue(1))
+      .addStringOption(o => o.setName('offer').setDescription('Card you\'re offering').setRequired(true).setAutocomplete(true))
+      .addStringOption(o => o.setName('request').setDescription('Card you want from them').setRequired(true).setAutocomplete(true)))
+    .addSubcommand(sc => sc.setName('exchange').setDescription('Trade duplicates for sins — all of them, or just one card')
+      .addStringOption(o => o.setName('card').setDescription('Exchange just this card\'s spares (leave blank for all duplicates)').setAutocomplete(true))
+      .addIntegerOption(o => o.setName('amount').setDescription('How many spares to exchange (only used with card, default: all spares)').setMinValue(1))
       .addIntegerOption(dzSeasonOption))
     .addSubcommand(sc => sc.setName('duplicates').setDescription('See your duplicates and how many spares of each')
       .addIntegerOption(dzSeasonOption))
     .addSubcommand(sc => sc.setName('gift').setDescription('Gift one of your spare duplicates to another member')
       .addUserOption(o => o.setName('user').setDescription('Who to gift it to').setRequired(true))
-      .addStringOption(o => o.setName('drop').setDescription('Which spare drop to give').setRequired(true).setAutocomplete(true)))
+      .addStringOption(o => o.setName('card').setDescription('Which spare card to give').setRequired(true).setAutocomplete(true)))
     .addSubcommand(sc => sc.setName('leaderboard').setDescription('Top collectors this season')
       .addStringOption(o => o.setName('mode').setDescription('Ranking type').addChoices(
-        { name: 'Unique Drops', value: 'unique' },
+        { name: 'Unique Cards', value: 'unique' },
         { name: 'Total Catches', value: 'catches' },
         { name: 'Legendary+ Catches', value: 'rare' },
       ))),
-  new SlashCommandBuilder().setName('drops-admin').setDescription('Admin: Drop It Like It\'s Hot controls')
-    .addSubcommand(sc => sc.setName('gift').setDescription('Gift a drop to a member — any season')
+  new SlashCommandBuilder().setName('cards-admin').setDescription('Admin: Drop It Like It\'s Hot controls')
+    .addSubcommand(sc => sc.setName('gift').setDescription('Gift a card to a member — any season')
       .addUserOption(o => o.setName('user').setDescription('Who to gift').setRequired(true))
-      .addStringOption(o => o.setName('drop').setDescription('Which drop').setRequired(true).setAutocomplete(true))
+      .addStringOption(o => o.setName('card').setDescription('Which card').setRequired(true).setAutocomplete(true))
       .addIntegerOption(o => o.setName('quantity').setDescription('How many (default 1)').setMinValue(1))
       .addIntegerOption(dzSeasonOption))
-    .addSubcommand(sc => sc.setName('remove').setDescription('Remove drop copies from a member')
+    .addSubcommand(sc => sc.setName('remove').setDescription('Remove card copies from a member')
       .addUserOption(o => o.setName('user').setDescription('Who to remove from').setRequired(true))
-      .addStringOption(o => o.setName('drop').setDescription('Which drop').setRequired(true).setAutocomplete(true))
+      .addStringOption(o => o.setName('card').setDescription('Which card').setRequired(true).setAutocomplete(true))
       .addIntegerOption(o => o.setName('quantity').setDescription('How many (default 1)').setMinValue(1))
       .addIntegerOption(dzSeasonOption))
-    .addSubcommand(sc => sc.setName('missing').setDescription('Which drops members are missing the most')
+    .addSubcommand(sc => sc.setName('missing').setDescription('Which cards members are missing the most')
       .addIntegerOption(dzSeasonOption))
     .addSubcommand(sc => sc.setName('spawn').setDescription('Force a manual spawn')
-      .addStringOption(o => o.setName('drop').setDescription('Specific drop (leave blank for random)').setAutocomplete(true))
+      .addStringOption(o => o.setName('card').setDescription('Specific card (leave blank for random)').setAutocomplete(true))
       .addChannelOption(o => o.setName('channel').setDescription('Where to spawn it (default: here)')))
     .addSubcommand(sc => sc.setName('enable').setDescription('Enable a drop for natural drops')
-      .addStringOption(o => o.setName('drop').setDescription('Which drop').setRequired(true).setAutocomplete(true)))
+      .addStringOption(o => o.setName('card').setDescription('Which card').setRequired(true).setAutocomplete(true)))
     .addSubcommand(sc => sc.setName('disable').setDescription('Disable a drop from natural drops')
-      .addStringOption(o => o.setName('drop').setDescription('Which drop').setRequired(true).setAutocomplete(true)))
+      .addStringOption(o => o.setName('card').setDescription('Which card').setRequired(true).setAutocomplete(true)))
     .addSubcommand(sc => sc.setName('spawnchannel').setDescription('Allow or disallow natural spawns in a channel')
       .addChannelOption(o => o.setName('channel').setDescription('Channel').setRequired(true))
       .addStringOption(o => o.setName('state').setDescription('Allow or remove').setRequired(true).addChoices(
@@ -631,8 +631,8 @@ client.once('clientReady', async () => {
 client.on('interactionCreate', async (interaction) => {
   if (interaction.isAutocomplete()) {
     try {
-      if (interaction.commandName === 'drops') return await dropzoneModule.handleAutocomplete(interaction);
-      if (interaction.commandName === 'drops-admin') return await dropzoneModule.handleAdminAutocomplete(interaction);
+      if (interaction.commandName === 'cards') return await dropzoneModule.handleAutocomplete(interaction);
+      if (interaction.commandName === 'cards-admin') return await dropzoneModule.handleAdminAutocomplete(interaction);
     } catch (e) { console.error('[autocomplete error]', e); }
     return;
   }
@@ -835,7 +835,7 @@ client.on('interactionCreate', async (interaction) => {
     if (['confession','confessionchannel','confessiondelete'].includes(commandName)) {
       return await confessModule.handleSlash(interaction, commandName);
     }
-    if (commandName === 'drops' || commandName === 'drops-admin') {
+    if (commandName === 'cards' || commandName === 'cards-admin') {
       return await dropzoneModule.handleSlash(interaction, commandName);
     }
     if (commandName === 'items') {
@@ -1005,7 +1005,7 @@ const GAME_RULES = {
   redflag: () => `<a:redflag:1545091812924858469> **Walkin Red Flag — How to Play**\nEach round, 2-4 random players get accused of a fictional red-flag scenario. Everyone else votes who to flag; the accused can defend themselves (or use a collected ability to fight back). Collect 3 red flags and you're eliminated. Last two players face a Final Background Check — come out looking less shady to win.`,
   regretgames: () => `<:play_regret_bot:1521042618744700938> **Regret Games — How to Play**\nA multi-day survival season, staff-hosted. Everyone pays entry, then over several days the arena runs story beats, votes, and chaos events that eliminate players one at a time. Survive to the end to win the majority of the pot and the Regret Royalty title.`,
   pickme: () => `<a:kiss:1545098398565142601> **Pick Me Pit — How to Play**\nEach round, 2-4 random players get tagged with a ridiculous "pick me" accusation. Everyone votes who deserves The Pit — one elimination per round, no threshold. Collect powers (immunity, vote redirects, double votes, vote cancels) to survive longer. Last one standing wins.`,
-  stickers: () => `👻 **Drop It Like It's Hot — How to Play**\nJust chat! Enough real conversation in an allowed channel randomly spawns a collectible drop with a CATCH button. First click opens a 5-second window — anyone can jump in, then one random winner takes it. Higher rarities are rarer and stick around longer before escaping.\n\nUse \`/drops book\` to see your collection, \`/drops missing\` for what you don't have, \`/drops trade\` to swap 1-for-1 with someone, and \`/drops exchange\` to turn duplicates into sins.`,
+  stickers: () => `👻 **Drop It Like It's Hot — How to Play**\nJust chat! Enough real conversation in an allowed channel randomly spawns a collectible drop with a CATCH button. First click opens a 5-second window — anyone can jump in, then one random winner takes it. Higher rarities are rarer and stick around longer before escaping.\n\nUse \`/cards book\` to see your collection, \`/cards missing\` for what you don't have, \`/cards trade\` to swap 1-for-1 with someone, and \`/cards exchange\` to turn duplicates into sins.`,
 };
 
 async function sendHelpSlash(interaction) {
