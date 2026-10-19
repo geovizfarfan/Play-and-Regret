@@ -202,9 +202,11 @@ async function cmdMissing(interaction) {
   if (resolved.error) return interaction.reply({ content: resolved.error, ephemeral: true });
   const seasonName = getSeasonName(resolved.season);
   const missing = await getMissing(interaction.user.id, resolved.season);
+  const collectorOwned = await getUserCollection(interaction.user.id, 0);
+  const collectorMissing = getCollectorMonsters().filter(m => isEnabled(m) && !collectorOwned.has(m.id)).sort((a, b) => a.number - b.number);
 
-  if (!missing.length) {
-    return interaction.reply(`<:checkmark:1495666088417956002> You have every drop available in **${seasonName}**. Impressive.`);
+  if (!missing.length && !collectorMissing.length) {
+    return interaction.reply(`<:checkmark:1495666088417956002> You have every drop available in **${seasonName}** and every collector card. Impressive.`);
   }
 
   const sorted = [...missing].sort((a, b) => a.number - b.number);
@@ -213,7 +215,13 @@ async function cmdMissing(interaction) {
   const embed = new EmbedBuilder()
     .setColor(LAVENDER)
     .setTitle(`<a:guess:1542348901217075200> Missing — ${seasonName} (${missing.length} drop${missing.length !== 1 ? 's' : ''})`)
-    .setDescription(list.slice(0, 4000));
+    .setDescription((list || `You have every drop in **${seasonName}**.`).slice(0, 4000));
+  if (collectorMissing.length) {
+    embed.addFields({
+      name: `👑 Collector cards (${collectorMissing.length} of ${getCollectorMonsters().length} missing)`,
+      value: collectorMissing.map(m => `${fmtNumber(m)} ${m.name}`).join('\n').slice(0, 1000),
+    });
+  }
 
   return interaction.reply({ embeds: [embed] });
 }
