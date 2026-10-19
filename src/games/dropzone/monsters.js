@@ -170,7 +170,7 @@ const COLLECTOR = [
   { id: 'agustin',  number: 4, name: 'Agustin',            title: 'The Shadow Keeper · Admin',                flavorText: 'Quietly lurking, always protecting the kingdom from the shadows.' },
   { id: 'valorie',  number: 5, name: 'Valorie',            title: 'The Chaos Plumber · Moderator',            flavorText: 'Fixing problems, creating chaos, and keeping everyone laughing.' },
   { id: 'kareena',  number: 6, name: 'Kareena',            title: 'The Midnight Guardian · Moderator',        flavorText: 'A caring heart whose dedication never seems to sleep.' },
-  { id: 'marie',    number: 7, name: 'Marie Wonderwoman',  title: 'The First Guardian · Eternal Court',       flavorText: 'Our first staff member, our forever Wonderwoman.' },
+  { id: 'marie',    number: 7, name: 'Marie',  title: 'The First Guardian · Eternal Court',       flavorText: 'Our first staff member, our forever Wonderwoman.' },
   { id: 'yasmin',   number: 8, name: 'Yasmin',             title: 'The Royal Creator · Game Host',            flavorText: 'Turning creativity and kindness into magic for the kingdom.' },
   { id: 'nicole',   number: 9, name: 'Nicole',             title: 'The Royal Enigma · Game Host',             flavorText: 'A unique spirit who brings mystery and personality to TBP.' },
   { id: 'nala', number: 10, name: 'Nala', title: 'Royal Collector', flavorText: 'Card art coming soon.' },
