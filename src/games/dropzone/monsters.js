@@ -173,9 +173,8 @@ const COLLECTOR = [
   { id: 'marie',    number: 7, name: 'Marie',  title: 'The First Guardian · Eternal Court',       flavorText: 'Our first staff member, our forever Wonderwoman.' },
   { id: 'yasmin',   number: 8, name: 'Yasmin',             title: 'The Royal Creator · Game Host',            flavorText: 'Turning creativity and kindness into magic for the kingdom.' },
   { id: 'nicole',   number: 9, name: 'Nicole',             title: 'The Royal Enigma · Game Host',             flavorText: 'A unique spirit who brings mystery and personality to TBP.' },
-  { id: 'nala', number: 10, name: 'Nala', title: 'Royal Collector', flavorText: 'Card art coming soon.' },
-  { id: 'mariela',  number: 11, name: 'Mariela',            title: 'The Unofficial Authority · Royal Legacy',  flavorText: 'She retired from staff, but never from the kingdom.' },
-  { id: 'rudeboy',  number: 12, name: 'Rudeboy',            title: 'The Kingdom Mischief Maker · OG Member',   flavorText: 'Always keeping the kingdom entertained with chaos, loyalty, and messy vibes.' },
+  { id: 'mariela',  number: 10, name: 'Mariela',            title: 'The Unofficial Authority · Royal Legacy',  flavorText: 'She retired from staff, but never from the kingdom.' },
+  { id: 'rudeboy',  number: 11, name: 'Rudeboy',            title: 'The Kingdom Mischief Maker · OG Member',   flavorText: 'Always keeping the kingdom entertained with chaos, loyalty, and messy vibes.' },
 ];
 function collectorDefaults(list) {
   return list.map(m => ({
