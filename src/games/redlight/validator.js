@@ -81,7 +81,6 @@ class MessageValidator {
       if (this.seen.size > 5000) this.seen.delete(this.seen.values().next().value);
     }
     const p = this._p(userId);
-    if (now < p.lockedUntil) return { ok: false, reason: 'locked' };
     if (p.lastCredit && now - p.lastCredit < o.cooldownMs) return { ok: false, reason: 'cooldown' };
 
     const raw = String(content || '');
@@ -114,12 +113,7 @@ class MessageValidator {
 
     if (reason) {
       if (reason === 'empty') return { ok: false, reason };
-      p.invalid = p.invalid.filter(t => now - t <= o.warnWindowMs);
-      p.invalid.push(now);
-      const res = { ok: false, reason };
-      if (p.invalid.length >= o.lockAfterInvalid) { p.lockedUntil = now + o.lockoutMs; p.invalid = []; res.locked = true; }
-      else if (p.invalid.length >= o.warnAfterInvalid) res.warn = true;
-      return res;
+      return { ok: false, reason };                    // silently ignored — no warnings, no lockouts
     }
 
     p.keys.push(key);

@@ -234,8 +234,6 @@ function onMessage(message) {
         g.endReason = 'finish';
       }
     }
-  } else if (res.warn || res.locked) {
-    message.react(res.locked ? '⏳' : '⚠️').catch(() => {});     // discreet notice, no channel spam
   }
 }
 
