@@ -33,11 +33,12 @@ const IMG = {
 const GIF_MS = 5000;   // both GIFs are 5s long — swap to the still after one play
 
 const CFG = {
-  graceMs:   1500,           // transition grace after each light change (no steps, no eliminations)
+  graceMs:   1500,           // green transition grace (no steps)
+  redGraceMs: 500,           // red transition grace — short, so people can't coast after the light turns red
   greenMin:  5000, greenMax: 9000,
   redMin:    3000, redMax:   6000,
   progressEditMs: 3000,      // never edit the board more often than this
-  eliminationFlushMs: 2000,
+  eliminationFlushMs: 800,
   taxRate:   0.10,
   introMs:   8000,
 };
@@ -240,7 +241,12 @@ function onMessage(message) {
 
 function scheduleElimFlush(g) {
   if (g.elimTimer) return;
-  g.elimTimer = setTimeout(() => { g.elimTimer = null; g.dirty = true; refreshBoard(g, true).catch(() => {}); }, CFG.eliminationFlushMs);
+  g.elimTimer = setTimeout(async () => {
+    g.elimTimer = null; g.dirty = true;
+    const out = g.elimQueue.splice(0);                          // announce right away, not at the end of red
+    if (out.length) await g.channel?.send(`💀 **${out.join(', ')}** moved during RED LIGHT. **${activePlayers(g).length}** left.`).catch(() => {});
+    refreshBoard(g, true).catch(() => {});
+  }, CFG.eliminationFlushMs);
 }
 
 // ─── Core game loop ───────────────────────────────────────────────────────────
@@ -286,7 +292,7 @@ async function runGame(channel, g) {
     g.phase = 'RED_TRANSITION';
     g.lastWave = [];
     await showLight(g, 'red');
-    await waitFor(g, CFG.graceMs);
+    await waitFor(g, CFG.redGraceMs);
     if (g.over) break;
     g.phase = 'RED_ACTIVE';
     g.wake = false;
