@@ -346,7 +346,7 @@ const slashCommands = [
       .addIntegerOption(dzSeasonOption))
     .addSubcommand(sc => sc.setName('spawn').setDescription('Force a manual spawn')
       .addStringOption(o => o.setName('card').setDescription('Specific card (leave blank for random)').setAutocomplete(true))
-      .addChannelOption(o => o.setName('channel').setDescription('Where to spawn it (default: here)')))
+      .addChannelOption(o => o.setName('channel').setDescription('Where to spawn it (default: the drop channel)')))
     .addSubcommand(sc => sc.setName('enable').setDescription('Enable a drop for natural drops')
       .addStringOption(o => o.setName('card').setDescription('Which card').setRequired(true).setAutocomplete(true)))
     .addSubcommand(sc => sc.setName('disable').setDescription('Disable a drop from natural drops')

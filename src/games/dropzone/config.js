@@ -16,7 +16,7 @@ const RARITY_META = {
 
 // Collector drops: admin-gift-only. Not in RARITY_ORDER on purpose — that list is what the
 // natural-drop roll uses, so a collector drop can never spawn. DISPLAY_ORDER is for the book.
-RARITY_META.collector = { label: 'Collector', emoji: '<a:purplesparkle:1479210541691175054>', weight: 0, color: '#FFD700', expireMinutes: 0 };
+RARITY_META.collector = { label: 'Collector', emoji: '<a:purplesparkle:1479210541691175054>', weight: 0, color: '#FFD700', expireMinutes: 60 };
 const DISPLAY_ORDER = [...RARITY_ORDER, 'collector'];
 
 const CONFIG = {

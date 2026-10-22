@@ -109,7 +109,6 @@ async function removeSticker(targetUserId, monsterId, quantity = 1) {
 async function manualSpawn(channel, guildId, season, monsterId) {
   const monster = monsterId ? getMonster(monsterId) : rollMonster(season);
   if (!monster) return { error: 'no_monster_available' };
-  if (monster.collector) return { error: 'collector' };
   const cfg = await getConfig(guildId);
   const spawnId = await postSpawn(channel, guildId, monster, 'ADMIN', cfg.ping_role_id);
   return { success: true, spawnId, monster };
