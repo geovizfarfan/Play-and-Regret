@@ -14,7 +14,10 @@ const EVENT_HOST_ROLE = process.env.EVENT_HOST_ROLE || 'Event Host';
 function hasHostRole(member) {
   if (!member) return false;
   if (member.permissions.has('Administrator')) return true;
-  return member.roles.cache.some(r => r.name === EVENT_HOST_ROLE);
+  // Mods can host too: anyone who can moderate (timeout/manage messages) or has a Mod-style role
+  if (member.permissions.has('ModerateMembers') || member.permissions.has('ManageMessages')) return true;
+  const names = [EVENT_HOST_ROLE, 'Mod', 'Mods', 'Moderator', 'Moderators'].map(n => n.toLowerCase());
+  return member.roles.cache.some(r => names.includes(r.name.toLowerCase().replace(/[^a-z ]/g, '').trim()));
 }
 
 // Join-button emoji per mode
