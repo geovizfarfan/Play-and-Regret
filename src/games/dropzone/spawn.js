@@ -31,7 +31,7 @@ function buildSpawnEmbed(monster, headline) {
     .setColor(meta.color)
     .setTitle(safeTitle)
     .setDescription(
-      `${meta.emoji} **${monster.name.toUpperCase()}**\n${meta.emoji} ${meta.label} • #${String(monster.number).padStart(3, '0')}\n\n*"${monster.flavorText}"*`
+      `${meta.emoji} **${monster.name.toUpperCase()}**\n${meta.emoji} ${meta.label} • ${monster.collector ? 'C' : ''}#${String(monster.number).padStart(3, '0')}\n\n*"${monster.flavorText}"*`
     )
     .setImage(`attachment://${String(monster.number).padStart(3, '0')}.png`)
     .setFooter({ text: `First click starts a ${CONFIG.catchWindowSeconds}-second window — anyone can jump in` });
