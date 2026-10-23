@@ -25,7 +25,7 @@ function isHost(member) {
   if (!member) return false;
   if (member.permissions.has('Administrator')) return true;
   const hostRole = process.env.EVENT_HOST_ROLE || 'Event Host';
-  return member.roles.cache.some(r => r.name === hostRole);
+  return require('../../utils/hostAccess').canHost(member);
 }
 
 async function ensureStats(userId) {

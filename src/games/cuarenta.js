@@ -660,7 +660,7 @@ async function cancelGame(channelId, channel, requesterId, replyFn) {
   if (!game) return replyFn(`${E.ERROR} No active Cuarenta game here.`);
   const isHost  = game.hostId === requesterId;
   const member  = channel.guild?.members.cache.get(requesterId);
-  const isAdmin = member && (member.permissions.has('Administrator') || member.roles.cache.some(r=>r.name===(process.env.ADMIN_ROLE||'Admin')));
+  const isAdmin = require('../utils/hostAccess').canHost(member);
   if (!isHost && !isAdmin) return replyFn(`${E.ERROR} Only the host or admins can cancel.`);
   for (const p of game.players) if (!p.isBot) await guildEconomy.addFunds(channel.guild.id, p.id, p.username, game.bet, 'Cuarenta cancelled');
   if (game.turnMessage) game.turnMessage.edit({ components: turnButtons(true) }).catch(()=>{});

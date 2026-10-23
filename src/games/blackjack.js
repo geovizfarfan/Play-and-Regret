@@ -436,7 +436,7 @@ module.exports = {
       if (g.phase === 'running') return interaction.reply({ content: `<:wrong:1495666083594502174> Game is in progress.`, ephemeral: true });
       const isHost  = g.hostId === interaction.user.id;
       const isAdmin = interaction.member?.permissions?.has('Administrator') || interaction.member?.roles?.cache?.some(r => r.name === (process.env.ADMIN_ROLE || 'Admin'));
-      const isEventHost = interaction.member?.roles?.cache?.some(r => r.name === EVENT_HOST_ROLE);
+      const isEventHost = require('../utils/hostAccess').canHost(interaction.member);
       if (!isHost && !isAdmin && !isEventHost) return interaction.reply({ content: `<:wrong:1495666083594502174> Only the host, admins, or **${EVENT_HOST_ROLE}** can cancel.`, ephemeral: true });
       for (const p of g.players) await guildEconomy.addFunds(interaction.guild.id, p.id, p.username, g.bet, 'Blackjack cancelled');
       if (g.message) g.message.edit({ components: [] }).catch(() => {});
@@ -458,7 +458,7 @@ module.exports = {
       if (!g) return message.reply(`<:wrong:1495666083594502174> No Blackjack running here.`);
       const isHost  = g.hostId === message.author.id;
       const isAdmin = message.member?.permissions?.has('Administrator') || message.member?.roles?.cache?.some(r => r.name === (process.env.ADMIN_ROLE || 'Admin'));
-      const isEventHost = message.member?.roles?.cache?.some(r => r.name === EVENT_HOST_ROLE);
+      const isEventHost = require('../utils/hostAccess').canHost(message.member);
       if (!isHost && !isAdmin && !isEventHost) return message.reply(`<:wrong:1495666083594502174> Only the host, admins, or **${EVENT_HOST_ROLE}** can cancel.`);
       for (const p of g.players) await guildEconomy.addFunds(message.guild.id, p.id, p.username, g.bet, 'Blackjack cancelled');
       if (g.message) g.message.edit({ components: [] }).catch(() => {});

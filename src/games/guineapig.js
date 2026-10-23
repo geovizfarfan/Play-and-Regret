@@ -47,7 +47,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 function hasHostRole(member) {
   if (!member) return false;
   if (member.permissions.has('Administrator')) return true;
-  return member.roles.cache.some(r => r.name === EVENT_HOST_ROLE);
+  return require('../utils/hostAccess').canHost(member);
 }
 
 // ─── Grid ─────────────────────────────────────────────────────────────────────

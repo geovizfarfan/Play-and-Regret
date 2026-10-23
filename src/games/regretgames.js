@@ -201,9 +201,7 @@ function fmtTime(ms) {
 
 function isStaff(member) {
   if (!member) return false;
-  if (member.permissions.has('Administrator')) return true;
-  const staffRoles = ['Admin', 'Mod', 'Staff', 'Event Host', process.env.ADMIN_ROLE].filter(Boolean);
-  return member.roles.cache.some(r => staffRoles.includes(r.name));
+  return require('../utils/hostAccess').canHost(member);
 }
 
 // ─── DB HELPERS ───────────────────────────────────────────────────────────────

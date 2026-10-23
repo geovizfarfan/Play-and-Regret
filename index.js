@@ -1271,7 +1271,7 @@ async function tryCancelAll(channel, userId, username, replyFn, guildId = null) 
       const g = cuyGames.get(channelId);
       const member = channel.guild ? await channel.guild.members.fetch(userId).catch(() => null) : null;
       const isHost  = g.hostId === userId;
-      const isAdmin = member && (member.permissions.has('Administrator') || member.roles.cache.some(r => r.name === (process.env.EVENT_HOST_ROLE || 'Event Host')));
+      const isAdmin = require('./src/utils/hostAccess').canHost(member);
       if (!isHost && !isAdmin) {
         return replyFn('<:wrong:1495666083594502174> Only the host or admins can cancel.');
       }
@@ -1292,7 +1292,7 @@ async function tryCancelAll(channel, userId, username, replyFn, guildId = null) 
       const g = memoryModule.activeGames.get(channelId);
       const member = channel.guild ? await channel.guild.members.fetch(userId).catch(() => null) : null;
       const isHost  = g.hostId === userId;
-      const isAdmin = member && (member.permissions.has('Administrator') || member.roles.cache.some(r => r.name === (process.env.EVENT_HOST_ROLE || 'Event Host')));
+      const isAdmin = require('./src/utils/hostAccess').canHost(member);
       if (!isHost && !isAdmin) {
         return replyFn('<:wrong:1495666083594502174> Only the host or admins can cancel.');
       }

@@ -323,8 +323,7 @@ module.exports = {
         // Cancel
         if (id === 'lot_cancel') {
           const isHost  = inter.user.id === game.host;
-          const isAdmin = inter.member?.permissions?.has('Administrator') ||
-                          inter.member?.roles?.cache?.some(r => r.name === (process.env.ADMIN_ROLE || 'Admin'));
+          const isAdmin = require('../utils/hostAccess').canHost(inter.member);
           if (!isHost && !isAdmin)
             return inter.reply({ content: `${E.ERROR} Only the host or an admin can cancel!`, ephemeral: true });
           await inter.deferUpdate().catch(() => {});
@@ -537,7 +536,7 @@ module.exports = {
         if (inter.customId === 'lot_cancel') {
           if (!gNow) return inter.reply({ content: 'Game has ended.', ephemeral: true });
           const isHost  = inter.user.id === gNow?.host;
-          const isAdmin = inter.member?.permissions?.has('Administrator');
+          const isAdmin = require('../utils/hostAccess').canHost(inter.member);
           if (!isHost && !isAdmin)
             return inter.reply({ content: '<:wrong:1495666083594502174> Only the host or admin can cancel.', ephemeral: true });
           clearInterval(gNow.interval);
@@ -592,7 +591,7 @@ module.exports = {
     if (requesterId) {
       const isHost  = game.host === requesterId;
       const member  = game.lobbyMsg?.guild?.members.cache.get(requesterId);
-      const isAdmin = member && (member.permissions.has('Administrator') || member.roles.cache.some(r => r.name === (process.env.ADMIN_ROLE || 'Admin')));
+      const isAdmin = require('../utils/hostAccess').canHost(member);
       if (!isHost && !isAdmin) return replyFn(`${E.ERROR} Only the host or admins can cancel.`);
     }
 

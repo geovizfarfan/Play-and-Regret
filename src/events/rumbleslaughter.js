@@ -653,7 +653,7 @@ function isHost(member) {
   if (member.permissions.has('Administrator')) return true;
   if (member.guild?.ownerId === member.id) return true;
   const hostRole = process.env.EVENT_HOST_ROLE || 'Event Host';
-  return member.roles.cache.some(r => r.name === hostRole);
+  return require('../utils/hostAccess').canHost(member);
 }
 
 function canCancel(member, hostId) {
@@ -1333,8 +1333,7 @@ module.exports = {
         if (!game || game.phase !== 'signup')
           return interaction.reply({ content: '<:wrong:1495666083594502174> No open game to start.', ephemeral: true });
         const isHost  = interaction.user.id === game.hostId;
-        const isAdmin = interaction.member?.permissions?.has('Administrator') ||
-                        interaction.member?.roles?.cache?.some(r => r.name === (process.env.ADMIN_ROLE || 'Admin'));
+        const isAdmin = require('../utils/hostAccess').canHost(interaction.member);
         if (!isHost && !isAdmin)
           return interaction.reply({ content: '<:wrong:1495666083594502174> Only the host or an admin can start the game!', ephemeral: true });
         await interaction.deferUpdate();
