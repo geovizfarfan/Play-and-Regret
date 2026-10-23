@@ -73,7 +73,8 @@ const slashCommands = [
     .addUserOption(o => o.setName('user').setDescription('Who to send to').setRequired(true))
     .addIntegerOption(o => o.setName('amount').setDescription('Amount').setRequired(true).setMinValue(1)),
   new SlashCommandBuilder().setName('beg').setDescription('Beg for sins (1hr cooldown)'),
-  new SlashCommandBuilder().setName('leaderboard').setDescription('Top 10 richest players'),
+  new SlashCommandBuilder().setName('leaderboard').setDescription('Top 10 players')
+    .addStringOption(o => o.setName('type').setDescription('What to rank (default: Sins)').addChoices({ name: 'Sins', value: 'sins' }, { name: 'Regrets', value: 'regrets' })),
   new SlashCommandBuilder().setName('profile').setDescription('View player stats and balance')
     .addUserOption(o => o.setName('user').setDescription('User to view')),
   new SlashCommandBuilder().setName('give').setDescription('Admin: Give sins to a user')
@@ -1034,7 +1035,7 @@ function buildHelpEmbeds() {
         '`/daily` `!daily` — Claim daily sins (every 7th day drops a bonus item)',
         '`/beg` `!beg` — Beg for sins (1hr cooldown)',
         '`/transfer @user amount` — Send sins',
-        '`/leaderboard` `!lb` — Top 10 richest',
+        '`/leaderboard` `!lb` — Top 10 (add `regrets` for the Regrets board)',
         '`/profile` `!profile` — Your stats',
         '`/gamble amount tier` — Bet sins on safe/risky/reckless odds',
         '`/items` `!items` — View your weekly streak items',

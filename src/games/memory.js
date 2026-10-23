@@ -133,6 +133,7 @@ async function getLeaderboard(size) {
 
 // ─── Core game runner (shared solo + multi) ───────────────────────────────────
 async function runGame(channel, players, bet, sizeKey, guild, mode) {
+  if (players.length > 1) await require('../utils/pingPlayers').pingPlayers(channel, players.map(p => p.id), '🔔 **Memory** is starting — get ready!');
   const size    = BOARD_SIZES[sizeKey];
   const gameId  = `${channel.id}_${Date.now()}`;
   const emojis  = getServerEmojis(guild, size.pairs);

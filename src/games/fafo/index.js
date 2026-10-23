@@ -172,6 +172,7 @@ async function beginRounds(channel) {
   }
 
   session.phase = 'playing';
+  await require('../../utils/pingPlayers').pingPlayers(channel, [...session.players.keys()], '🔔 **FAFO** is starting — get ready!');
   await session.lobbyMsg?.edit({ components: [] }).catch(() => {});
   await channel.send({ embeds: [
     new EmbedBuilder().setColor('#8B0000')

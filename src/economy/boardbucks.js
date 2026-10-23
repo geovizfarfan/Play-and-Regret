@@ -140,7 +140,7 @@ module.exports = {
       case 'drop':                             return this.drop(message, args);
       case 'beg':                              return this.beg(message);
       case 'daily':                            return this.daily(message);
-      case 'leaderboard': case 'lb': case 'richest': return this.leaderboard(message);
+      case 'leaderboard': case 'lb': case 'richest': return this.leaderboard(message, args);
       case 'stats': case 'profile':            return this.profile(message, args);
       case 'grantsins':                        return this.grantSins(message, args);
     }
@@ -573,17 +573,24 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
   },
 
   // ── Leaderboard ──────────────────────────────────────────────────────────────
-  async leaderboard(message) {
-    const top    = await guildEconomy.getLeaderboard(message.guild.id, 10);
-    const medals = [E.MEDAL_1, E.MEDAL_2, E.MEDAL_3];
-    const rows   = top.map((u, i) =>
-      `${medals[i] || `**${i+1}.**`} <@${u.user_id}> — **${u.balance.toLocaleString()} sins**`
-    ).join('\n');
+  async leaderboard(message, args = []) {
+    const wantRegrets = /^regrets?$/i.test(String(args.find(a => /^(sins?|regrets?)$/i.test(String(a))) || ''));
+    let rows;
+    if (wantRegrets) {
+      const { db } = require('../utils/database');
+      const cand = await db.all('SELECT user_id, regret FROM users WHERE regret > 0 ORDER BY regret DESC LIMIT 60');
+      let inGuild = null;
+      try { inGuild = await message.guild.members.fetch({ user: cand.map(u => u.user_id) }); } catch {}
+      rows = cand.filter(u => !inGuild || inGuild.has(u.user_id)).slice(0, 10).map(u => ({ user_id: u.user_id, amount: Number(u.regret) }));
+    } else {
+      const top = await guildEconomy.getLeaderboard(message.guild.id, 10);
+      rows = top.map(u => ({ user_id: u.user_id, amount: Number(u.balance) }));
+    }
+    const text = rows.map((u, i) => `${i + 1}. <@${u.user_id}> - ${u.amount.toLocaleString()}`).join('\n');
     return message.reply({ embeds: [
       new EmbedBuilder().setColor('#D8B4FE')
-        .setTitle(`${E.LEADERBOARD || '<a:1stplace:1487504691880263791>'} sins Leaderboard`)
-        .setDescription(rows || 'No players yet!')
-        .setFooter({ text: 'Top 10 richest players' })
+        .setTitle(wantRegrets ? '<:purp_caveira50:1495665632845369354> Regrets Leaderboard' : '<:sinners:1563284223547281459> Sins Leaderboard')
+        .setDescription(text || 'No players yet!')
     ]});
   },
 
@@ -661,6 +668,7 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
     const args   = [];
     if (user)   args.push(`<@${user.id}>`);
     if (amount !== null && amount !== undefined) args.push(String(amount));
+    if (commandName === 'leaderboard') args.push(interaction.options.getString('type') || 'sins');
 
     if (commandName === 'drop') {
       // Drop needs direct channel access

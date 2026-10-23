@@ -462,6 +462,7 @@ module.exports = {
     }
 
     game.phase = 'playing';
+    await require('../utils/pingPlayers').pingPlayers(channel, [...game.players.keys()], '🔔 **Lotería** is starting — get ready!');
     const pot  = game.bet * game.players.size;
 
     await channel.send({ embeds: [new EmbedBuilder().setColor('#9B6DFF')

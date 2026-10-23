@@ -153,6 +153,7 @@ async function beginGame(channel) {
   }
 
   game.phase = 'playing';
+  await require('../../utils/pingPlayers').pingPlayers(channel, [...game.players.keys()], '🔔 **Pick Me Pit** is starting — get ready!');
   await game.lobbyMsg?.edit({ components: [] }).catch(() => {});
   await channel.send({ embeds: [
     new EmbedBuilder().setColor('#D4537E').setTitle('<a:kiss:1545098398565142601> THE PIT OPENS')

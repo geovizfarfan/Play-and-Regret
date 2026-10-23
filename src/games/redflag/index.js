@@ -159,6 +159,7 @@ async function beginGame(channel) {
   }
 
   game.phase = 'playing';
+  await require('../../utils/pingPlayers').pingPlayers(channel, [...game.players.keys()], '🔔 **Walkin Red Flag** is starting — get ready!');
   await game.lobbyMsg?.edit({ components: [] }).catch(() => {});
   await channel.send({ embeds: [
     new EmbedBuilder().setColor('#CC0000').setTitle('<a:redflag:1545091812924858469> THE RUMBLE BEGINS')

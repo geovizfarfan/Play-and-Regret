@@ -121,6 +121,7 @@ function makeGameEmbed(dealerHand, playerHands, hideSecond = true) {
 
 // ─── Game runner ──────────────────────────────────────────────────────────────
 async function runBlackjack(channel, players, bet) {
+  if (players.length > 1) await require('../utils/pingPlayers').pingPlayers(channel, players.map(p => p.id), '🔔 **Blackjack** is starting — get ready!');
   const deck        = buildDeck();
   const dealerHand  = [deck.pop(), deck.pop()];
   const playerHands = new Map();

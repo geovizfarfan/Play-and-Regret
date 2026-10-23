@@ -84,6 +84,7 @@ async function refundPlayers(channel, players, bet, reason) {
 
 // ─── Run game ─────────────────────────────────────────────────────────────────
 async function runCuyGame(channel, players, bet, target, points, state) {
+  if (players.length > 1) await require('../utils/pingPlayers').pingPlayers(channel, players.map(p => p.id), '🔔 **Find the Cuy** is starting — get ready!');
   const pot    = bet * players.length;
   const score  = new Map(players.map(p => [p.id, 0]));
   const gameId = `${channel.id}_${Date.now()}`;
