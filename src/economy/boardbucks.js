@@ -574,24 +574,67 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
 
   // ── Leaderboard ──────────────────────────────────────────────────────────────
   async leaderboard(message, args = []) {
-    const wantRegrets = /^regrets?$/i.test(String(args.find(a => /^(sins?|regrets?)$/i.test(String(a))) || ''));
-    let rows;
-    if (wantRegrets) {
-      const { db } = require('../utils/database');
-      const cand = await db.all('SELECT user_id, regret FROM users WHERE regret > 0 ORDER BY regret DESC LIMIT 60');
-      let inGuild = null;
-      try { inGuild = await message.guild.members.fetch({ user: cand.map(u => u.user_id) }); } catch {}
-      rows = cand.filter(u => !inGuild || inGuild.has(u.user_id)).slice(0, 10).map(u => ({ user_id: u.user_id, amount: Number(u.regret) }));
-    } else {
-      const top = await guildEconomy.getLeaderboard(message.guild.id, 10);
-      rows = top.map(u => ({ user_id: u.user_id, amount: Number(u.balance) }));
-    }
-    const text = rows.map((u, i) => `${i + 1}. <@${u.user_id}> - ${u.amount.toLocaleString()}`).join('\n');
-    return message.reply({ embeds: [
-      new EmbedBuilder().setColor('#D8B4FE')
-        .setTitle(wantRegrets ? '<:purp_caveira50:1495665632845369354> Regrets Leaderboard' : '<:sinners:1563284223547281459> Sins Leaderboard')
+    const PAGE = 15;
+    let mode = /^regrets?$/i.test(String(args.find(a => /^(sins?|regrets?)$/i.test(String(a))) || '')) ? 'regrets' : 'sins';
+    const guild = message.guild;
+    const cache = {};
+
+    // everyone still in the server (ids fetched in chunks of 100)
+    const inGuildSet = async (ids) => {
+      const ok = new Set();
+      for (let i = 0; i < ids.length; i += 100) {
+        try { const got = await guild.members.fetch({ user: ids.slice(i, i + 100) }); for (const id of got.keys()) ok.add(id); } catch {}
+      }
+      return ok;
+    };
+    const load = async (m) => {
+      if (cache[m]) return cache[m];
+      let rows;
+      if (m === 'regrets') {
+        const { db } = require('../utils/database');
+        const all = await db.all('SELECT user_id, regret FROM users WHERE regret > 0 ORDER BY regret DESC LIMIT 3000');
+        const ok = await inGuildSet(all.map(u => u.user_id));
+        rows = all.filter(u => ok.has(u.user_id)).map(u => ({ user_id: u.user_id, amount: Number(u.regret) }));
+      } else {
+        const all = await guildEconomy.getLeaderboard(guild.id, 3000);
+        const ok = await inGuildSet(all.map(u => u.user_id));
+        rows = all.filter(u => ok.has(u.user_id)).map(u => ({ user_id: u.user_id, amount: Number(u.balance) }));
+      }
+      return (cache[m] = rows);
+    };
+    const render = async (m, page) => {
+      const rows = await load(m);
+      const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+      page = Math.min(Math.max(0, page), pages - 1);
+      const slice = rows.slice(page * PAGE, page * PAGE + PAGE);
+      const text = slice.map((u, i) => `${page * PAGE + i + 1}. <@${u.user_id}> - ${u.amount.toLocaleString()}`).join('\n');
+      const embed = new EmbedBuilder().setColor('#D8B4FE')
+        .setTitle(m === 'regrets' ? '<:purp_caveira50:1495665632845369354> Regrets Leaderboard' : '<:sinners:1563284223547281459> Sins Leaderboard')
         .setDescription(text || 'No players yet!')
-    ]});
+        .setFooter({ text: `Page ${page + 1}/${pages} • ${rows.length} member${rows.length !== 1 ? 's' : ''}` });
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('lb_prev').setLabel('Prev').setEmoji('◀️').setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
+        new ButtonBuilder().setCustomId('lb_next').setLabel('Next').setEmoji('▶️').setStyle(ButtonStyle.Secondary).setDisabled(page >= pages - 1),
+        m === 'sins'
+          ? new ButtonBuilder().setCustomId('lb_toggle').setLabel('Regrets (all members)').setEmoji({ id: '1495665632845369354', name: 'purp_caveira50' }).setStyle(ButtonStyle.Danger)
+          : new ButtonBuilder().setCustomId('lb_toggle').setLabel('Sins (all members)').setEmoji({ id: '1563284223547281459', name: 'sinners' }).setStyle(ButtonStyle.Primary));
+      return { payload: { embeds: [embed], components: [row] }, page };
+    };
+
+    let page = 0;
+    const first = await render(mode, page);
+    const sent = await message.reply(first.payload);
+    if (!sent?.createMessageComponentCollector) return;
+    const col = sent.createMessageComponentCollector({ time: 5 * 60 * 1000 });
+    col.on('collect', async (i) => {
+      if (i.user.id !== message.author?.id) return i.reply({ content: 'Run `/leaderboard` to get your own board.', ephemeral: true }).catch(() => {});
+      if (i.customId === 'lb_prev') page--;
+      else if (i.customId === 'lb_next') page++;
+      else if (i.customId === 'lb_toggle') { mode = mode === 'sins' ? 'regrets' : 'sins'; page = 0; }
+      try { await i.deferUpdate(); const r = await render(mode, page); page = r.page; await i.editReply(r.payload); }
+      catch (err) { console.error('[leaderboard]', err.message); }
+    });
+    col.on('end', () => { sent.edit({ components: [] }).catch(() => {}); });
   },
 
   // ── Profile ──────────────────────────────────────────────────────────────────

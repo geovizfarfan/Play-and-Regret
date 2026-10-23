@@ -1035,7 +1035,7 @@ function buildHelpEmbeds() {
         '`/daily` `!daily` — Claim daily sins (every 7th day drops a bonus item)',
         '`/beg` `!beg` — Beg for sins (1hr cooldown)',
         '`/transfer @user amount` — Send sins',
-        '`/leaderboard` `!lb` — Top 10 (add `regrets` for the Regrets board)',
+        '`/leaderboard` `!lb` — All members ranked, with a Regrets button',
         '`/profile` `!profile` — Your stats',
         '`/gamble amount tier` — Bet sins on safe/risky/reckless odds',
         '`/items` `!items` — View your weekly streak items',
