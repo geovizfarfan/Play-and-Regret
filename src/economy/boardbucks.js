@@ -613,11 +613,11 @@ the shame is still fresh. <a:pray:1495665631775817778>`)
         .setDescription(text || 'No players yet!')
         .setFooter({ text: `Page ${page + 1}/${pages} • ${rows.length} member${rows.length !== 1 ? 's' : ''}` });
       const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('lb_prev').setLabel('Prev').setEmoji('◀️').setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
-        new ButtonBuilder().setCustomId('lb_next').setLabel('Next').setEmoji('▶️').setStyle(ButtonStyle.Secondary).setDisabled(page >= pages - 1),
+        new ButtonBuilder().setCustomId('lb_prev').setLabel('Prev').setEmoji({ id: '1563289612712149212', name: 'back', animated: true }).setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
+        new ButtonBuilder().setCustomId('lb_next').setLabel('Next').setEmoji({ id: '1563289494067613738', name: 'NEXT', animated: true }).setStyle(ButtonStyle.Secondary).setDisabled(page >= pages - 1),
         m === 'sins'
-          ? new ButtonBuilder().setCustomId('lb_toggle').setLabel('Regrets (all members)').setEmoji({ id: '1495665632845369354', name: 'purp_caveira50' }).setStyle(ButtonStyle.Danger)
-          : new ButtonBuilder().setCustomId('lb_toggle').setLabel('Sins (all members)').setEmoji({ id: '1563284223547281459', name: 'sinners' }).setStyle(ButtonStyle.Primary));
+          ? new ButtonBuilder().setCustomId('lb_toggle').setLabel('Regrets').setEmoji({ id: '1495665632845369354', name: 'purp_caveira50' }).setStyle(ButtonStyle.Danger)
+          : new ButtonBuilder().setCustomId('lb_toggle').setLabel('Sins').setEmoji({ id: '1563284223547281459', name: 'sinners' }).setStyle(ButtonStyle.Primary));
       return { payload: { embeds: [embed], components: [row] }, page };
     };
 
