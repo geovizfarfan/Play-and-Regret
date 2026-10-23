@@ -62,20 +62,26 @@ async function postSpawn(channel, guildId, monster, spawnType = 'NATURAL', pingR
   );
   const spawnId = row.id;
 
-  const headline = M.pick(M.SPAWN_HEADLINES[monster.rarity]);
-  const embed = buildSpawnEmbed(monster, headline);
-  const attachment = await loadImageAttachment(monster);
-  const row1 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`dz_catch:${spawnId}`).setLabel('CATCH').setEmoji('<a:catch:1552115280342421555>').setStyle(ButtonStyle.Danger)
-  );
+  let msg;
+  try {
+    const headline = M.pick(M.SPAWN_HEADLINES[monster.rarity]);
+    const embed = buildSpawnEmbed(monster, headline);
+    const attachment = await loadImageAttachment(monster);
+    const row1 = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`dz_catch:${spawnId}`).setLabel('CATCH').setEmoji('<a:catch:1552115280342421555>').setStyle(ButtonStyle.Danger)
+    );
 
-  const msg = await channel.send({
-    content: pingRoleId ? `<@&${pingRoleId}>` : undefined,
-    embeds: [embed],
-    components: [row1],
-    files: attachment ? [attachment] : [],
-    allowedMentions: { roles: pingRoleId ? [pingRoleId] : [] },
-  });
+    msg = await channel.send({
+      content: pingRoleId ? `<@&${pingRoleId}>` : undefined,
+      embeds: [embed],
+      components: [row1],
+      files: attachment ? [attachment] : [],
+      allowedMentions: { roles: pingRoleId ? [pingRoleId] : [] },
+    });
+  } catch (err) {                                              // never leave a ghost ACTIVE spawn behind
+    await db.run(`UPDATE dropzone_spawns SET status = 'CANCELLED', resolved_at = NOW() WHERE id = ?`, [spawnId]).catch(() => {});
+    throw err;
+  }
 
   await db.run('UPDATE dropzone_spawns SET message_id = ? WHERE id = ?', [msg.id, spawnId]);
 
