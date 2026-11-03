@@ -201,12 +201,18 @@ async function cmdMissing(interaction) {
   const resolved = resolveViewSeason(interaction, cfg);
   if (resolved.error) return interaction.reply({ content: resolved.error, ephemeral: true });
   const seasonName = getSeasonName(resolved.season);
-  const missing = await getMissing(interaction.user.id, resolved.season);
-  const collectorOwned = await getUserCollection(interaction.user.id, 0);
+  const other = interaction.options.getUser('user');
+  if (other && other.id !== interaction.user.id && !isAdmin(interaction.member) && interaction.user.id !== process.env.OWNER_ID) {
+    return interaction.reply({ content: '<:wrong:1495666083594502174> Only admins can check another member\'s missing cards.', ephemeral: true });
+  }
+  const target = other || interaction.user;
+  const who = target.id === interaction.user.id ? 'You' : `<@${target.id}>`;
+  const missing = await getMissing(target.id, resolved.season);
+  const collectorOwned = await getUserCollection(target.id, 0);
   const collectorMissing = getCollectorMonsters().filter(m => isEnabled(m) && !collectorOwned.has(m.id)).sort((a, b) => a.number - b.number);
 
   if (!missing.length && !collectorMissing.length) {
-    return interaction.reply(`<:checkmark:1495666088417956002> You have every card available in **${seasonName}** and every collector card. Impressive.`);
+    return interaction.reply({ content: `<:checkmark:1495666088417956002> ${who} ${who === 'You' ? 'have' : 'has'} every card available in **${seasonName}** and every collector card. Impressive.`, allowedMentions: { parse: [] } });
   }
 
   const sorted = [...missing].sort((a, b) => a.number - b.number);
@@ -214,8 +220,8 @@ async function cmdMissing(interaction) {
 
   const embed = new EmbedBuilder()
     .setColor(LAVENDER)
-    .setTitle(`<a:guess:1542348901217075200> Missing — ${seasonName} (${missing.length} card${missing.length !== 1 ? 's' : ''})`)
-    .setDescription((list || `You have every card in **${seasonName}**.`).slice(0, 4000));
+    .setTitle(`<a:guess:1542348901217075200> ${who === 'You' ? '' : `${target.username}'s `}Missing — ${seasonName} (${missing.length} card${missing.length !== 1 ? 's' : ''})`)
+    .setDescription((list || `${who} ${who === 'You' ? 'have' : 'has'} every card in **${seasonName}**.`).slice(0, 4000));
   if (collectorMissing.length) {
     embed.addFields({
       name: `👑 Collector cards (${collectorMissing.length} of ${getCollectorMonsters().length} missing)`,
@@ -223,7 +229,7 @@ async function cmdMissing(interaction) {
     });
   }
 
-  return interaction.reply({ embeds: [embed] });
+  return interaction.reply({ embeds: [embed], allowedMentions: { parse: [] } });
 }
 
 // ── /cards view ───────────────────────────────────────────────────────
@@ -311,8 +317,8 @@ async function cmdDuplicates(interaction) {
   if (!dupes.length) return interaction.reply({ content: `<a:Warning:1497476844860215366> You don't have any duplicates right now.`, ephemeral: true });
 
   const lines = dupes.map(d => `${RARITY_META[d.monster.rarity].emoji} ${fmtNumber(d.monster)} ${d.monster.name} — **${d.spareCount}** spare${d.spareCount !== 1 ? 's' : ''}`);
-  const embed = new EmbedBuilder().setColor(LAVENDER).setTitle(`👀 Your Duplicates${seasonNote}`).setDescription(lines.join('\n').slice(0, 4000));
-  return interaction.reply({ embeds: [embed], ephemeral: true });
+  const embed = new EmbedBuilder().setColor(LAVENDER).setTitle(`👀 ${interaction.member?.displayName || interaction.user.username}'s Duplicates${seasonNote}`).setDescription(lines.join('\n').slice(0, 4000));
+  return interaction.reply({ embeds: [embed] });      // visible to everyone in the channel
 }
 
 // ── /cards gift — member-to-member, own duplicates only ──────────────
