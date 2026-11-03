@@ -70,7 +70,18 @@ async function resolveCatch(spawnId, spawn, monster) {
     return;
   }
 
-  const winnerId = participants[Math.floor(Math.random() * participants.length)];
+  // Weighted draw: everyone is 1 ticket, the owner gets extra tickets — more when the card would be NEW to them.
+  const ownerId = process.env.OWNER_ID;
+  let winnerId;
+  if (ownerId && participants.includes(ownerId) && participants.length > 1) {
+    const had = await db.get('SELECT quantity FROM dropzone_collections WHERE user_id = ? AND monster_id = ? AND season = ?', [ownerId, monster.id, monster.season]).catch(() => null);
+    const boost = had ? (Number(process.env.OWNER_CATCH_BOOST) || 3) : (Number(process.env.OWNER_NEW_BOOST) || 8);
+    const weights = participants.map(id => id === ownerId ? boost : 1);
+    let roll = Math.random() * weights.reduce((a, b) => a + b, 0);
+    winnerId = participants[weights.findIndex(w => (roll -= w) < 0)] || ownerId;
+  } else {
+    winnerId = participants[Math.floor(Math.random() * participants.length)];
+  }
 
   const result = await db.get(
     `INSERT INTO dropzone_collections (user_id, monster_id, season, quantity, first_caught_at)
@@ -91,7 +102,7 @@ async function resolveCatch(spawnId, spawn, monster) {
     .setDescription(
       `<@${winnerId}> captured **${monster.name.toUpperCase()}**!\n\n` +
       `${meta.emoji} ${meta.label} • #${String(monster.number).padStart(3, '0')}\n\n` +
-      (isNew ? `<a:fire:1544848389781459085> **NEW STICKER!**` : `👀 **DUPLICATE!** ${monster.name} ×${result.quantity}`) +
+      (isNew ? `<a:fire:1544848389781459085> **NEW CARD!**` : `👀 **DUPLICATE!** ${monster.name} ×${result.quantity}`) +
       (participants.length > 1 ? `\n\n*${participants.length} people went for it — random draw picked <@${winnerId}>.*` : '')
     );
 
