@@ -471,6 +471,28 @@ async function handleAdminAutocomplete(interaction) {
   const sub = interaction.options.getSubcommand(false);
   // gift / remove: the season dropdown filters the list; with no pick, list every season (current
   // first) so closed seasons stay giftable. Every other admin subcommand keeps current season only.
+  // remove: once a member is picked, only list the cards THEY actually own (with how many).
+  if (sub === 'remove') {
+    const targetId = interaction.options.get('user')?.value;
+    if (targetId) {
+      const targetName = interaction.client.users.cache.get(targetId)?.username || 'This member';
+      const pickedSeason = interaction.options.get('season')?.value;
+      const owned = (await A.getUserOwnedCards(targetId))
+        .map(o => ({ monster: getMonster(o.monsterId), quantity: o.quantity }))
+        .filter(o => o.monster && (pickedSeason == null || o.monster.season === pickedSeason) && o.monster.name.toLowerCase().includes(focused))
+        .sort((a, b) => (a.monster.season - b.monster.season) || ((a.monster.number || 0) - (b.monster.number || 0)))
+        .slice(0, 25);
+      if (!owned.length) {
+        return interaction.respond([{ name: `${targetName} has no cards${focused ? ' matching that' : pickedSeason != null ? ' in that season' : ''}`, value: 'none' }]);
+      }
+      const multiSeason = pickedSeason == null && new Set(owned.map(o => o.monster.season)).size > 1;
+      return interaction.respond(owned.map(o => ({
+        name: `${o.monster.collector ? '👑 ' : multiSeason ? `S${o.monster.season} ` : ''}${fmtNumber(o.monster)} ${o.monster.name} — owns ${o.quantity}`.slice(0, 100),
+        value: o.monster.id,
+      })));
+    }
+    // no member picked yet — fall through to the full list
+  }
   const seasonAware = sub === 'gift' || sub === 'remove';
   const picked = seasonAware ? interaction.options.get('season')?.value : undefined;
   const seasons = !seasonAware ? [adminCfg.current_season]

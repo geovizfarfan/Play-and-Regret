@@ -77,6 +77,12 @@ async function getOwnedQuantity(userId, monsterId) {
   return row?.quantity || 0;
 }
 
+/** Every card a user owns (all seasons), as { monsterId, season, quantity }. */
+async function getUserOwnedCards(userId) {
+  const rows = await db.all('SELECT monster_id, season, quantity FROM dropzone_collections WHERE user_id = ? AND quantity > 0', [userId]);
+  return rows.map(r => ({ monsterId: r.monster_id, season: r.season, quantity: r.quantity }));
+}
+
 async function giftSticker(targetUserId, monsterId, quantity = 1) {
   const monster = getMonster(monsterId);
   if (!monster) return { error: 'unknown_sticker' };
@@ -149,5 +155,5 @@ async function getStats(guildId, season) {
 module.exports = {
   getConfig, setGuildEnabled, setSpawnChannel, getSpawnChannels, isSpawnChannelAllowed,
   setExchangeChannel, setPingRole, giftSticker, removeSticker, manualSpawn, setMonsterEnabled, getStats,
-  grantGiftPermission, revokeGiftPermission, hasGiftPermission, getGiftPermittedUsers, getOwnedQuantity,
+  grantGiftPermission, revokeGiftPermission, hasGiftPermission, getGiftPermittedUsers, getOwnedQuantity, getUserOwnedCards,
 };
