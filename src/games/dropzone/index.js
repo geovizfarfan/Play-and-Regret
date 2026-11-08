@@ -676,7 +676,7 @@ async function handleSlash(interaction, commandName) {
       if (interaction.user.id !== process.env.OWNER_ID) return interaction.reply({ content: '<:wrong:1495666083594502174> Only the owner can see the admin log.', ephemeral: true });
       const rows = await A.getAdminLog(interaction.guild.id, 25);
       if (!rows.length) return interaction.reply({ content: 'No admin spawns or gifts logged yet. (Logging started when this command was added.)', ephemeral: true });
-      const lines = rows.map(r => `<t:${Math.floor(new Date(r.created_at).getTime() / 1000)}:f> — <@${r.user_id}> ${r.action === 'spawn' ? 'spawned' : 'gifted'} ${r.detail || ''}`);
+      const lines = rows.map(r => `<t:${Math.floor(new Date(r.created_at).getTime() / 1000)}:f> — <@${r.user_id}> ${r.action === 'spawn' ? 'spawned' : 'gifted'} ${r.detail || '*(card not recorded — logged before details were added)*'}`);
       const embed = new EmbedBuilder().setColor(LAVENDER).setTitle('📜 Admin Spawn & Gift Log').setDescription(lines.join('\n').slice(0, 4000)).setFooter({ text: `Last ${rows.length} actions` });
       return interaction.reply({ embeds: [embed], ephemeral: true, allowedMentions: { parse: [] } });
     }

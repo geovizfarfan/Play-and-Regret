@@ -78,7 +78,7 @@ async function recordAdminAction(guildId, userId, action, detail = null) {   // 
   await db.run('INSERT INTO dropzone_admin_actions (guild_id, user_id, action, detail) VALUES (?, ?, ?, ?)', [guildId, userId, action, detail]);
 }
 async function getAdminLog(guildId, limit = 25) {
-  return db.all('SELECT user_id, action, detail, created_at FROM dropzone_admin_actions WHERE guild_id = ? ORDER BY created_at DESC LIMIT ?', [guildId, limit]);
+  return db.all(`SELECT user_id, action, detail, (created_at AT TIME ZONE 'UTC') AS created_at FROM dropzone_admin_actions WHERE guild_id = ? ORDER BY created_at DESC LIMIT ?`, [guildId, limit]);
 }
 
 async function getGiftPermittedUsers(guildId) {
