@@ -74,9 +74,11 @@ async function checkAdminQuota(guildId, userId, action) {
   const oldest = new Date(rows[0].created_at).getTime();
   return { ok: false, limit, resetsAt: Math.floor((oldest + 24 * 3600 * 1000) / 1000) };
 }
-async function recordAdminAction(guildId, userId, action) {
-  if (userId && userId === process.env.OWNER_ID) return;
-  await db.run('INSERT INTO dropzone_admin_actions (guild_id, user_id, action) VALUES (?, ?, ?)', [guildId, userId, action]);
+async function recordAdminAction(guildId, userId, action, detail = null) {   // logs everyone, owner included (quota check skips the owner)
+  await db.run('INSERT INTO dropzone_admin_actions (guild_id, user_id, action, detail) VALUES (?, ?, ?, ?)', [guildId, userId, action, detail]);
+}
+async function getAdminLog(guildId, limit = 25) {
+  return db.all('SELECT user_id, action, detail, created_at FROM dropzone_admin_actions WHERE guild_id = ? ORDER BY created_at DESC LIMIT ?', [guildId, limit]);
 }
 
 async function getGiftPermittedUsers(guildId) {
@@ -170,6 +172,6 @@ async function getStats(guildId, season) {
 module.exports = {
   getConfig, setGuildEnabled, setSpawnChannel, getSpawnChannels, isSpawnChannelAllowed,
   setExchangeChannel, setPingRole, giftSticker, removeSticker, manualSpawn, setMonsterEnabled, getStats,
-  checkAdminQuota, recordAdminAction,
+  checkAdminQuota, recordAdminAction, getAdminLog,
   grantGiftPermission, revokeGiftPermission, hasGiftPermission, getGiftPermittedUsers, getOwnedQuantity, getUserOwnedCards,
 };

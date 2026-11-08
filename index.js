@@ -362,6 +362,7 @@ const slashCommands = [
       .addChannelOption(o => o.setName('channel').setDescription('Channel').setRequired(true)))
     .addSubcommand(sc => sc.setName('pingrole').setDescription('Role to ping on every drop (leave blank to clear)')
       .addRoleOption(o => o.setName('role').setDescription('Role to ping')))
+    .addSubcommand(sc => sc.setName('spawnlog').setDescription('Owner only: see which admins spawned or gifted cards, and when'))
     .addSubcommand(sc => sc.setName('giftpermission').setDescription('Allow or remove a member\'s ability to gift their own duplicates')
       .addUserOption(o => o.setName('user').setDescription('Which member').setRequired(true))
       .addStringOption(o => o.setName('state').setDescription('Grant or revoke').setRequired(true).addChoices(

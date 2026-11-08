@@ -799,6 +799,7 @@ async function initDB() {
       action     TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT NOW()
     )`,
+    `ALTER TABLE dropzone_admin_actions ADD COLUMN IF NOT EXISTS detail TEXT`,
     `CREATE INDEX IF NOT EXISTS idx_dz_admin_actions ON dropzone_admin_actions (guild_id, user_id, action, created_at)`,
     `CREATE TABLE IF NOT EXISTS dropzone_gift_permissions (
       guild_id  TEXT NOT NULL,
