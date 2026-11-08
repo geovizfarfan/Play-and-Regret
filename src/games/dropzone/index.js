@@ -500,7 +500,7 @@ async function handleAdminAutocomplete(interaction) {
     : Object.keys(SEASON_NAMES).map(Number).sort((a, b) => (a === adminCfg.current_season ? -1 : b === adminCfg.current_season ? 1 : b - a));
   const badge = seasonAware && picked == null && seasons.length > 1;
   const pool = seasons.flatMap(n => getMonstersBySeason(n));
-  if ((seasonAware && picked == null) || sub === 'spawn') pool.push(...getCollectorMonsters());   // collector cards: giftable, and spawnable by admins (never natural)
+  if ((seasonAware && picked == null) || (sub === 'spawn' && interaction.user.id === process.env.OWNER_ID)) pool.push(...getCollectorMonsters());   // collector cards: giftable by admins, spawnable only by the owner (never natural)
   const visible = pool;
   const matches = visible.filter(m => m.name.toLowerCase().includes(focused)).slice(0, 25); // admin sees disabled ones too
   return interaction.respond(matches.map(m => ({ name: `${m.collector ? '👑 ' : badge ? `S${m.season} ` : ''}${fmtNumber(m)} ${m.name}${isEnabled(m) ? '' : ' (disabled)'}`, value: m.id })));
@@ -609,6 +609,9 @@ async function handleSlash(interaction, commandName) {
       if (!channel) {                                              // default: the configured drop channel (else here)
         const sc = await A.getSpawnChannels(interaction.guild.id);
         channel = (sc.length && (interaction.guild.channels.cache.get(sc[0].channel_id) || await interaction.guild.channels.fetch(sc[0].channel_id).catch(() => null))) || interaction.channel;
+      }
+      if (monsterId && getMonster(monsterId)?.collector && interaction.user.id !== process.env.OWNER_ID) {
+        return interaction.reply({ content: '<:wrong:1495666083594502174> Only the owner can spawn collector cards.', ephemeral: true });
       }
       const quota = await A.checkAdminQuota(interaction.guild.id, interaction.user.id, 'spawn');
       if (!quota.ok) return interaction.reply({ content: `<:wrong:1495666083594502174> Admins can spawn **${quota.limit}** cards per 24 hours. You can spawn again <t:${quota.resetsAt}:R>.`, ephemeral: true });
