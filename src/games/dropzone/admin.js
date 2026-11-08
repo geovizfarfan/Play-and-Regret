@@ -64,6 +64,22 @@ async function hasGiftPermission(guildId, userId) {
   const row = await db.get('SELECT 1 AS x FROM dropzone_gift_permissions WHERE guild_id = ? AND user_id = ?', [guildId, userId]);
   return !!row;
 }
+// ── Mythic permission — only the owner (OWNER_ID) and members the owner allows may spawn / gift mythics ──
+async function grantMythicPermission(guildId, userId) {
+  await db.run('INSERT INTO dropzone_mythic_permissions (guild_id, user_id) VALUES (?, ?) ON CONFLICT (guild_id, user_id) DO NOTHING', [guildId, userId]);
+}
+async function revokeMythicPermission(guildId, userId) {
+  await db.run('DELETE FROM dropzone_mythic_permissions WHERE guild_id = ? AND user_id = ?', [guildId, userId]);
+}
+async function canUseMythics(guildId, userId) {
+  if (userId && userId === process.env.OWNER_ID) return true;
+  const row = await db.get('SELECT 1 AS x FROM dropzone_mythic_permissions WHERE guild_id = ? AND user_id = ?', [guildId, userId]);
+  return !!row;
+}
+async function getMythicPermittedUsers(guildId) {
+  return db.all('SELECT user_id FROM dropzone_mythic_permissions WHERE guild_id = ?', [guildId]);
+}
+
 async function getGiftPermittedUsers(guildId) {
   return db.all('SELECT user_id FROM dropzone_gift_permissions WHERE guild_id = ?', [guildId]);
 }
@@ -112,8 +128,12 @@ async function removeSticker(targetUserId, monsterId, quantity = 1) {
 }
 
 /** Force a manual spawn — a specific monster if given, otherwise a normal weighted roll. */
-async function manualSpawn(channel, guildId, season, monsterId) {
-  const monster = monsterId ? getMonster(monsterId) : rollMonster(season);
+async function manualSpawn(channel, guildId, season, monsterId, allowMythic = false) {
+  let monster = monsterId ? getMonster(monsterId) : rollMonster(season);
+  if (!monsterId && !allowMythic) {                              // random admin spawns never land on a mythic unless allowed
+    for (let i = 0; i < 25 && monster && monster.rarity === 'mythic'; i++) monster = rollMonster(season);
+    if (monster && monster.rarity === 'mythic') return { error: 'no_monster_available' };
+  }
   if (!monster) return { error: 'no_monster_available' };
   const cfg = await getConfig(guildId);
   const spawnId = await postSpawn(channel, guildId, monster, 'ADMIN', cfg.ping_role_id);
@@ -155,5 +175,6 @@ async function getStats(guildId, season) {
 module.exports = {
   getConfig, setGuildEnabled, setSpawnChannel, getSpawnChannels, isSpawnChannelAllowed,
   setExchangeChannel, setPingRole, giftSticker, removeSticker, manualSpawn, setMonsterEnabled, getStats,
+  grantMythicPermission, revokeMythicPermission, canUseMythics, getMythicPermittedUsers,
   grantGiftPermission, revokeGiftPermission, hasGiftPermission, getGiftPermittedUsers, getOwnedQuantity, getUserOwnedCards,
 };

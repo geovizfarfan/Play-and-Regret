@@ -792,6 +792,11 @@ async function initDB() {
       monster_id  TEXT PRIMARY KEY,
       enabled     BOOLEAN NOT NULL
     )`,
+    `CREATE TABLE IF NOT EXISTS dropzone_mythic_permissions (
+      guild_id  TEXT NOT NULL,
+      user_id   TEXT NOT NULL,
+      UNIQUE(guild_id, user_id)
+    )`,
     `CREATE TABLE IF NOT EXISTS dropzone_gift_permissions (
       guild_id  TEXT NOT NULL,
       user_id   TEXT NOT NULL,
