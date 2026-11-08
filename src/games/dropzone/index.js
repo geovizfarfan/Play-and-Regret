@@ -501,10 +501,7 @@ async function handleAdminAutocomplete(interaction) {
   const badge = seasonAware && picked == null && seasons.length > 1;
   const pool = seasons.flatMap(n => getMonstersBySeason(n));
   if ((seasonAware && picked == null) || sub === 'spawn') pool.push(...getCollectorMonsters());   // collector cards: giftable, and spawnable by admins (never natural)
-  let visible = pool;
-  if (interaction.commandName === 'cards-admin' && (sub === 'spawn' || sub === 'gift') && !(await A.canUseMythics(interaction.guild.id, interaction.user.id))) {
-    visible = pool.filter(m => m.rarity !== 'mythic');           // hide mythics from admins who aren't allowed them
-  }
+  const visible = pool;
   const matches = visible.filter(m => m.name.toLowerCase().includes(focused)).slice(0, 25); // admin sees disabled ones too
   return interaction.respond(matches.map(m => ({ name: `${m.collector ? '👑 ' : badge ? `S${m.season} ` : ''}${fmtNumber(m)} ${m.name}${isEnabled(m) ? '' : ' (disabled)'}`, value: m.id })));
 }
@@ -584,15 +581,15 @@ async function handleSlash(interaction, commandName) {
       if (target.id === interaction.user.id && target.id !== process.env.OWNER_ID) {
         return interaction.reply({ content: `<:wrong:1495666083594502174> You can't gift cards to yourself.`, ephemeral: true });
       }
-      if (getMonster(monsterId)?.rarity === 'mythic' && !(await A.canUseMythics(interaction.guild.id, interaction.user.id))) {
-        return interaction.reply({ content: '<:wrong:1495666083594502174> Mythic cards can only be gifted by the owner or admins the owner has allowed.', ephemeral: true });
-      }
+      const giftQuota = await A.checkAdminQuota(interaction.guild.id, interaction.user.id, 'gift');
+      if (!giftQuota.ok) return interaction.reply({ content: `<:wrong:1495666083594502174> Admins can gift **${giftQuota.limit}** card per 24 hours. You can gift again <t:${giftQuota.resetsAt}:R>.`, ephemeral: true });
       const alreadyOwned = await A.getOwnedQuantity(target.id, monsterId);
       if (alreadyOwned > 0) {
         return interaction.reply({ content: `<:wrong:1495666083594502174> ${target.username} already owns that card — staff gifts can't go to cards someone already has.`, ephemeral: true });
       }
       const result = await A.giftSticker(target.id, monsterId, qty);
       if (result.error) return interaction.reply({ content: '<:wrong:1495666083594502174> Unknown card.', ephemeral: true });
+      await A.recordAdminAction(interaction.guild.id, interaction.user.id, 'gift');
       const { embed, attachment } = buildGiftEmbed(result.monster, target, interaction.user);
       return interaction.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
     }
@@ -613,12 +610,11 @@ async function handleSlash(interaction, commandName) {
         const sc = await A.getSpawnChannels(interaction.guild.id);
         channel = (sc.length && (interaction.guild.channels.cache.get(sc[0].channel_id) || await interaction.guild.channels.fetch(sc[0].channel_id).catch(() => null))) || interaction.channel;
       }
-      const mythicOk = await A.canUseMythics(interaction.guild.id, interaction.user.id);
-      if (monsterId && getMonster(monsterId)?.rarity === 'mythic' && !mythicOk) {
-        return interaction.reply({ content: '<:wrong:1495666083594502174> Mythic cards can only be spawned by the owner or admins the owner has allowed.', ephemeral: true });
-      }
-      const result = await A.manualSpawn(channel, interaction.guild.id, cfg.current_season, monsterId, mythicOk);
+      const quota = await A.checkAdminQuota(interaction.guild.id, interaction.user.id, 'spawn');
+      if (!quota.ok) return interaction.reply({ content: `<:wrong:1495666083594502174> Admins can spawn **${quota.limit}** cards per 24 hours. You can spawn again <t:${quota.resetsAt}:R>.`, ephemeral: true });
+      const result = await A.manualSpawn(channel, interaction.guild.id, cfg.current_season, monsterId);
       if (result.error) return interaction.reply({ content: '<:wrong:1495666083594502174> Nothing available to spawn.', ephemeral: true });
+      await A.recordAdminAction(interaction.guild.id, interaction.user.id, 'spawn');
       return interaction.reply({ content: `<:checkmark:1495666088417956002> Spawned **${result.monster.name}** in ${channel}.`, ephemeral: true });
     }
     if (sub === 'enable' || sub === 'disable') {
@@ -678,7 +674,7 @@ async function handleSlash(interaction, commandName) {
       const state = interaction.options.getString('state');
       if (state === 'on') {
         await A.grantGiftPermission(interaction.guild.id, target.id);
-        return interaction.reply(`<:checkmark:1495666088417956002> <@${target.id}> can now gift their duplicate cards to other members with /cards gift, and (if an admin) spawn and gift mythic cards.`);
+        return interaction.reply(`<:checkmark:1495666088417956002> <@${target.id}> can now gift their duplicate cards to other members with /cards gift.`);
       }
       await A.revokeGiftPermission(interaction.guild.id, target.id);
       return interaction.reply(`<:checkmark:1495666088417956002> <@${target.id}>'s gift permission has been revoked.`);
