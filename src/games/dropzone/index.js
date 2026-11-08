@@ -585,7 +585,7 @@ async function handleSlash(interaction, commandName) {
         return interaction.reply({ content: `<:wrong:1495666083594502174> You can't gift cards to yourself.`, ephemeral: true });
       }
       if (getMonster(monsterId)?.rarity === 'mythic' && !(await A.canUseMythics(interaction.guild.id, interaction.user.id))) {
-        return interaction.reply({ content: '<:wrong:1495666083594502174> Only the owner (or admins the owner has allowed) can gift mythic cards.', ephemeral: true });
+        return interaction.reply({ content: '<:wrong:1495666083594502174> Mythic cards can only be gifted by the owner or admins the owner has allowed.', ephemeral: true });
       }
       const alreadyOwned = await A.getOwnedQuantity(target.id, monsterId);
       if (alreadyOwned > 0) {
@@ -615,7 +615,7 @@ async function handleSlash(interaction, commandName) {
       }
       const mythicOk = await A.canUseMythics(interaction.guild.id, interaction.user.id);
       if (monsterId && getMonster(monsterId)?.rarity === 'mythic' && !mythicOk) {
-        return interaction.reply({ content: '<:wrong:1495666083594502174> Only the owner (or admins the owner has allowed) can spawn mythic cards.', ephemeral: true });
+        return interaction.reply({ content: '<:wrong:1495666083594502174> Mythic cards can only be spawned by the owner or admins the owner has allowed.', ephemeral: true });
       }
       const result = await A.manualSpawn(channel, interaction.guild.id, cfg.current_season, monsterId, mythicOk);
       if (result.error) return interaction.reply({ content: '<:wrong:1495666083594502174> Nothing available to spawn.', ephemeral: true });
@@ -673,23 +673,12 @@ async function handleSlash(interaction, commandName) {
       }
       return interaction.reply(`<:checkmark:1495666088417956002> Drop It Like It's Hot is now **${state ? 'ON' : 'OFF'}**.${extra}`);
     }
-    if (sub === 'mythicpermission') {
-      if (interaction.user.id !== process.env.OWNER_ID) return interaction.reply({ content: '<:wrong:1495666083594502174> Only the owner can change who may spawn mythics.', ephemeral: true });
-      const target = interaction.options.getUser('user');
-      const state = interaction.options.getString('state');
-      if (state === 'on') {
-        await A.grantMythicPermission(interaction.guild.id, target.id);
-        return interaction.reply({ content: `<:checkmark:1495666088417956002> <@${target.id}> can now spawn and gift mythic cards.`, allowedMentions: { parse: [] } });
-      }
-      await A.revokeMythicPermission(interaction.guild.id, target.id);
-      return interaction.reply({ content: `<:checkmark:1495666088417956002> <@${target.id}> can no longer spawn or gift mythic cards.`, allowedMentions: { parse: [] } });
-    }
     if (sub === 'giftpermission') {
       const target = interaction.options.getUser('user');
       const state = interaction.options.getString('state');
       if (state === 'on') {
         await A.grantGiftPermission(interaction.guild.id, target.id);
-        return interaction.reply(`<:checkmark:1495666088417956002> <@${target.id}> can now gift their duplicate cards to other members with /cards gift.`);
+        return interaction.reply(`<:checkmark:1495666088417956002> <@${target.id}> can now gift their duplicate cards to other members with /cards gift, and (if an admin) spawn and gift mythic cards.`);
       }
       await A.revokeGiftPermission(interaction.guild.id, target.id);
       return interaction.reply(`<:checkmark:1495666088417956002> <@${target.id}>'s gift permission has been revoked.`);

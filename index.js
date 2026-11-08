@@ -362,12 +362,7 @@ const slashCommands = [
       .addChannelOption(o => o.setName('channel').setDescription('Channel').setRequired(true)))
     .addSubcommand(sc => sc.setName('pingrole').setDescription('Role to ping on every drop (leave blank to clear)')
       .addRoleOption(o => o.setName('role').setDescription('Role to ping')))
-    .addSubcommand(sc => sc.setName('mythicpermission').setDescription('Owner only: allow or remove an admin\'s ability to spawn/gift mythics')
-      .addUserOption(o => o.setName('user').setDescription('Which admin').setRequired(true))
-      .addStringOption(o => o.setName('state').setDescription('Grant or revoke').setRequired(true).addChoices(
-        { name: 'Grant', value: 'on' }, { name: 'Revoke', value: 'off' },
-      )))
-    .addSubcommand(sc => sc.setName('giftpermission').setDescription('Allow or remove a member\'s ability to gift their own duplicates')
+    .addSubcommand(sc => sc.setName('giftpermission').setDescription('Allow or remove a member\'s ability to gift duplicates (admins: also spawn/gift mythics)')
       .addUserOption(o => o.setName('user').setDescription('Which member').setRequired(true))
       .addStringOption(o => o.setName('state').setDescription('Grant or revoke').setRequired(true).addChoices(
         { name: 'Grant', value: 'on' }, { name: 'Revoke', value: 'off' },

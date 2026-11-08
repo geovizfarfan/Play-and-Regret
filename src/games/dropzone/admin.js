@@ -64,20 +64,11 @@ async function hasGiftPermission(guildId, userId) {
   const row = await db.get('SELECT 1 AS x FROM dropzone_gift_permissions WHERE guild_id = ? AND user_id = ?', [guildId, userId]);
   return !!row;
 }
-// ── Mythic permission — only the owner (OWNER_ID) and members the owner allows may spawn / gift mythics ──
-async function grantMythicPermission(guildId, userId) {
-  await db.run('INSERT INTO dropzone_mythic_permissions (guild_id, user_id) VALUES (?, ?) ON CONFLICT (guild_id, user_id) DO NOTHING', [guildId, userId]);
-}
-async function revokeMythicPermission(guildId, userId) {
-  await db.run('DELETE FROM dropzone_mythic_permissions WHERE guild_id = ? AND user_id = ?', [guildId, userId]);
-}
+// Mythics: the owner (OWNER_ID) can always spawn/gift them; other admins only if the owner gave them
+// the existing gift permission (/cards-admin giftpermission) — no separate command.
 async function canUseMythics(guildId, userId) {
   if (userId && userId === process.env.OWNER_ID) return true;
-  const row = await db.get('SELECT 1 AS x FROM dropzone_mythic_permissions WHERE guild_id = ? AND user_id = ?', [guildId, userId]);
-  return !!row;
-}
-async function getMythicPermittedUsers(guildId) {
-  return db.all('SELECT user_id FROM dropzone_mythic_permissions WHERE guild_id = ?', [guildId]);
+  return hasGiftPermission(guildId, userId);
 }
 
 async function getGiftPermittedUsers(guildId) {
@@ -175,6 +166,6 @@ async function getStats(guildId, season) {
 module.exports = {
   getConfig, setGuildEnabled, setSpawnChannel, getSpawnChannels, isSpawnChannelAllowed,
   setExchangeChannel, setPingRole, giftSticker, removeSticker, manualSpawn, setMonsterEnabled, getStats,
-  grantMythicPermission, revokeMythicPermission, canUseMythics, getMythicPermittedUsers,
+  canUseMythics,
   grantGiftPermission, revokeGiftPermission, hasGiftPermission, getGiftPermittedUsers, getOwnedQuantity, getUserOwnedCards,
 };
