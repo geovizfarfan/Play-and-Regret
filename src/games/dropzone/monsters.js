@@ -142,7 +142,7 @@ const SEASON_2 = [
 // readability; NUMBER_OFFSET turns that into the global number shown in the
 // bot. Art files stay per-season and local: assets/season-N/001.png..050.png.
 // To go back to restarting at #1 each season, set every offset to 0.
-const NUMBER_OFFSET = { 1: 0, 2: 50 };
+const NUMBER_OFFSET = { 1: 0, 2: 50, 3: 100 };
 
 function withDefaults(list, season) {
   const offset = NUMBER_OFFSET[season] || 0;
@@ -156,6 +156,32 @@ function withDefaults(list, season) {
     image: `assets/season-${season}/${String(m.number).padStart(3, '0')}.png`,
   }));
 }
+
+// ── SEASON 3 — WINTER DROP (starts Dec 1, 2026 3:00am Eastern — see config.js SEASON_SCHEDULE) ──
+// Written 1-N like the others; NUMBER_OFFSET makes them #101+. Art: assets/season-3/001.png..
+const SEASON_3 = [
+  // ── Common ──────────────────────────────────────────────────────────────
+  { id: 'first_snow', number: 1, name: "First Snow", rarity: 'common', flavorText: "Everyone's thrilled for exactly nine minutes." },
+  { id: 'candy_cane', number: 2, name: "Candy Cane", rarity: 'common', flavorText: "Sweet, sharp, and somehow always broken in half." },
+  { id: 'holly_jolly', number: 3, name: "Holly Jolly", rarity: 'common', flavorText: "Looks festive. Bites back." },
+  { id: 'cinnamon_wishes', number: 4, name: "Cinnamon Wishes", rarity: 'common', flavorText: "Smells like a hug. Costs like a candle." },
+  { id: 'frosted_pinecone', number: 5, name: "Frosted Pinecone", rarity: 'common', flavorText: "Free decor, collected from a very cold lawn." },
+  { id: 'winter_beanie', number: 6, name: "Winter Beanie", rarity: 'common', flavorText: "Hair is optional. Warmth is not." },
+  { id: 'frosted_mittens', number: 7, name: "Frosted Mittens", rarity: 'common', flavorText: "You lost one by December 3rd. Everyone does." },
+  { id: 'cozy_toes', number: 8, name: "Cozy Toes", rarity: 'common', flavorText: "Nobody's seen your real feet since the reindeer moved in." },
+  { id: 'christmas_morning', number: 9, name: "Christmas Morning", rarity: 'common', flavorText: "Matching pajamas. Zero dignity. Full joy." },
+  { id: 'peppermint_swirl', number: 10, name: "Peppermint Swirl", rarity: 'common', flavorText: "Found in a coat pocket. Still delicious. Don't ask." },
+  { id: 'ginger_snap', number: 11, name: "Ginger Snap", rarity: 'common', flavorText: "He ran. You caught him. Zero regrets." },
+  { id: 'sugar_rush', number: 12, name: "Sugar Rush", rarity: 'common', flavorText: "Seven cookies in, and the ceiling looks friendly." },
+  { id: 'milk_and_cookies', number: 13, name: "Milk & Cookies", rarity: 'common', flavorText: "Left out for Santa. Mostly gone by midnight." },
+  { id: 'holiday_ham', number: 14, name: "Holiday Ham", rarity: 'common', flavorText: "Carved with ceremony. Defended with violence." },
+  { id: 'christmas_pudding', number: 15, name: "Christmas Pudding", rarity: 'common', flavorText: "Set on fire on purpose. Somehow it's tradition." },
+  { id: 'cocoa_comfort', number: 16, name: "Cocoa Comfort", rarity: 'common', flavorText: "Marshmallows first. Regrets later." },
+  { id: 'marshmallow_mountain', number: 17, name: "Marshmallow Mountain", rarity: 'common', flavorText: "Climb it with a spoon. Return with a stomachache." },
+  { id: 'the_ugly_sweater', number: 18, name: "The Ugly Sweater", rarity: 'common', flavorText: "Tasteful is for other months." },
+  { id: 'merry_bauble', number: 19, name: "Merry Bauble", rarity: 'common', flavorText: "Hung with care. Broken by the cat." },
+  { id: 'silent_flame', number: 20, name: "Silent Flame", rarity: 'common', flavorText: "One small flame. Four hundred scented opinions." },
+];
 
 // ── Collector drops ──────────────────────────────────────────────────────
 // Special drops that NEVER spawn naturally and can only be given out by an admin
@@ -184,7 +210,7 @@ function collectorDefaults(list) {
   }));
 }
 
-const MONSTERS = [...withDefaults(SEASON_1, 1), ...withDefaults(SEASON_2, 2), ...collectorDefaults(COLLECTOR)];
+const MONSTERS = [...withDefaults(SEASON_1, 1), ...withDefaults(SEASON_2, 2), ...withDefaults(SEASON_3, 3), ...collectorDefaults(COLLECTOR)];
 
 function getMonster(id) {
   return MONSTERS.find(m => m.id === id) || null;
