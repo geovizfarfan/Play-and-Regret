@@ -196,6 +196,27 @@ const SEASON_3 = [
   { id: 'christmas_express', number: 33, name: "Christmas Express", rarity: 'common', flavorText: "All aboard. No refunds on the sugar." },
   { id: 'the_tree_topper', number: 34, name: "The Tree Topper", rarity: 'common', flavorText: "Highest seat in the house. Zero responsibilities." },
   { id: 'winter_wonderland', number: 35, name: "Winter Wonderland", rarity: 'common', flavorText: "Shake it once. Stare for an hour." },
+  // ── Uncommon ────────────────────────────────────────────────────────────
+  { id: 'snow_angel', number: 36, name: "Snow Angel", rarity: 'uncommon', flavorText: "Flopped in the snow. Not getting up." },
+  { id: 'waddle_wonderland', number: 37, name: "Waddle Wonderland", rarity: 'uncommon', flavorText: "Zero grip. Maximum confidence." },
+  { id: 'baby_blizzard', number: 38, name: "Baby Blizzard", rarity: 'uncommon', flavorText: "Tiny bear. Whole avalanche." },
+  { id: 'reindeer_rookie', number: 39, name: "Reindeer Rookie", rarity: 'uncommon', flavorText: "First day on the job. Already named in a song." },
+  { id: 'frosted_paws', number: 40, name: "Frosted Paws", rarity: 'uncommon', flavorText: "Tangled in the lights, blames the tree." },
+  { id: 'christmas_corgi', number: 41, name: "Christmas Corgi", rarity: 'uncommon', flavorText: "Stole the ribbon. Stole the show." },
+  { id: 'nutty_and_nice', number: 42, name: "Nutty & Nice", rarity: 'uncommon', flavorText: "Hoarding acorns for a winter that's already here." },
+  { id: 'cookie_criminal', number: 43, name: "Cookie Criminal", rarity: 'uncommon', flavorText: "Caught mid-crumb. Still chewing." },
+  { id: 'snowball_bandit', number: 44, name: "Snowball Bandit", rarity: 'uncommon', flavorText: "Built the fort. Declared war. Won." },
+  { id: 'tinsel_trouble', number: 45, name: "Tinsel Trouble", rarity: 'uncommon', flavorText: "One tug and the whole tree is involved." },
+  { id: 'penguin_postal_service', number: 46, name: "Penguin Postal Service", rarity: 'uncommon', flavorText: "Neither snow nor ice. Slightly late, though." },
+  { id: 'sleigh_all_day', number: 47, name: "Sleigh All Day", rarity: 'uncommon', flavorText: "Hill: conquered. Dignity: left at the top." },
+  { id: 'snow_much_fun', number: 48, name: "Snow Much Fun", rarity: 'uncommon', flavorText: "Going down fast. Smiling the whole way." },
+  { id: 'alpine_adventure', number: 49, name: "Alpine Adventure", rarity: 'uncommon', flavorText: "Hops first, asks about the slope later." },
+  { id: 'snowboard_season', number: 50, name: "Snowboard Season", rarity: 'uncommon', flavorText: "Big air. Bigger wipeout." },
+  { id: 'the_skating_duchess', number: 51, name: "The Skating Duchess", rarity: 'uncommon', flavorText: "Spins elegantly. Judges you silently." },
+  { id: 'frostbite', number: 52, name: "Frostbite", rarity: 'uncommon', flavorText: "Cool under pressure. Colder everywhere else." },
+  { id: 'the_christmas_pickle', number: 53, name: "The Christmas Pickle", rarity: 'uncommon', flavorText: "Hidden deep in the tree. Finder gets a prize. Allegedly." },
+  { id: 'the_gingerbread_girl', number: 54, name: "The Gingerbread Girl", rarity: 'uncommon', flavorText: "Sweet, sassy, and absolutely not for eating." },
+  { id: 'winter_village_baker', number: 55, name: "Winter Village Baker", rarity: 'uncommon', flavorText: "Pipes frosting with the focus of a surgeon." },
 ];
 
 // ── Collector drops ──────────────────────────────────────────────────────
