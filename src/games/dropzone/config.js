@@ -53,6 +53,7 @@ const CONFIG = {
 const SEASON_NAMES = {
   1: 'Monster Drops',
   2: 'Fall Drop',
+  3: 'Winter Drop',
 };
 
 // When each season goes live. Season 1 has always been live (null = from the
@@ -61,13 +62,19 @@ const SEASON_NAMES = {
 const SEASON_SCHEDULE = [
   { season: 1, startsAt: null },
   { season: 2, startsAt: '2026-11-01T00:00:00-04:00' },
+  // Winter Drop: Dec 1, 2026 3:00am Eastern. December is standard time (EST = UTC-5) → 08:00 UTC.
+  // Safety: a season only goes live once it actually has cards in monsters.js (see getActiveSeason).
+  { season: 3, startsAt: '2026-12-01T03:00:00-05:00' },
 ];
 
 /** The highest-numbered season whose start time has passed. */
 function getActiveSeason(now = new Date()) {
   let active = SEASON_SCHEDULE[0].season;
+  const { getMonstersBySeason } = require('./monsters');           // lazy: monsters.js requires this file
   for (const { season, startsAt } of SEASON_SCHEDULE) {
-    if (startsAt === null || new Date(startsAt) <= now) active = Math.max(active, season);
+    if (startsAt !== null && new Date(startsAt) > now) continue;
+    if (season > 1 && !getMonstersBySeason(season).length) continue;   // never roll over to a season with no cards
+    active = Math.max(active, season);
   }
   return active;
 }
