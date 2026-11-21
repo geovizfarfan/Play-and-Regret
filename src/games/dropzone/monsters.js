@@ -265,6 +265,22 @@ const SEASON_3 = [
   { id: 'rudolph', number: 98, name: "Rudolph", rarity: 'legendary', flavorText: "Mocked for his nose. Hired for his nose." },
   { id: 'the_christmas_thief', number: 99, name: "The Christmas Thief", rarity: 'legendary', flavorText: "Hates the noise, noise, noise. Loves the sleigh." },
   { id: 'santa_claus', number: 100, name: "Santa Claus", rarity: 'legendary', flavorText: "Knows if you've been bad or good. Brings cookies anyway." },
+  // ── Mythic ──────────────────────────────────────────────────────────────
+  { id: 'geovanna_snowflake_duchess', number: 101, name: "Geovanna | The Snowflake Duchess", rarity: 'mythic', flavorText: "Every flake is unique. So is the attitude." },
+  { id: 'agustin_midnight_nutcracker', number: 102, name: "Agustin | The Midnight Nutcracker", rarity: 'mythic', flavorText: "Anonymous by choice. Dramatic by nature." },
+  { id: 'jessica_miss_mistletoe', number: 103, name: "Jessica | Miss Mistletoe", rarity: 'mythic', flavorText: "Raises a glass. Rules the room." },
+  { id: 'yasmin_christmas_wishmaker', number: 104, name: "Yasmin | The Christmas Wishmaker", rarity: 'mythic', flavorText: "Reads every letter. Grants the good ones." },
+  { id: 'julie_christmas_duchess', number: 105, name: "Julie | The Christmas Duchess", rarity: 'mythic', flavorText: "Pink, polished, and never underdressed." },
+  { id: 'jazzy_peppermint_princess', number: 106, name: "Jazzy | The Peppermint Princess", rarity: 'mythic', flavorText: "Sweet smile. Stripes with a spine." },
+  { id: 'katherine_gingerbread_heiress', number: 107, name: "Katherine | The Gingerbread Heiress", rarity: 'mythic', flavorText: "Royalty made of spice and everything nice." },
+  { id: 'chardo_arctic_commander', number: 108, name: "Chardo | The Arctic Commander", rarity: 'mythic', flavorText: "Leads the pack. The husky just follows the snacks." },
+  { id: 'valorie_holiday_mechanic', number: 109, name: "Valorie | The Holiday Mechanic", rarity: 'mythic', flavorText: "Keeps the sleigh running. Doesn't take questions." },
+  { id: 'apryl_sugar_plum_duchess', number: 110, name: "Apryl | The Sugar Plum Duchess", rarity: 'mythic', flavorText: "Sweet enough to rule. Smart enough to stay in charge." },
+  { id: 'mariela_christmas_authority', number: 111, name: "Mariela | The Christmas Authority", rarity: 'mythic', flavorText: "Rings the bell. The holiday begins." },
+  { id: 'nala_heart_of_winter', number: 112, name: "Nala | The Heart of Winter", rarity: 'mythic', flavorText: "Even the snow animals line up for her." },
+  { id: 'nicole_guardian_christmas_chaos', number: 113, name: "Nicole | The Guardian of Christmas Chaos", rarity: 'mythic', flavorText: "Presents everywhere. Everything under control." },
+  { id: 'yasmin_weaver_christmas_dreams', number: 114, name: "Yasmin | The Weaver of Christmas Dreams", rarity: 'mythic', flavorText: "Spins wishes into something you can wrap." },
+  { id: 'kareena_aurora_empress', number: 115, name: "Kareena | The Aurora Empress", rarity: 'mythic', flavorText: "Northern lights, on her command." },
 ];
 
 // ── Collector drops ──────────────────────────────────────────────────────
