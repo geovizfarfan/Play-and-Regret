@@ -243,6 +243,19 @@ const SEASON_3 = [
   { id: 'sally', number: 78, name: "Sally", rarity: 'rare', flavorText: "Stitched together. Sweetest thing in town." },
   { id: 'jack_frost', number: 79, name: "Jack Frost", rarity: 'rare', flavorText: "Leaves a trail of frost and a trail of chaos." },
   { id: 'frosty_the_snowman', number: 80, name: "Frosty the Snowman", rarity: 'rare', flavorText: "Dances through town. Runs from the sun." },
+  // ── Epic ────────────────────────────────────────────────────────────────
+  { id: 'jacob_marley', number: 81, name: "Jacob Marley", rarity: 'epic', flavorText: "Dragging his chains and a very late warning." },
+  { id: 'ghost_of_christmas_past', number: 82, name: "Ghost of Christmas Past", rarity: 'epic', flavorText: "Replays your memories. Skips no embarrassing ones." },
+  { id: 'ghost_of_christmas_present', number: 83, name: "Ghost of Christmas Present", rarity: 'epic', flavorText: "Throws the feast. Judges your guest list." },
+  { id: 'ghost_of_christmas_yet_to_come', number: 84, name: "Ghost of Christmas Yet to Come", rarity: 'epic', flavorText: "Doesn't say a word. Doesn't need to." },
+  { id: 'the_mouse_king', number: 85, name: "The Mouse King", rarity: 'epic', flavorText: "Tiny king. Enormous attitude. Wants your nutcracker." },
+  { id: 'the_sugar_plum_fairy', number: 86, name: "The Sugar Plum Fairy", rarity: 'epic', flavorText: "Dances on tiptoe. Rules over dessert." },
+  { id: 'the_land_of_sweets', number: 87, name: "The Land of Sweets", rarity: 'epic', flavorText: "Every path is edible. Every decision is questionable." },
+  { id: 'the_snow_queen', number: 88, name: "The Snow Queen", rarity: 'epic', flavorText: "Cold shoulder, but make it a crown." },
+  { id: 'santas_workshop', number: 89, name: "Santa's Workshop", rarity: 'epic', flavorText: "Zero days off. Infinite elves. Questionable labor laws." },
+  { id: 'whoville', number: 90, name: "Whoville", rarity: 'epic', flavorText: "Small town. Gigantic holiday spirit." },
+  { id: 'the_polar_express', number: 91, name: "The Polar Express", rarity: 'epic', flavorText: "All aboard. Bring a ticket and an open mind." },
+  { id: 'the_north_pole', number: 92, name: "The North Pole", rarity: 'epic', flavorText: "Everyone's list is checked here. Twice." },
 ];
 
 // ── Collector drops ──────────────────────────────────────────────────────
