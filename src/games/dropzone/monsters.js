@@ -256,6 +256,15 @@ const SEASON_3 = [
   { id: 'whoville', number: 90, name: "Whoville", rarity: 'epic', flavorText: "Small town. Gigantic holiday spirit." },
   { id: 'the_polar_express', number: 91, name: "The Polar Express", rarity: 'epic', flavorText: "All aboard. Bring a ticket and an open mind." },
   { id: 'the_north_pole', number: 92, name: "The North Pole", rarity: 'epic', flavorText: "Everyone's list is checked here. Twice." },
+  // ── Legendary ───────────────────────────────────────────────────────────
+  { id: 'krampus', number: 93, name: "Krampus", rarity: 'legendary', flavorText: "Naughty list's personal accountant." },
+  { id: 'the_christmas_star', number: 94, name: "The Christmas Star", rarity: 'legendary', flavorText: "Lit the way once. Still outshining every tree topper." },
+  { id: 'ebenezer_scrooge', number: 95, name: "Ebenezer Scrooge", rarity: 'legendary', flavorText: "Humbug at midnight. Generous by morning." },
+  { id: 'the_nutcracker', number: 96, name: "The Nutcracker", rarity: 'legendary', flavorText: "Cracks nuts, battles mice, never blinks." },
+  { id: 'jack', number: 97, name: "Jack", rarity: 'legendary', flavorText: "Pumpkin King by trade. Santa by terrible mistake." },
+  { id: 'rudolph', number: 98, name: "Rudolph", rarity: 'legendary', flavorText: "Mocked for his nose. Hired for his nose." },
+  { id: 'the_christmas_thief', number: 99, name: "The Christmas Thief", rarity: 'legendary', flavorText: "Hates the noise, noise, noise. Loves the sleigh." },
+  { id: 'santa_claus', number: 100, name: "Santa Claus", rarity: 'legendary', flavorText: "Knows if you've been bad or good. Brings cookies anyway." },
 ];
 
 // ── Collector drops ──────────────────────────────────────────────────────
