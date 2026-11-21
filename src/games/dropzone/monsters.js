@@ -281,6 +281,11 @@ const SEASON_3 = [
   { id: 'nicole_guardian_christmas_chaos', number: 113, name: "Nicole | The Guardian of Christmas Chaos", rarity: 'mythic', flavorText: "Presents everywhere. Everything under control." },
   { id: 'yasmin_weaver_christmas_dreams', number: 114, name: "Yasmin | The Weaver of Christmas Dreams", rarity: 'mythic', flavorText: "Spins wishes into something you can wrap." },
   { id: 'kareena_aurora_empress', number: 115, name: "Kareena | The Aurora Empress", rarity: 'mythic', flavorText: "Northern lights, on her command." },
+  { id: 'valorie_architect_of_christmas', number: 116, name: "Valorie | The Architect of Christmas", rarity: 'mythic', flavorText: "Blueprints for joy. Wrench for everything else." },
+  { id: 'agustin_silent_frost', number: 117, name: "Agustin | The Silent Frost", rarity: 'mythic', flavorText: "Never says a word. The wolf says plenty." },
+  { id: 'maria_keeper_of_christmas_time', number: 118, name: "Maria | The Keeper of Christmas Time", rarity: 'mythic', flavorText: "Holds the hourglass. Makes the season last." },
+  { id: 'jessica_voice_of_christmas', number: 119, name: "Jessica | The Voice of Christmas", rarity: 'mythic', flavorText: "When she sings, the bells follow." },
+  { id: 'geovanna_sovereign_of_christmas', number: 120, name: "Geovanna | The Sovereign of Christmas", rarity: 'mythic', flavorText: "The final card. Crown included." },
 ];
 
 // ── Collector drops ──────────────────────────────────────────────────────
