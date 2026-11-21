@@ -222,6 +222,27 @@ const SEASON_3 = [
   { id: 'christmas_carriage', number: 58, name: "Christmas Carriage", rarity: 'uncommon', flavorText: "Arrives fashionably late. Leaves with the good seat." },
   { id: 'gingerbread_cottage', number: 59, name: "Gingerbread Cottage", rarity: 'uncommon', flavorText: "Structurally unsound. Emotionally perfect." },
   { id: 'midnight_carousel', number: 60, name: "Midnight Carousel", rarity: 'uncommon', flavorText: "Round and round, until the music stops at 12." },
+  // ── Rare ────────────────────────────────────────────────────────────────
+  { id: 'the_little_match_girl', number: 61, name: "The Little Match Girl", rarity: 'rare', flavorText: "One tiny flame. One very big daydream." },
+  { id: 'tiny_tim', number: 62, name: "Tiny Tim", rarity: 'rare', flavorText: "Smallest in the room. Biggest heart in it." },
+  { id: 'bob_cratchit', number: 63, name: "Bob Cratchit", rarity: 'rare', flavorText: "Underpaid, overjoyed, and carrying the whole feast." },
+  { id: 'the_little_drummer_boy', number: 64, name: "The Little Drummer Boy", rarity: 'rare', flavorText: "No gift but a beat. Somehow enough." },
+  { id: 'olive_the_other_reindeer', number: 65, name: "Olive the Other Reindeer", rarity: 'rare', flavorText: "Not built for the sleigh. Showed up anyway." },
+  { id: 'the_gingerbread_man', number: 66, name: "The Gingerbread Man", rarity: 'rare', flavorText: "Catch him if you can. Nobody ever can." },
+  { id: 'clara', number: 67, name: "Clara", rarity: 'rare', flavorText: "Hugs a nutcracker. Starts an adventure." },
+  { id: 'hermey_the_elf', number: 68, name: "Hermey the Elf", rarity: 'rare', flavorText: "Toys are great. Dentistry is better." },
+  { id: 'yukon_cornelius', number: 69, name: "Yukon Cornelius", rarity: 'rare', flavorText: "Mountain climbed. Gold found. Pick-axe overused." },
+  { id: 'the_bumble', number: 70, name: "The Bumble", rarity: 'rare', flavorText: "Scary until someone hands him the star." },
+  { id: 'elf_on_the_shelf', number: 71, name: "Elf on the Shelf", rarity: 'rare', flavorText: "Watching you. Judging you. Cute about it." },
+  { id: 'mrs_claus', number: 72, name: "Mrs. Claus", rarity: 'rare', flavorText: "Runs the North Pole. Bakes in her spare time." },
+  { id: 'cindy_lou_who', number: 73, name: "Cindy Lou Who", rarity: 'rare', flavorText: "Tiny, sweet, and impossible to say no to." },
+  { id: 'max', number: 74, name: "Max", rarity: 'rare', flavorText: "Pulls the whole sleigh. Gets no credit. Still wags." },
+  { id: 'buddy_the_elf', number: 75, name: "Buddy the Elf", rarity: 'rare', flavorText: "Four food groups: candy, candy canes, candy corns, syrup." },
+  { id: 'kevin_mccallister', number: 76, name: "Kevin McCallister", rarity: 'rare', flavorText: "Home alone. Fully prepared. Slightly unhinged." },
+  { id: 'the_wet_bandits', number: 77, name: "The Wet Bandits", rarity: 'rare', flavorText: "Tangled in lights. Outsmarted by a kid." },
+  { id: 'sally', number: 78, name: "Sally", rarity: 'rare', flavorText: "Stitched together. Sweetest thing in town." },
+  { id: 'jack_frost', number: 79, name: "Jack Frost", rarity: 'rare', flavorText: "Leaves a trail of frost and a trail of chaos." },
+  { id: 'frosty_the_snowman', number: 80, name: "Frosty the Snowman", rarity: 'rare', flavorText: "Dances through town. Runs from the sun." },
 ];
 
 // ── Collector drops ──────────────────────────────────────────────────────
