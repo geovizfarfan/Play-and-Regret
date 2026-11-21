@@ -181,6 +181,21 @@ const SEASON_3 = [
   { id: 'the_ugly_sweater', number: 18, name: "The Ugly Sweater", rarity: 'common', flavorText: "Tasteful is for other months." },
   { id: 'merry_bauble', number: 19, name: "Merry Bauble", rarity: 'common', flavorText: "Hung with care. Broken by the cat." },
   { id: 'silent_flame', number: 20, name: "Silent Flame", rarity: 'common', flavorText: "One small flame. Four hundred scented opinions." },
+  { id: 'christmas_glow', number: 21, name: "Christmas Glow", rarity: 'common', flavorText: "One bulb dies and the whole string goes with it." },
+  { id: 'jingle_bells', number: 22, name: "Jingle Bells", rarity: 'common', flavorText: "Impossible to sneak anywhere. Worth it." },
+  { id: 'mistletoe_magic', number: 23, name: "Mistletoe Magic", rarity: 'common', flavorText: "Hung innocently. Used strategically." },
+  { id: 'the_christmas_wreath', number: 24, name: "The Christmas Wreath", rarity: 'common', flavorText: "The door's only decoration. The neighbors' only benchmark." },
+  { id: 'under_the_tree', number: 25, name: "Under the Tree", rarity: 'common', flavorText: "Shaken, weighed, and guessed at since the 15th." },
+  { id: 'stuffed_stocking', number: 26, name: "Stuffed Stocking", rarity: 'common', flavorText: "Candy at the top. A single orange at the bottom." },
+  { id: 'chimney_watch', number: 27, name: "Chimney Watch", rarity: 'common', flavorText: "Waiting up all night. Asleep by nine." },
+  { id: 'frosted_window', number: 28, name: "Frosted Window", rarity: 'common', flavorText: "Draw a heart. Regret it when it melts." },
+  { id: 'winter_lantern', number: 29, name: "Winter Lantern", rarity: 'common', flavorText: "Small light, big mood." },
+  { id: 'ice_gliders', number: 30, name: "Ice Gliders", rarity: 'common', flavorText: "Graceful for three seconds. Then gravity." },
+  { id: 'snow_day', number: 31, name: "Snow Day", rarity: 'common', flavorText: "Cancelled everything. Cleared nothing." },
+  { id: 'special_delivery', number: 32, name: "Special Delivery", rarity: 'common', flavorText: "Postmarked North Pole. Signed for by no one." },
+  { id: 'christmas_express', number: 33, name: "Christmas Express", rarity: 'common', flavorText: "All aboard. No refunds on the sugar." },
+  { id: 'the_tree_topper', number: 34, name: "The Tree Topper", rarity: 'common', flavorText: "Highest seat in the house. Zero responsibilities." },
+  { id: 'winter_wonderland', number: 35, name: "Winter Wonderland", rarity: 'common', flavorText: "Shake it once. Stare for an hour." },
 ];
 
 // ── Collector drops ──────────────────────────────────────────────────────
