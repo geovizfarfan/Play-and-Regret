@@ -266,7 +266,7 @@ const SEASON_3 = [
   { id: 'the_christmas_thief', number: 99, name: "The Christmas Thief", rarity: 'legendary', flavorText: "Hates the noise, noise, noise. Loves the sleigh." },
   { id: 'santa_claus', number: 100, name: "Santa Claus", rarity: 'legendary', flavorText: "Knows if you've been bad or good. Brings cookies anyway." },
   // ── Mythic ──────────────────────────────────────────────────────────────
-  { id: 'geovanna_snowflake_duchess', number: 101, name: "Geovanna | The Snowflake Duchess", rarity: 'mythic', flavorText: "Every flake is unique. So is the attitude." },
+  { id: 'geoviz_snowflake_duchess', number: 101, name: "Geoviz | The Snowflake Duchess", rarity: 'mythic', flavorText: "Every flake is unique. So is the attitude." },
   { id: 'agustin_midnight_nutcracker', number: 102, name: "Agustin | The Midnight Nutcracker", rarity: 'mythic', flavorText: "Anonymous by choice. Dramatic by nature." },
   { id: 'jessica_miss_mistletoe', number: 103, name: "Jessica | Miss Mistletoe", rarity: 'mythic', flavorText: "Raises a glass. Rules the room." },
   { id: 'yasmin_christmas_wishmaker', number: 104, name: "Yasmin | The Christmas Wishmaker", rarity: 'mythic', flavorText: "Reads every letter. Grants the good ones." },
