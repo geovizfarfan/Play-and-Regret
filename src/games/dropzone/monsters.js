@@ -217,6 +217,11 @@ const SEASON_3 = [
   { id: 'the_christmas_pickle', number: 53, name: "The Christmas Pickle", rarity: 'uncommon', flavorText: "Hidden deep in the tree. Finder gets a prize. Allegedly." },
   { id: 'the_gingerbread_girl', number: 54, name: "The Gingerbread Girl", rarity: 'uncommon', flavorText: "Sweet, sassy, and absolutely not for eating." },
   { id: 'winter_village_baker', number: 55, name: "Winter Village Baker", rarity: 'uncommon', flavorText: "Pipes frosting with the focus of a surgeon." },
+  { id: 'deck_the_halls', number: 56, name: "Deck the Halls", rarity: 'uncommon', flavorText: "The tree decorated itself. Nobody's asking questions." },
+  { id: 'the_toy_soldier', number: 57, name: "The Toy Soldier", rarity: 'uncommon', flavorText: "Marches on. Nobody told him the battery died." },
+  { id: 'christmas_carriage', number: 58, name: "Christmas Carriage", rarity: 'uncommon', flavorText: "Arrives fashionably late. Leaves with the good seat." },
+  { id: 'gingerbread_cottage', number: 59, name: "Gingerbread Cottage", rarity: 'uncommon', flavorText: "Structurally unsound. Emotionally perfect." },
+  { id: 'midnight_carousel', number: 60, name: "Midnight Carousel", rarity: 'uncommon', flavorText: "Round and round, until the music stops at 12." },
 ];
 
 // ── Collector drops ──────────────────────────────────────────────────────
